@@ -313,9 +313,9 @@ def descent_speed(data, mass, Cd, areas, change_alt=None):
     h = data['altitudes']
     g = g_0 * (R_e / (R_e + h))**2 # Gravitational acceleration at height h
 
+    speeds = []
     if change_alt is not None:
         idxs = h < change_alt
-        speeds = []
         for rho in data['air_densities']:
             v = np.sqrt(2*m*g/(rho*Cd*areas[0]))
             v[idxs] = np.sqrt(2*m*g[idxs]/(rho[idxs]*Cd*areas[1]))

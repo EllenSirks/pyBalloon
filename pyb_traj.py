@@ -71,13 +71,16 @@ def calc_movements(data, loc0, balloon, live_data=None, alt_change_fit=10):
     data['lifts'] = pyb_aux.lift(data, total_mass)
 
     data['ascent_speeds'] = pyb_aux.ascent_speed(data, total_mass, 
-                                                balloon['Cd_balloon'])
+                                            balloon['Cd_balloon'])
+
+    if 'simple_ascent_rate' in balloon:
+        data['ascent_speeds'] = np.ones_like(data['ascent_speeds']) * \
+                                balloon['simple_ascent_rate']
 
     data = pyb_aux.data_interpolation(data, 
                                       alt0, 
                                       balloon['altitude_step'], 
                                       mode='spline')
-
     data['descent_speeds'] = \
         pyb_aux.descent_speed(data, 
                              balloon['equip_mass'],
@@ -181,7 +184,7 @@ def calc_movements(data, loc0, balloon, live_data=None, alt_change_fit=10):
     print "Maximum altitude", np.max(all_alts), \
         'm, distance travelled %.1f:' % distance_travelled, 'km'
     print 'Landing location', \
-        '%.3f, %.3f' % (output['lats'][-1], output['lons'][-1]), \
+        '%.6f, %.6f' % (output['lats'][-1], output['lons'][-1]), \
         'after %d min of flight\n' % (int(output['times'][-1]))
 
     return output

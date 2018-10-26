@@ -16,6 +16,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None):
     Optional arguments:
         - area -- tuple of NW and SE limits of the area to be read,
         eg.  (62., 22., 59., 24.). Default: None (read all data)
+        NOTE top, left, bottom, right order!
         - alt0 -- Starting altitude above sea level, default: 0.0 m
         - t_0 -- Temperature at ground level, default: None
         - extra_data -- Add highest levels from extra_data to GFS
@@ -32,9 +33,9 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None):
     """
     
     if area is not None:
-        tlat, llat, blat, rlat = area
+        tlat, llon, blat, rlon = area
     else:
-        tlat, llat, blat, rlat = 90., -180., -90., 180.
+        tlat, llon, blat, rlon = 90., -180., -90., 180.
 
     grib = pg.open(fname)
     grib.seek(0)
@@ -47,17 +48,20 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None):
 
     # Find closest pixel location
     locs = pyb_aux.all_and([lats <= tlat, lats >= blat, 
-                           lons <= rlat, lons >= llat])
+                           lons <= rlon, lons >= llon])
     row_idx, col_idx = np.where(locs)
     lats = lats[row_idx, col_idx]
     lons = lons[row_idx, col_idx]
+
+    if len(lats) == 0: print 'Warning! lats is empty!'
+    if len(lons) == 0: print 'Warning! lons is empty!'
 
     # Collect U component of wind data
     u_wind = {}
     for msg in u_msgs:
         if msg.typeOfLevel == 'isobaricInhPa':
             u_wind[msg.level] = msg.values[row_idx, col_idx]
-
+    
     # Collect V component of wind data
     v_wind = {}
     for msg in v_msgs:
@@ -97,6 +101,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None):
     # Put pressures in altitude order and use them as keys
     pressures.sort()
     pressures.reverse()
+
     i = 0
     for key in pressures:
         if i == 0:
@@ -212,6 +217,34 @@ def read_gfs_set(directory, area=None, alt0=0, main='gfs_main.grib2',
                                               area=area, 
                                               alt0=alt0, 
                                               extra_data=None))
+
+    return all_data
+
+
+def read_gfs_single(directory, area=None, alt0=0):
+    """Read a set of 0.5 degree GFS data.
+
+    Required arguments:
+        - directory -- Directory containing the data
+
+    Optional arguments:
+        - area -- tuple of NW and SE limits of the area to be read,
+        eg.  (62., 22., 59., 24.). Default: None (read all data).
+        Note: top, left, bottom, right order.
+        - alt0 -- Starting altitude of the balloon, meters from the WGS84
+        reference ellipsoid. Default: 0.0.
+
+    Return:
+        - List of dictionaries containing u_winds, v_winds, temperatures,
+        pressures and altitudes.
+    """
+
+    all_data = []
+
+    fname = os.path.join(directory, (directory + '.grb2'))
+    print "Reading GFS data from", fname
+    main_run_data = read_gfs_file(fname, area=area, alt0=alt0)
+    all_data.append(main_run_data)
 
     return all_data
 
