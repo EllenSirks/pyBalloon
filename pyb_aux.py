@@ -1,5 +1,3 @@
-"""Auxiliary functions used in pyBalloon"""
-
 import numpy as np
 from scipy import interpolate
 
@@ -7,7 +5,6 @@ g_0 = 9.80665 # Earth gravitational acceleration at surface
 R_e = 6371009 # mean Earth radius in meters
 R = 8.3144621 # Ideal gas constant
 M_air = 0.0289644 # molar mass of air [kg/mol], altitude dependence
-                  # not used here
 M_helium = 4.002602
 Cd_sphere = 0.47 # Drag coefficient for a sphere
 
@@ -48,23 +45,13 @@ def earth_radius(lat_rad):
 
 
 def air_density(data):
-    """Calculate air density from pressure and temperature.
-    
-    Required argument:
-        - data -- Dictionary returned by read_gfs_data()
-
-    Return:
-        - Air densities (as Numpy array) for each altitude step in data.
-    """
 
     p = data['pressures']
     T = data['temperatures']
 
     if p.shape != T.shape:
         x, y = p.shape
-        rho = []
-        for i in range(0, y): 
-            rho.append(np.array((p[:, i] * M_air)/(R * T)))
+        rho = [np.array((p[:, i] * M_air)/(R * T)) for i in range(0, y)]
         rho = np.array(rho).transpose()
     else:
         rho = (p * M_air)/(R * T)
@@ -72,64 +59,64 @@ def air_density(data):
     return rho
 
 
-def data_interpolation(data, alt0, step, mode='spline'):
-    """Interpolate (and extrapolate in the low end, if mode='spline'
-    is used) vertical data from alt0 to maximum level present in the
-    data.
-
-    Required arguments:
-        - data -- Dictionary returned by read_gfs_data()
-        - alt0 -- Starting altitude of the interpolation in meters from
-        WGS84 reference ellipsoid
-        - step -- Interpolation altitude step
-
-    Optional arguments:
-        - mode -- Interpolation method. Supported methods are 'spline' and
-        'linear'. Default: 'spline'
-
-    Return:
-        - Interpolated version of the data.
-    """
+def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
 
     altitudes = data['altitudes']
 
     new_data = {}
 
-    new_data['altitudes'] = np.arange(alt0, altitudes.max(), step)
+    if descent_only:
+        new_data['altitudes'] = np.arange(0, altitudes.max(), step)
+    else:
+        new_data['altitudes'] = np.arange(alt0, altitudes.max(), step)
+
     new_data['lats'] = data['lats']
     new_data['lons'] = data['lons']
-    for key in data.keys():
-        if key != 'altitudes' and key != 'lats' and key != 'lons':
-            new_arr = []
+
+    checks = ['altitudes', 'lats', 'lons']
+
+    for key in data.keys():        
+        if key not in checks:
+
+            arr = []
             d = data[key]
 
             try:
                 x, y = d.shape
+
             except ValueError:
+
                 x = 0
                 y, = d.shape
 
             if mode == 'spline':
-                if x > 0:
-                    for i in range(0, y):
-                        ok_idxs = altitudes[:, i] >= alt0
-                        tck = interpolate.splrep(altitudes[ok_idxs, i], 
-                                                 d[ok_idxs, i])
-                        new_arr.append(np.array(interpolate.splev( \
-                                    new_data['altitudes'], tck)))
-                else:
-                    tck = interpolate.splrep(altitudes, d)
-                    new_arr.append(np.array(interpolate.splev( \
-                                new_data['altitudes'], tck)))
 
-            else: # use linear interpolation
+                if not descent_only:
+
+                    if x > 0:
+                            ok_idxs = altitudes[:, i] >= alt0
+                            tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
+                            arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
+                    else:
+                        tck = interpolate.splrep(altitudes, d)
+                        arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
+
+                elif descent_only:
+
+                    if x > 0:
+                        arr = [np.array(interpolate.splev(new_data['altitudes'], interpolate.splrep(altitudes[altitudes[:, i] <= alt0, i], d[altitudes[:, i] <= alt0, i]))) for i in range(0, y)]
+                    else:
+                        arr = [np.array(interpolate.splev(new_data['altitudes'], interpolate.splrep(altitudes, d)))]
+
+            else: # use linear interpolation 
                 # There's something wrong here:
                 for i in range(0, y):
                     for i in range(0, len(d)):
                         tck = interpolate.interp1d(altitudes[:, i], d[:, i])
-                        new_arr.append(tck(new_data['altitudes']))
+                        arr.append(tck(new_data['altitudes']))
 
-            new_data[key] = np.array(new_arr)
+            new_data[key] = np.array(arr)
+            
 
     return new_data
 
@@ -201,27 +188,18 @@ def balloon_volume_ideal_gas(data, gas_mass, gas_molar_mass=M_helium):
 
 
 def burst_altitude(data, burst_radius):
-    """Find the altitude where balloon radius gets greater than the
-    given burst radius.
-
-    Required arguments:
-        - data -- Dictionary containing 'altitudes' and corresponding
-        'balloon_radii'
-        - burst_radius -- Balloon burst radius
-
-    Return:
-        - Altitude of burst and corresponding array index
-    """
 
     radii = data['balloon_radii']
 
     alt_out = []
     i_out = []
+    i = 0
     for radius in radii:
         diff = np.abs(radius-burst_radius)
         idx = np.where(diff == diff.min())    
         i_out.append(idx[0][0])
         alt_out.append(data['altitudes'][idx])
+        i+=1
 
     return np.array(alt_out), np.array(i_out)
 
@@ -330,27 +308,6 @@ def descent_speed(data, mass, Cd, areas, change_alt=None):
 
 def mooney_rivlin(data, radius_empty, radius_filled, 
                   thickness_empty, gas_molar_mass=M_helium):
-    """Calculate balloon radii for given
-    pressures/temperatures/initial conditions using inversion of
-    Mooney-Rivlin equation.
-
-    See description of the equation at: 
-    http://www.zmatt.net/weather-balloon-physics/
-
-    Required arguments:
-        - data -- Dictionary containing 'pressures' and 'temperatures'
-        - radius_empty -- Radius of the empty balloon
-        - radius_filled -- Radius when filled at ground level
-        - thickness_empty -- Balloon rubber initial thickness
-    
-    Optional arguments:
-        - gas_molar_mass -- Molar mass (g/mol) of the gas used to fill
-        the balloon. Default: 4.002602 (Helium)
-
-    Return:
-        - Radius of the balloon at each level in input data, and the
-        mass of the gas.
-    """
 
     r0 = radius_empty # in meters
     r1 = radius_filled # in meters
@@ -365,10 +322,7 @@ def mooney_rivlin(data, radius_empty, radius_filled,
     alfa = 10./11.
 
     # Amount of gas in moles
-    n = (4/3. * np.pi * r1**3)/(R*T0) * \
-        (p0 - 2*mu*(t0/r0)* \
-             ((r0/r1) - (r0/r1)**7) * \
-             (1 + (1/alfa - 1) * (r1/r0)**2))
+    n = (4/3. * np.pi * r1**3)/(R*T0) * (p0 - 2*mu*(t0/r0)*((r0/r1) - (r0/r1)**7) * (1 + (1/alfa - 1) * (r1/r0)**2))
     gas_mass = n*M
 
     # Solve balloon-radius-roots for each height level
@@ -429,7 +383,4 @@ def mooney_rivlin(data, radius_empty, radius_filled,
 
     all_radii = np.array(all_radii)
 
-
     return all_radii, gas_mass
-
-
