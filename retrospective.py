@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
 	# example balloon:
 	balloon = {}
-	balloon['altitude_step'] = 50.0 # meters
+	balloon['altitude_step'] = 100.0 # meters
 	balloon['equip_mass'] = 1.608 # kg
 	balloon['balloon_mass'] = 1.50 # kg
 	balloon['fill_radius'] = 2.122/2 # meters
