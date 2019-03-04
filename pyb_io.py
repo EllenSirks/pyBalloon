@@ -441,58 +441,52 @@ def save_kml(fname, data, model_start_idx=0,
     """
 
     kml_str = '<?xml version="1.0" encoding="UTF-8"?>\n'
-    kml_str += '<kml xmlns="http://www.opengis.net/kml/2.2">\n'
-    kml_str += '<Document>\n'
+    kml_str += '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">\n'
+    kml_str += '<Document id="feat_2">\n'
     kml_str += '<name>pyballoon trajectory</name>\n'
     kml_str += '<description>pyballoon trajectories</description>\n'
 
-    kml_str += '<Style id="yellowLineGreenPoly">\n'
-    kml_str += '<LineStyle>\n'
-    kml_str += '<color>2000ffff</color>\n'
-    kml_str += '<width>4</width>\n'
+    kml_str += '<Style id="stylesel_362">\n'
+    kml_str += '<LineStyle id="substyle_363">\n'
+    kml_str += '<color>BF0000DF</color>\n'
+    kml_str += '<colorMode>normal</colorMode>\n'
+    kml_str += '<width>5</width>\n'
     kml_str += '</LineStyle>\n'
-    kml_str += '<PolyStyle>\n'
-#    kml_str += '<color>4000ff00</color>\n'
-    kml_str += '<color>0000ff00</color>\n'
+    kml_str += '<PolyStyle id="substyle_364">\n'
+    kml_str += '<color>BF0000DF</color>\n'
+    kml_str += '<colorMode>normal</colorMode>\n'
+    kml_str += '<fill>1</fill>\n'
+    kml_str += '<outline>1</outline>\n'
     kml_str += '</PolyStyle>\n'
     kml_str += '</Style>\n'
-
-    kml_str += '<Style id="redLineGreenPoly">\n'
-    kml_str += '<LineStyle>\n'
-    kml_str += '<color>7f0000ff</color>\n'
-    kml_str += '<width>4</width>\n'
-    kml_str += '</LineStyle>\n'
-    kml_str += '<PolyStyle>\n'
-#    kml_str += '<color>4000ff00</color>\n'
-    kml_str += '<color>0000ff00</color>\n'
-    kml_str += '</PolyStyle>\n'
-    kml_str += '</Style>\n'
+    kml_str += '<Placemark id="feat_91">\n'
+    kml_str += '<styleUrl>#stylesel_362</styleUrl>\n'
+    kml_str += '<LineString id="geom_86">\n'
 
     num = 0
     for dat in data:
         if num == 0 or eps_mode == 'full':
-            kml_str += '<Placemark>\n'
-            if num == 0:
-                kml_str += '<name>GFS main</name>\n'
-            else:
-                if num == 1:
-                    kml_str += '<name>GFS Ensemble main</name>\n'
-                else:
-                    kml_str += '<name>GFS Ensemble member %d</name>\n' % \
-                        (num-1)
-            if num == 0:
-                kml_str += '<description>pyballoon trajectory</description>\n'
-                kml_str += '<styleUrl>#redLineGreenPoly</styleUrl>\n'
-            else:
-                if eps_mode == 'full':
-                    kml_str += '<description>pyballoon trajectory' \
-                        '</description>\n'
-                    kml_str += '<styleUrl>#yellowLineGreenPoly</styleUrl>\n'
+            #kml_str += '<Placemark>\n'
+            #if num == 0:
+            #    kml_str += '<name>GFS main</name>\n'
+            #else:
+            #    if num == 1:
+            #        kml_str += '<name>GFS Ensemble main</name>\n'
+            #    else:
+            #        kml_str += '<name>GFS Ensemble member %d</name>\n' % \
+            #            (num-1)
+            #if num == 0:
+            #    kml_str += '<description>pyballoon trajectory</description>\n'
+            #else:
+            #    if eps_mode == 'full':
+            #        kml_str += '<description>pyballoon trajectory' \
+            #            '</description>\n'
+            #        kml_str += '<styleUrl>#yellowLineGreenPoly</styleUrl>\n'
 
-            kml_str += '<LineString>\n'
-            kml_str += '<extrude>1</extrude>\n'
-            kml_str += '<tessellate>1</tessellate>\n'
-            kml_str += '<altitudeMode>absolute</altitudeMode>\n'
+            #kml_str += '<LineString>\n'
+            #kml_str += '<extrude>1</extrude>\n'
+            #kml_str += '<tessellate>1</tessellate>\n'
+            #kml_str += '<altitudeMode>absolute</altitudeMode>\n'
             kml_str += '<coordinates>\n'
 
             t_prev = -2.0
@@ -503,6 +497,9 @@ def save_kml(fname, data, model_start_idx=0,
                         (dat['lons'][i], dat['lats'][i], dat['alts'][i])
 
             kml_str += '</coordinates>\n'
+            kml_str += '<extrude>1</extrude>\n'
+            kml_str += '<tessellate>1</tessellate>\n'
+            kml_str += '<altitudeMode>absolute</altitudeMode>\n'
             kml_str += '</LineString>\n'
             kml_str += '</Placemark>\n'
         num += 1
