@@ -1,4 +1,5 @@
 """Input and output functions used by pyBalloon"""
+
 import pygrib as pg
 import numpy as np
 import os
@@ -7,8 +8,11 @@ import csv
 import pyb_aux
 import requests
 
-def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None):
-    """Collect relevant information from GFS model.
+def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False):
+
+    """
+
+    Collect relevant information from GFS model.
 
     Required arguments:
         - fname -- File to read
@@ -30,6 +34,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None):
         positive *towards* North
         - temperatures -- Temperature [K]
         - altitudes -- Geopotential height [m]
+        
     """
     
     if area is not None:
@@ -53,8 +58,8 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None):
     lats = lats[row_idx, col_idx]
     lons = lons[row_idx, col_idx]
 
-    if len(lats) == 0: print 'Warning! lats is empty!'
-    if len(lons) == 0: print 'Warning! lons is empty!'
+    if len(lats) == 0: print( 'Warning! lats is empty!')
+    if len(lons) == 0: print( 'Warning! lons is empty!')
 
     # Collect U component of wind data
     u_wind = {}
@@ -94,7 +99,12 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None):
         temperatures = [t_surface]
     else:
         temperatures = [t_0*np.ones(lats.shape)]
-    altitudes = [alt0*np.ones(lats.shape)]
+
+    if not descent_only:
+        altitudes = [alt0*np.ones(lats.shape)]
+    else:
+        altitudes = []
+
     pressures = u_wind.keys()
     pressures.append(max(pressures))
 
@@ -134,6 +144,9 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None):
             temperatures.append(np.hstack(temp))
             altitudes.append(np.hstack(alt))
 
+    if descent_only:
+        altitudes.append(alt0*np.ones(lats.shape))
+
     # Convert data in lists to Numpy arrays and add them to a
     # dictionary that is returned
     data = {}
@@ -150,11 +163,11 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None):
 
     return data
 
-
 def read_gfs_set(directory, area=None, alt0=0, main='gfs_main.grib2',
                  ens_main='ens_main.grib2',
                  ens_member_pattern='ens_??.grib2', 
                  use_extra=False):
+
     """Read a set of GFS data consisting of 0.5 degree main run, 1
     degree ensemble main and 1 degree ensemble members. The 1 degree
     data are extended to 7 - 1 hPa levels with data from the main run.
@@ -181,13 +194,13 @@ def read_gfs_set(directory, area=None, alt0=0, main='gfs_main.grib2',
     all_data = []
 
     fname = os.path.join(directory, main)
-    print "Reading GFS operational run from", fname
+    print( "Reading GFS operational run from", fname)
     main_run_data = read_gfs_file(fname, area=area, alt0=alt0)
     all_data.append(main_run_data)
 
     if ens_main is not None:
         fname = os.path.join(directory, ens_main)
-        print "Reading GFS ensemble main run from", fname
+        print( "Reading GFS ensemble main run from", fname)
         if use_extra:
             ens_main_data = read_gfs_file(fname, 
                                           area=area,
@@ -205,7 +218,7 @@ def read_gfs_set(directory, area=None, alt0=0, main='gfs_main.grib2',
         ens_files.sort()
     
         for fname in ens_files:
-            print "Reading GFS ensemble member from", fname
+            print( "Reading GFS ensemble member from", fname)
 
             if use_extra:
                 all_data.append(read_gfs_file(fname, 
@@ -221,7 +234,7 @@ def read_gfs_set(directory, area=None, alt0=0, main='gfs_main.grib2',
     return all_data
 
 
-def read_gfs_single(directory, area=None, alt0=0):
+def read_gfs_single(directory, area=None, alt0=0, descent_only=False):
     """Read a set of 0.5 degree GFS data.
 
     Required arguments:
@@ -242,8 +255,8 @@ def read_gfs_single(directory, area=None, alt0=0):
     all_data = []
 
     fname = os.path.join(directory, (directory + '.grb2'))
-    print "Reading GFS data from", fname
-    main_run_data = read_gfs_file(fname, area=area, alt0=alt0)
+    print( "Reading GFS data from", fname)
+    main_run_data = read_gfs_file(fname, alt0=alt0, descent_only=descent_only)
     all_data.append(main_run_data)
 
     return all_data
@@ -533,4 +546,3 @@ def save_kml(fname, data, model_start_idx=0,
     fid = open(fname, 'w')
     fid.write(kml_str)
     fid.close()
-
