@@ -134,7 +134,7 @@ def calc_movements(data, loc0, balloon, live_data=None, alt_change_fit=10, desce
 
         data['air_densities'] = pyb_aux.air_density(data)
 
-        print(len(data['airdensities']))
+        print(len(data['air_densities']))
 
         data = pyb_aux.data_interpolation(data, alt0, balloon['altitude_step'], mode='spline', descent_only=True)
         data['descent_speeds'] = pyb_aux.descent_speed(data, balloon['equip_mass'], balloon['Cd_parachute'], balloon['parachute_areas'], balloon['parachute_change_altitude'])
