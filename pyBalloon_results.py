@@ -143,15 +143,17 @@ def calc_results(trunc):
 	flight_no = np.arange(1, len(d)+1, 1)
 
 	labels = list(matched_keys.keys())
+
+	ds = [x for _,x in sorted(zip(labels, d))]
 	labels.sort()
 
 	fig = plt.figure()
 	plt.rc('axes', axisbelow=True)
-	plt.axhline(np.mean(d), linestyle='--', linewidth=1, label='Average')
-	plt.plot(flight_no, d, 'ro')
+	plt.axhline(np.mean(ds), linestyle='--', linewidth=1, label='Average')
+	plt.plot(flight_no, ds, 'ro')
 	plt.xlabel('Flight date', fontsize=15)
 	plt.ylabel('Error in distance [km]', fontsize=15)
-	plt.xticks(np.arange(1, len(d) + 1, step = 1 ), labels=labels, rotation=60)
+	plt.xticks(np.arange(1, len(ds) + 1, step = 1 ), labels=labels, rotation=60)
 	plt.grid(True)
 	plt.legend(loc='best')
 	plt.tight_layout()
@@ -163,7 +165,13 @@ d1, labels1 = calc_results('True')
 d2, labels2 = calc_results('False')
 
 labels1 = list(labels1.keys())
-labels1.sort()
+labels2 = list(labels2.keys())
+
+s = sorted(zip(labels1, d1))
+labels1, d1 = map(list, zip(*s))
+
+s = sorted(zip(labels2, d2))
+labels2, d2 = map(list, zip(*s))
 
 flight_no = np.arange(1, len(d1) + 1, 1)
 
@@ -175,8 +183,24 @@ plt.plot(flight_no, d1, 'ro', label='Truncated')
 plt.plot(flight_no, d2, 'bo', label='Not Truncated')
 plt.xlabel('Flight date', fontsize=15)
 plt.ylabel('Error in distance [km]', fontsize=15)
-plt.xticks(np.arange(1, len(d1) + 1, step = 1), labels=labels1, rotation=60)
+plt.xticks(np.arange(1, len(d1) + 1, step = 1), labels=labels1, rotation=90)
 plt.grid(True)
 plt.legend(loc='best')
 plt.tight_layout()
 fig.savefig(fig_dir + 'results_trunc_vs_untrunc.png')
+
+fig = plt.figure()
+plt.rc('axes', axisbelow=True)
+
+d1 = np.array(d1)
+d2 = np.array(d2)
+diff = d2 - d1
+
+plt.plot(flight_no, diff, 'ro', label='Diff = not truncated - truncated')
+plt.xlabel('Flight date', fontsize=15)
+plt.ylabel('Difference in error [km]', fontsize=15)
+plt.xticks(np.arange(1, len(d1) + 1, step = 1), labels=labels1, rotation=90)
+plt.grid(True)
+plt.legend(loc='best')
+plt.tight_layout()
+fig.savefig(fig_dir + 'diff_trunc_vs_untrunc.png')
