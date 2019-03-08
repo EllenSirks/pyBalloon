@@ -8,6 +8,7 @@ import os
 
 dir_pred = '/home/ellen/Desktop/SuperBIT/Weather_data/Endpoints/'
 dir_res = '/home/ellen/Desktop/SuperBIT/Flight_data/'
+fig_dir = '/home/ellen/Desktop/SuperBIT/figs/'
 
 def calc_results(trunc):
 
@@ -154,7 +155,7 @@ def calc_results(trunc):
 	plt.grid(True)
 	plt.legend(loc='best')
 	plt.tight_layout()
-	fig.savefig('/home/ellen/Desktop/SuperBIT/results' + ext + '.png')
+	fig.savefig(fig_dir + 'results' + ext + '.png')
 
 	return d, matched_keys
 
@@ -178,4 +179,4 @@ plt.xticks(np.arange(1, len(d1) + 1, step = 1), labels=labels1, rotation=60)
 plt.grid(True)
 plt.legend(loc='best')
 plt.tight_layout()
-fig.savefig('/home/ellen/Desktop/SuperBIT/results_trunc_vs_untrunc.png')
+fig.savefig(fig_dir + 'results_trunc_vs_untrunc.png')
