@@ -36,10 +36,7 @@ if __name__ == "__main__":
 	hhhh, hhh = get_gfs.get_gfs_data(datestr, utc_hour, verbose=True)
 	file = 'gfs_4_' + datestr +'_' + str(hhhh) + '_' +str(hhh)
 
-	# if not os.path.isfile(indir + file):
-		
 	tile_size = 2. # degrees (read a tile this wide/high from the GFS grb2 file)
-
 
 	# example balloon:
 	balloon = {}
