@@ -40,6 +40,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
     if area is not None:
         tlat, llon, blat, rlon = area
     else:
+        print('Do you really wish to search the entire planet?')
         tlat, llon, blat, rlon = 90., -180., -90., 180.
 
     grib = pg.open(fname)
@@ -52,8 +53,8 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
     lats, lons = u_msgs[0].latlons()
 
     # Find closest pixel location
-    locs = pyb_aux.all_and([lats <= tlat, lats >= blat, 
-                           lons <= rlon, lons >= llon])
+
+    locs = pyb_aux.all_and([lats <= tlat, lats >= blat, lons <= rlon, lons >= llon])
     row_idx, col_idx = np.where(locs)
     lats = lats[row_idx, col_idx]
     lons = lons[row_idx, col_idx]
@@ -62,39 +63,45 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
     if len(lons) == 0: print( 'Warning! lons is empty!')
 
     # Collect U component of wind data
+
     u_wind = {}
     for msg in u_msgs:
         if msg.typeOfLevel == 'isobaricInhPa':
             u_wind[msg.level] = msg.values[row_idx, col_idx]
     
     # Collect V component of wind data
+
     v_wind = {}
     for msg in v_msgs:
         if msg.typeOfLevel == 'isobaricInhPa':
             v_wind[msg.level] = msg.values[row_idx, col_idx]
 
     # Collect temperatures
+
     temperature = {}
     for msg in t_msgs:
         if msg.typeOfLevel == 'isobaricInhPa':
             temperature[msg.level] = msg.values[row_idx, col_idx]
-        # Add msg.typeOfLevel == 'surface', save to another variable for
-        # later use
+
+        # Add msg.typeOfLevel == 'surface', save to another variable for later use
+
         if msg.typeOfLevel == 'surface':
             t_surface = msg.values[row_idx, col_idx]
 
     # Collect Geopotential heights
+
     altitude = {}
     for msg in g_msgs:
         if msg.typeOfLevel == 'isobaricInhPa':
             altitude[msg.level] = msg.values[row_idx, col_idx]
 
-    # Collect data to correct altitude order. Set "surface" values
-    # before real data.
+    # Collect data to correct altitude order. Set "surface" values before real data.
+
     u_winds = [np.zeros(lats.shape)]
     v_winds = [np.zeros(lats.shape)]
-    # Use given surface temperature if available, otherwise use the
-    # model value
+
+    # Use given surface temperature if available, otherwise use the model value
+
     if t_0 is None:
         temperatures = [t_surface]
     else:
@@ -109,6 +116,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
     pressures.append(max(pressures))
 
     # Put pressures in altitude order and use them as keys
+
     pressures.sort()
     pressures.reverse()
 
@@ -127,15 +135,19 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
             # ie. 1, 2, 3, 5 and 7 hPa levels from GFS main run to
             # ensembles. Data are expected to be in the same format as
             # returned by this function.
+
             j = 0
             if extra_data is not None:
+
                 for level in extra_data['pressures'][:, 0]/100:
+
                     if level < min(pressures):
+
                         for idx in range(0, len(extra_data['u_winds'][0, :])):
+
                             uwnd.append(extra_data['u_winds'][j, idx])
                             vwnd.append(extra_data['v_winds'][j, idx])
-                            temp.append( \
-                                extra_data['temperatures'][j, idx])
+                            temp.append(extra_data['temperatures'][j, idx])
                             alt.append(extra_data['altitudes'][j, idx])
                     j += 1
 
@@ -147,8 +159,8 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
     if descent_only:
         altitudes.append(alt0*np.ones(lats.shape))
 
-    # Convert data in lists to Numpy arrays and add them to a
-    # dictionary that is returned
+    # Convert data in lists to Numpy arrays and add them to a dictionary that is returned
+
     data = {}
     data['lats'] = np.array(lats)
     data['lons'] = np.array(lons)
@@ -157,8 +169,10 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
     data['temperatures'] = np.array(temperatures)
     data['altitudes'] = np.array(altitudes)
     all_pressures = []
+
     for dat in data['lats']:
         all_pressures.append(100*np.array(pressures)) # Convert hPa to Pa
+
     data['pressures'] = np.array(all_pressures).transpose()
 
     return data
@@ -256,7 +270,7 @@ def read_gfs_single(directory, area=None, alt0=0, descent_only=False):
 
     fname = os.path.join(directory, (directory + '.grb2'))
     print( "Reading GFS data from", fname)
-    main_run_data = read_gfs_file(fname, alt0=alt0, descent_only=descent_only)
+    main_run_data = read_gfs_file(fname, area=area, alt0=alt0, descent_only=descent_only)
     all_data.append(main_run_data)
 
     return all_data
@@ -399,10 +413,8 @@ def read_live_data(fname, delimiter=',', temp_conv=(1, 0),
     live_data['lats'] = np.array(lats)
     live_data['lats'] = np.array(lons)
     live_data['altitudes'] = np.array(altitudes)
-    live_data['pressures'] = np.array(pressures) * pressure_conv[0] + \
-        pressure_conv[1]
-    live_data['temperatures'] = np.array(temperatures) * temp_conv[0] + \
-        temp_conv[1]
+    live_data['pressures'] = np.array(pressures) * pressure_conv[0] + pressure_conv[1]
+    live_data['temperatures'] = np.array(temperatures) * temp_conv[0] + temp_conv[1]
 
     return live_data
 
@@ -466,6 +478,7 @@ def save_kml(fname, data, model_start_idx=0,
     num = 0
     for dat in data:
         if num == 0 or eps_mode == 'full':
+
             #kml_str += '<Placemark>\n'
             #if num == 0:
             #    kml_str += '<name>GFS main</name>\n'
@@ -487,6 +500,7 @@ def save_kml(fname, data, model_start_idx=0,
             #kml_str += '<extrude>1</extrude>\n'
             #kml_str += '<tessellate>1</tessellate>\n'
             #kml_str += '<altitudeMode>absolute</altitudeMode>\n'
+
             kml_str += '<coordinates>\n'
 
             t_prev = -2.0
@@ -505,6 +519,7 @@ def save_kml(fname, data, model_start_idx=0,
         num += 1
 
     # Add placemarks for the trajectory end-points
+
     num = 0
     for dat in data:
         kml_str += '<Placemark>\n'
@@ -525,6 +540,7 @@ def save_kml(fname, data, model_start_idx=0,
         num += 1
 
     # Add "other_info" places
+    
     if other_info is not None:
         for dat in other_info:
             kml_str += '<Placemark>\n'

@@ -10,8 +10,12 @@ import pyb_io
 import pyb_traj
 import get_gfs
 import os
+import warnings
+warnings.filterwarnings("ignore")
 
 if __name__ == "__main__":
+
+	time0 = time.time()	
 
 	# GFS doesn't seem to like negative longitudes
 	# Use 0-360 instead
@@ -19,31 +23,27 @@ if __name__ == "__main__":
 	datestr = sys.argv[1]
 	utc_hour = sys.argv[2]
 
-	lat0 = float(sys.argv[3]) #69.385818 # degrees
-	lon0 = float(sys.argv[4]) #309.093365 = -50.906635 # degrees
-	alt0 = float(sys.argv[5]) #0. # meters
+	lat0 = float(sys.argv[3])
+	lon0 = float(sys.argv[4])
+	alt0 = float(sys.argv[5])
 
 	if sys.argv[6] == 'True':
 		descent_only = True
 	elif sys.argv[6] == 'False':
 		descent_only = False
 
-	in_dir = '/cosma5/data/durham/dc-sirk1/SuperBIT/Weather_data/'
-
-	#hhhh, hhh = get_gfs.get_gfs_data(datestr, utc_hour, verbose=True)
-        hhhh, hhh = '1200', '000'
-
+	in_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/'
+	hhhh, hhh = get_gfs.get_gfs_data(datestr, utc_hour, verbose=True)
 	file = 'gfs_4_' + datestr +'_' + str(hhhh) + '_' +str(hhh)
 
 	# if not os.path.isfile(indir + file):
 		
 	tile_size = 2. # degrees (read a tile this wide/high from the GFS grb2 file)
 
-	time0 = time.time()	
 
 	# example balloon:
 	balloon = {}
-	balloon['altitude_step'] = 100.0 # meters
+	balloon['altitude_step'] = 500.0 # meters
 	balloon['equip_mass'] = 1.608 # kg
 	balloon['balloon_mass'] = 1.50 # kg
 	balloon['fill_radius'] = 2.122/2 # meters
@@ -52,8 +52,8 @@ if __name__ == "__main__":
 	balloon['thickness_empty'] = 0.2 * 10**-3 # mm -> meters
 	balloon['Cd_balloon'] = 0.5
 	balloon['Cd_parachute'] = 0.5
-	#balloon['parachute_areas'] = np.pi * np.array([1.07])**2 # m^2
-	balloon['parachute_areas'] = np.pi * np.array([1.0])**2 # m^2
+	balloon['parachute_areas'] = np.pi * np.array([0.825])**2 # m^2
+	#balloon['parachute_areas'] = np.pi * np.array([1.0])**2 # m^2
 	balloon['parachute_change_altitude'] = None # meters
 	balloon['simple_ascent_rate'] = 5.0 # m/s
 
@@ -84,5 +84,11 @@ if __name__ == "__main__":
 
 	kml_fname = in_dir + file + '.kml'
 	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info)
-	
+
+	f = open('/home/ellen/Desktop/SuperBIT/Weather_data/Endpoints/' + datestr + '_' + str(hhhh) + '_' + str(hhh) +'_endpoint.dat','w+')
+	f.write('lat lon\n')
+	f.write(str(lat0) + ' ' + str(lon0) + '\n')
+	f.write(str(trajectories[0]['lats'][-1]) + ' ' + str(trajectories[0]['lons'][-1]))
+	f.close()
+
 	print('Program finished in %.1f s' % (time.time() - time0))

@@ -113,7 +113,7 @@ def get_gfs_data(datestr, utc_hour, verbose = False):
         init_dt = dt.datetime(yyyy2, mm2, dd2, hhhh2)
         delta_t = request_time - init_dt
 
-        if delta_t.seconds < 0 or delta_t.days < 0 or np.abs(hhhh2 - int(utc_hour)) > 4 or np.abs(hhhh2 + hhh2 - int(utc_hour)) > 2:
+        if delta_t.seconds < 0 or delta_t.days < 0 or np.abs(hhhh2 - int(utc_hour)) > 5 or np.abs(hhhh2 + hhh2 - int(utc_hour)) > 2:
             continue
 
         url = url_base + month + '/' + day + '/' + file
@@ -171,3 +171,5 @@ if __name__ == '__main__':
     utc_hour = sys.argv[2]
 
     get_gfs_data(datestr, utc_hour, verbose=True)
+
+

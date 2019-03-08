@@ -67,6 +67,7 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
 
     if descent_only:
         new_data['altitudes'] = np.arange(0, altitudes.max(), step)
+        # new_data['altitudes'] = np.arange(0, alt0+step, step)
     else:
         new_data['altitudes'] = np.arange(alt0, altitudes.max(), step)
 
@@ -81,6 +82,7 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
             arr = []
             d = data[key]
 
+
             try:
                 x, y = d.shape
 
@@ -89,13 +91,16 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
                 x = 0
                 y, = d.shape
 
+            # y = int(y/4.)
+
             if mode == 'spline':
 
                 if not descent_only:
 
                     if x > 0:
-                            ok_idxs = altitudes[:, i] >= alt0
-                            tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
+                            for i in range(0, y):
+                                ok_idxs = altitudes[:, i] >= alt0
+                                tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
                             arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
                     else:
                         tck = interpolate.splrep(altitudes, d)
@@ -117,7 +122,6 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
 
             new_data[key] = np.array(arr)
             
-
     return new_data
 
 
