@@ -1,0 +1,6 @@
+--2019-03-12 11:55:21--  http://open.mapquestapi.com/elevation/v1/profile?key=KEY
+Resolving open.mapquestapi.com (open.mapquestapi.com)... 34.226.132.71, 34.234.142.169, 52.21.103.45
+Connecting to open.mapquestapi.com (open.mapquestapi.com)|34.226.132.71|:80... connected.
+HTTP request sent, awaiting response... 403 Forbidden
+2019-03-12 11:55:21 ERROR 403: Forbidden.
+

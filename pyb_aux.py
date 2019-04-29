@@ -8,7 +8,6 @@ M_air = 0.0289644 # molar mass of air [kg/mol], altitude dependence
 M_helium = 4.002602
 Cd_sphere = 0.47 # Drag coefficient for a sphere
 
-
 def all_and(data):
     """Logical and for a list of arrays.
     
@@ -46,8 +45,8 @@ def earth_radius(lat_rad):
 
 def air_density(data):
 
-    p = data['pressures']
-    T = data['temperatures']
+    p = data['pressures'] # Pa
+    T = data['temperatures'] # K
 
     if p.shape != T.shape:
         x, y = p.shape
@@ -56,7 +55,7 @@ def air_density(data):
     else:
         rho = (p * M_air)/(R * T)
 
-    return rho
+    return rho # kg m-3
 
 
 def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
@@ -66,8 +65,8 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
     new_data = {}
 
     if descent_only:
-        new_data['altitudes'] = np.arange(0, altitudes.max(), step)
-        # new_data['altitudes'] = np.arange(0, alt0+step, step)
+        new_data['altitudes'] = np.arange(alt0 % step,  altitudes.max(), step)
+        # new_data['altitudes'] = np.arange(alt0 % step,  alt0 + step, step)
     else:
         new_data['altitudes'] = np.arange(alt0, altitudes.max(), step)
 
@@ -82,7 +81,6 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
             arr = []
             d = data[key]
 
-
             try:
                 x, y = d.shape
 
@@ -91,27 +89,35 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
                 x = 0
                 y, = d.shape
 
-            # y = int(y/4.)
-
             if mode == 'spline':
 
                 if not descent_only:
 
                     if x > 0:
-                            for i in range(0, y):
-                                ok_idxs = altitudes[:, i] >= alt0
-                                tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
+                        for i in range(0, y):
+                            ok_idxs = altitudes[:, i] >= alt0
+                            tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
                             arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
                     else:
                         tck = interpolate.splrep(altitudes, d)
                         arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
 
-                elif descent_only:
+                elif descent_only:                       
+
+                    # if x > 0:
+                    #     arr = [np.array(interpolate.splev(new_data['altitudes'], interpolate.splrep(altitudes[altitudes[:, i] <= alt0, i], d[altitudes[:, i] <= alt0, i]))) for i in range(0, y)] #### maybe not < alt0 ??
+                    # else:
+                    #     arr = [np.array(interpolate.splev(new_data['altitudes'], interpolate.splrep(altitudes, d)))]
 
                     if x > 0:
-                        arr = [np.array(interpolate.splev(new_data['altitudes'], interpolate.splrep(altitudes[altitudes[:, i] <= alt0, i], d[altitudes[:, i] <= alt0, i]))) for i in range(0, y)]
+                        for i in range(0, y):
+                            if i != 120:
+                                ok_idxs = altitudes[:, i] <= alt0
+                                tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
+                                arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
                     else:
-                        arr = [np.array(interpolate.splev(new_data['altitudes'], interpolate.splrep(altitudes, d)))]
+                        tck = interpolate.splrep(altitudes, d)
+                        arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
 
             else: # use linear interpolation 
                 # There's something wrong here:
@@ -121,9 +127,8 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
                         arr.append(tck(new_data['altitudes']))
 
             new_data[key] = np.array(arr)
-            
-    return new_data
 
+    return new_data
 
 def lift(data, mass):
     """Calculate effective lift (force, in Newtons) caused by the
@@ -271,7 +276,7 @@ def ascent_speed(data, mass, Cd=Cd_sphere):
     return v
 
 
-def descent_speed(data, mass, Cd, areas, change_alt=None):
+def descent_speed(data, mass, Cd, areas, alt_step, change_alt=None):
     """Calculate the rate of descent for deflated (burst) balloon with
     1 or 2 different sized parachutes with given areas, change
     altitude and drag-coefficient.
@@ -290,7 +295,7 @@ def descent_speed(data, mass, Cd, areas, change_alt=None):
     Return:
         - Rate of descent (m/s) for each level in input data
     """
-    
+
     m = mass
     h = data['altitudes']
     g = g_0 * (R_e / (R_e + h))**2 # Gravitational acceleration at height h
@@ -303,10 +308,10 @@ def descent_speed(data, mass, Cd, areas, change_alt=None):
             v[idxs] = np.sqrt(2*m*g[idxs]/(rho[idxs]*Cd*areas[1]))
             speeds.append(v)
     else:
+        factor = 1
         for rho in data['air_densities']:
             v = np.sqrt(2*m*g/(rho*Cd*areas))
             speeds.append(v)
-
     return -1*np.array(speeds)
     
 

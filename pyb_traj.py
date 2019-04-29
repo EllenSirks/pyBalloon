@@ -1,29 +1,37 @@
 import numpy as np
+import elevation
 import pyb_aux
 import time
 
-def calc_movements(data, loc0, balloon, live_data=None, alt_change_fit=10, descent_only=False):
+import match_files
+import ratio
+
+# def calc_movements(data, loc0, balloon, live_data=None, alt_change_fit=10, descent_only=False, name=None, ext='all_points/'):
+def calc_movements(data, loc0, balloon, alt_change_fit=10, descent_only=False, future_flights=False, name=None, ext='all_points/'):
 
     lat0, lon0, alt0 = loc0
 
-    if live_data is not None:
-        lats_live = live_data['lats']
-        lons_live = live_data['lons']
-        alts_live = live_data['altitudes']
-        pres_live = live_data['pressures']
-        temps_live = live_data['temperatures']
+    # if live_data is not None:
+    #     lats_live = live_data['lats']
+    #     lons_live = live_data['lons']
+    #     alts_live = live_data['altitudes']
+    #     pres_live = live_data['pressures']
+    #     temps_live = live_data['temperatures']
 
-        # Check balloon direction
-        # Default to "going up"
+    #     # Check balloon direction, default to "going up"
         
-        if len(alts_live) > alt_change_fit:
-            fit = np.polyfit(np.arange(0, alt_change_fit), 
-                             alts_live[-alt_change_fit-1:-1], 1)
-            if fit[0] < 0:
-                # Balloon is going down
-                pass
+    #     if len(alts_live) > alt_change_fit:
+    #         fit = np.polyfit(np.arange(0, alt_change_fit), 
+    #                          alts_live[-alt_change_fit-1:-1], 1)
+    #         if fit[0] < 0:
+    #             # Balloon is going down
+    #             pass
 
     data['air_densities'] = pyb_aux.air_density(data)
+    rho_pre = pyb_aux.air_density(data)
+    u_pre = data['u_winds'].copy()
+    v_pre = data['v_winds'].copy()
+    T_pre = data['temperatures'].copy()
 
     if not descent_only:
 
@@ -40,13 +48,14 @@ def calc_movements(data, loc0, balloon, live_data=None, alt_change_fit=10, desce
 
     # make interpolation of data in weather forecast at heights determined by the altitude steps (see pyb_aux.py)
 
-    time0 = time.time() 
+    time0 = time.time()
 
+    alts_pre = data['altitudes'].copy()
     data = pyb_aux.data_interpolation(data, alt0, balloon['altitude_step'], mode='spline', descent_only=descent_only)
 
     print('Interpolation done, %.1f s elapsed' % (time.time() - time0))
 
-    data['descent_speeds'] = pyb_aux.descent_speed(data, balloon['equip_mass'], balloon['Cd_parachute'], balloon['parachute_areas'], balloon['parachute_change_altitude'])
+    data['descent_speeds'] = pyb_aux.descent_speed(data, balloon['equip_mass'], balloon['Cd_parachute'], balloon['parachute_areas'], balloon['altitude_step'], balloon['parachute_change_altitude'])
 
     if not descent_only:
 
@@ -89,6 +98,7 @@ def calc_movements(data, loc0, balloon, live_data=None, alt_change_fit=10, desce
     lon_rad = [np.radians(lon0)]
     all_alts = [alt0]
     total_time = [0]
+    dists = [0]
     distance_travelled = 0
 
     i = 0
@@ -100,6 +110,7 @@ def calc_movements(data, loc0, balloon, live_data=None, alt_change_fit=10, desce
         while True:
 
             # Find the closest grid point
+
             diff = np.sqrt((data_lats - lat_rad[-1])**2 + (data_lons - lon_rad[-1])**2)
             grid_i, = np.where(diff == diff.min())
             grid_i = grid_i[0]
@@ -118,14 +129,29 @@ def calc_movements(data, loc0, balloon, live_data=None, alt_change_fit=10, desce
 
     else: 
 
-        # Calculate the movement during ascent
+        # Mimick the movement during ascent
 
-        while alts[i] <= alt0:
+        while alts[i] < alt0:
             i += 1
 
         i -= 1
 
+    ind = i
+
+    diff = np.sqrt((data_lats-lat_rad[-1])**2 + (data_lons-lon_rad[-1])**2)
+    grid_i, = np.where(diff == diff.min())
+    grid_i = grid_i[0]
+
+    descent_speeds = [data['descent_speeds'][grid_i, ind+1]]
+
     # Calculate the movement during descent (same for either option)
+
+    count = 0
+
+    f = open('/home/ellen/Desktop/SuperBIT/properties/'+ext+'prop_afterinterp_' + name + '.dat', 'w+')
+    f.write('alt0 grid alt rho u v T\n')
+
+    grids = []
 
     while i >= 0:
 
@@ -135,18 +161,38 @@ def calc_movements(data, loc0, balloon, live_data=None, alt_change_fit=10, desce
         grid_i, = np.where(diff == diff.min())
         grid_i = grid_i[0]
 
-        lat, lon, dist = movement2ll(lat_rad[-1], lon_rad[-1], alts[i], dxs_down[grid_i, i], dys_down[grid_i, i])
+        #### Add something to account for extra KE after burstpoint from free fall ####
+
+        # if i > ind:
+        #     ex1, ex2 = ratio.additives(name=name[:9], point = 1 + count)
+        # else:
+        ex1, ex2 = 0, 0
+
+        descent_speeds.append(data['descent_speeds'][grid_i, i])
+        f.write(str(alt0) + ' ' + str(grid_i) + ' '  + str(data['altitudes'][i]) + ' ' + str(data['air_densities'][grid_i, i]) + ' ' + str(data['u_winds'][grid_i, i]) + ' ' + str(data['v_winds'][grid_i, i]) + ' ' + str(data['temperatures'][grid_i, i]) + '\n')
+
+
+        lat, lon, dist = movement2ll(lat_rad[-1], lon_rad[-1], alts[i], dxs_down[grid_i, i] + ex1, dys_down[grid_i, i] + ex2)
+        grids.append(grid_i)
 
         lat_rad.append(lat)
         lon_rad.append(lon)
         total_time.append(data['descent_time_steps'][grid_i, i])
         all_alts.append(alts[i])
+        dists.append(dist)
         distance_travelled += dist
 
-        if alts[i] <= 1600: ### Need this so landing point is not underground. Need to find way to check elevation at certain points -> google API?
-           break
+        # count += 1
 
         i -= 1
+
+    f.close()
+
+    f = open('/home/ellen/Desktop/SuperBIT/properties/'+ext+'prop_preinterp_' + name + '.dat', 'w+')
+    f.write('alt rho u v T\n')
+    for i in range(len(rho_pre)):
+        f.write(str(alts_pre[i][int(np.mean(grids))]) + ' ' + str(rho_pre[i][int(np.mean(grids))]) + ' ' + str(u_pre[i][int(np.mean(grids))]) + ' ' +str(v_pre[i][int(np.mean(grids))]) + ' ' + str(T_pre[i][int(np.mean(grids))]) + '\n')
+    f.close()
 
     # Convert the result array lists to Numpy 2D-arrays
 
@@ -154,9 +200,10 @@ def calc_movements(data, loc0, balloon, live_data=None, alt_change_fit=10, desce
     output['lats'] = np.degrees(np.array(lat_rad)) # to decimal degrees
     output['lons'] = np.degrees(np.array(lon_rad)) # to decimal degrees
     output['alts'] = np.array(all_alts)
+    output['dists'] = np.array(dists)
+    output['descent_speeds'] = np.array(descent_speeds)
     output['times'] = np.cumsum(np.array(total_time))/60 # to minutes
     output['distance'] = distance_travelled
-
     print( "Maximum altitude", np.max(all_alts), 'm, distance travelled %.1f:' % distance_travelled, 'km')
     print( 'Landing location', '%.6f, %.6f' % (output['lats'][-1], output['lons'][-1]), 'after %d min of flight\n' % (int(output['times'][-1])))
     return output

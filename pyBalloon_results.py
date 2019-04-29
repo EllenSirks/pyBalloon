@@ -1,59 +1,79 @@
-import matplotlib.pyplot as plt
 from haversine import haversine
+import matplotlib.pyplot as plt
 from astropy.io import ascii
+import match_files as mf
+import endpoints as ep
 import numpy as np
 import csv
 import sys
 import os
 
-dir_pred = '/home/ellen/Desktop/SuperBIT/Weather_data/Endpoints/'
-dir_res = '/home/ellen/Desktop/SuperBIT/Flight_data/'
-fig_dir = '/home/ellen/Desktop/SuperBIT/figs/'
+# ext = 'all_points/'
+ext = 'next_points/'
+# ext = 'next2_points/'
 
-def calc_results(trunc):
+dir_pred = '/home/ellen/Desktop/SuperBIT/Weather_data/Endpoints/' + ext
+dir_gps = '/home/ellen/Desktop/SuperBIT/Flight_data/'
+fig_dir = '/home/ellen/Desktop/SuperBIT/figs/Results/' + ext + 'extra/'
 
-	endpts_res = {}
-	endpts_pred = {}
+def calc_results(trunc, re_endpoints='no'):
+
+	d = {}
+	deltat = {}
+
+	data_times = ascii.read(dir_gps + 'burst_times.txt')
+
+	dates = data_times['date']
+	burst_times = data_times['burst_time']
 
 	for filename in os.listdir(dir_pred):
 
-		data = ascii.read(dir_pred + filename)
-		endpts_pred[filename[:17]] = (data['lat'][1], data['lon'][1])
+		if filename.endswith('dat'):
 
-	for filename in os.listdir(dir_res):
+			### calculate difference in landing point ###
 
-		if filename.endswith(".csv"):
+			if re_endpoints == 'yes' and '201808' not in filename:
+				end_lat_pred, end_lon_pred = ep.get_endpoint(filename[:-13] + '_trajectory.dat')
 
-			for string in range(len(filename)):
-				if filename[string] == '.':
-					s = string
+			elif re_endpoints == 'no' or '201808' in filename:
+				data_pred = ascii.read(dir_pred + filename)
 
-			with open(dir_res + filename, newline='') as csvfile:
+				end_lat_pred = data_pred['lat'][-1]
+				end_lon_pred = data_pred['lon'][-1]
 
-				data = np.array(list(csv.reader(csvfile)))
+			weather_time = int(float(filename[9:13]) / 100) + int(filename[14:17])
 
-				alts = []
+			if '20180406' in filename:
+				if '0600' in filename:
+					datestr_pred = filename[:8] + '_1'
+				else:
+					datestr_pred = filename[:8] + '_2'
+			else:
+				datestr_pred = filename[:8]
+
+			datestr_gps = mf.match_pred2gps(datestr_pred)
+			gps_file = datestr_gps + '.csv'
+
+			with open(dir_gps + gps_file, newline='') as csvfile:
+
+				data_gps = np.array(list(csv.reader(csvfile)))
 
 				if trunc == 'False':
 
-					ext = ''
+					ext ='_ep_' + re_endpoints 
+					j = -1
 
-					if 'RB' in data[-1][0]:
-
-						endpts_res[filename[:s]] = (float(data[-1][3]), float(data[-1][4]))
-					else:
-
-						endpts_res[filename[:s]] = (float(data[-1][2]), float(data[-1][3]))
-
+				### gps tracks sometimes include moving the tracker to the road, need to cut this part off ###
 				elif trunc == 'True':
 
-					ext = '_trunc'
+					alts = []
+					ext = '_trunc_ep_' + re_endpoints 
 
-					for i in range(len(data)):
-						if 'RB' in data[i][0]:
-							alts.append(int(data[i][5]))
+					for i in range(len(data_gps)):
+						if 'RB' in data_gps[i][0]:
+							alts.append(int(data_gps[i][5]))
 						else:
-							alts.append(int(data[i][4]))
+							alts.append(int(data_gps[i][4]))
 
 					alt0 = np.max(alts)
 					ind, = np.where(alts == np.max(alts))[0]
@@ -64,143 +84,128 @@ def calc_results(trunc):
 						elif j > ind and alts[j] > alt0:
 							break
 
-					if 'RB' in data[-1][0]:
-						endpts_res[filename[:s]] = (float(data[j][3]), float(data[j][4]))
-					else:
-						endpts_res[filename[:s]] = (float(data[j][2]), float(data[j][3]))
+		if 'RB' in data_gps[j][0]:
+			d.setdefault(datestr_pred, []).append(haversine((end_lat_pred, end_lon_pred), (float(data_gps[j][3]), float(data_gps[j][4]))))
+		else:
+			d.setdefault(datestr_pred, []).append(haversine((end_lat_pred, end_lon_pred), (float(data_gps[j][2]), float(data_gps[j][3]))))
 
-	d = []
-	matched_keys = {}
+		burst_time = float(burst_times[np.where(dates == datestr_pred)[0]])
+		deltat.setdefault(datestr_pred, []).append(round(burst_time - weather_time, 2))
 
-	for key1 in endpts_pred.keys():
+	labels = list(d.keys())
+	flight_no = np.arange(1, len(labels) + 1, 1)
+	d = list(d.values())
+	deltats = list(deltat.values())
 
-		for key2 in endpts_res.keys():
-
-			if key1[2:4] == key2[:2]:
-
-				if not '_' in key2:
-
-					if key2[4] == '-':
-
-						if len(key2) == 6: ##-#-#
-
-							if key1[4:6] == '0' + key2[3] and key1[6:8] == '0' + key2[5]:
-
-								d.append(haversine(endpts_pred[key1], endpts_res[key2]))
-								key2 = key2.replace('-', '0')
-								key2 = key2.replace(key2[:2], '20' + key2[:2])
-								matched_keys[key2] = key1
-
-
-						else: ##-#-##
-
-							if key1[4:6] == '0' + key2[3] and key1[6:8] == key2[5:]:
-
-								d.append(haversine(endpts_pred[key1], endpts_res[key2]))
-								key2 = key2.replace('-' + key2[3], '0' + key2[3])
-								key2 = key2.replace('-', '')
-								key2 = key2.replace(key2[:2], '20' + key2[:2])
-								matched_keys[key2] = key1
-
-
-					elif key2[5] == '-':
-
-						if len(key2) == 7: ##-##-#
-
-							if key1[4:6] == key2[3:5] and key1[6:8] == '0' + key2[6]:
-
-								d.append(haversine(endpts_pred[key1], endpts_res[key2]))
-								key2 = key2.replace('-' + key2[6], '0' + key2[6])
-								key2 = key2.replace('-', '')
-								key2 = key2.replace(key2[:2], '20' + key2[:2])
-								matched_keys[key2] = key1
-
-						else: ##-##-##
-
-							if key1[4:6] == key2[3:5] and key1[6:8] == key2[6:]: 
-
-								d.append(haversine(endpts_pred[key1], endpts_res[key2]))
-								key2 = key2.replace('-', '')
-								key2 = key2.replace(key2[:2], '20' + key2[:2])
-								matched_keys[key2] = key1
-
-				elif '_' in key2:
-
-					if key1 == '20180406_0600_000' and key2 == '18-4-6_1':
-
-						d.append(haversine(endpts_pred[key1], endpts_res[key2]))
-						key2 = key2.replace('-', '0')
-						key2 = key2.replace(key2[:2], '20' + key2[:2])
-						matched_keys[key2] = key1
-
-					elif key1 == '20180406_1800_000' and key2 == '18-4-6_2':
-
-						d.append(haversine(endpts_pred[key1], endpts_res[key2]))
-						key2 = key2.replace('-', '0')
-						key2 = key2.replace(key2[:2], '20' + key2[:2])
-						matched_keys[key2] = key1
-
-	flight_no = np.arange(1, len(d)+1, 1)
-
-	labels = list(matched_keys.keys())
-
+	deltatss = [x for _,x in sorted(zip(labels, deltats))]
 	ds = [x for _,x in sorted(zip(labels, d))]
+
 	labels.sort()
 
 	fig = plt.figure()
 	plt.rc('axes', axisbelow=True)
-	plt.axhline(np.mean(ds), linestyle='--', linewidth=1, label='Average')
-	plt.plot(flight_no, ds, 'ro')
+
+	cm = plt.cm.get_cmap('RdYlBu')
+
+	x = [flight_no[key] for key in range(len(labels)) for i in range(len(ds[key]))]
+	sc = plt.scatter(x, [item for sublist in ds for item in sublist], c=[item for sublist in deltatss for item in sublist], s=100, cmap=cm)
+	clb = plt.colorbar(sc)
+	clb.set_label('delta t [hr]', fontsize=15)
+
 	plt.xlabel('Flight date', fontsize=15)
 	plt.ylabel('Error in distance [km]', fontsize=15)
-	plt.xticks(np.arange(1, len(ds) + 1, step = 1 ), labels=labels, rotation=60)
+
+	plt.xticks(np.arange(1, len(d) + 1, step = 1 ), labels=labels, rotation=60)
+	plt.grid(True)
+	# plt.legend(loc='best')
+	plt.tight_layout()
+
+	fig.savefig(fig_dir + 'results' + ext + '.png')
+
+	plt.close()
+
+	return deltatss, ds, labels
+
+if __name__ == '__main__':
+
+	re_endpoints = input('Check if prediction endpoints go below ground: ')
+
+	deltat1, d1, labels1 = calc_results('True', re_endpoints=re_endpoints)
+	deltat2, d2, labels2 = calc_results('False', re_endpoints=re_endpoints)
+
+	flight_no = np.arange(1, len(labels1) + 1, 1)
+
+	cm = plt.cm.get_cmap('RdYlBu')
+
+	fig = plt.figure()
+	plt.rc('axes', axisbelow=True)
+
+	x = [flight_no[i] for i in range(len(labels1)) for j in range(len(d1[i])) if np.abs(deltat1[i][j]) == min(np.abs(deltat1[i]))]
+	y = [d1[i][j] for i in range(len(d1)) for j in range(len(d1[i])) if np.abs(deltat1[i][j]) == min(np.abs(deltat1[i]))]
+	c = [deltat1[i][j] for i in range(len(d1)) for j in range(len(d1[i])) if np.abs(deltat1[i][j]) == min(np.abs(deltat1[i]))]
+
+	sc = plt.scatter(x, y, c=c, s=100, cmap=cm)
+	clb = plt.colorbar(sc)
+	plt.axhline(np.mean(y), linestyle='--', linewidth=1, label='Average: ' + str(round(np.mean(y), 2)))
+	clb.set_label('delta t [hr]', fontsize=15)
+	plt.xlabel('Flight date', fontsize=15)
+	plt.ylabel('Error in distance [km]', fontsize=15)
+	plt.xticks(np.arange(1, len(d1) + 1, step = 1), labels=labels1, rotation=60)
 	plt.grid(True)
 	plt.legend(loc='best')
 	plt.tight_layout()
-	fig.savefig(fig_dir + 'results' + ext + '.png')
 
-	return d, matched_keys
+	fig.savefig(fig_dir + 'results_minT_ep_' + re_endpoints + '.png')
+	plt.close()
 
-d1, labels1 = calc_results('True')
-d2, labels2 = calc_results('False')
+	fig = plt.figure()
+	plt.rc('axes', axisbelow=True)
 
-labels1 = list(labels1.keys())
-labels2 = list(labels2.keys())
+	x = [flight_no[i] for i in range(len(labels1)) for j in range(len(d1[i])) if d1[i][j] == min(d1[i])]
+	y = [d1[i][j] for i in range(len(d1)) for j in range(len(d1[i])) if d1[i][j] == min(d1[i])]
+	c = [deltat1[i][j] for i in range(len(d1)) for j in range(len(d1[i])) if d1[i][j] == min(d1[i])]
 
-s = sorted(zip(labels1, d1))
-labels1, d1 = map(list, zip(*s))
+	sc = plt.scatter(x, y, c=c, s=100, cmap=cm)
+	clb = plt.colorbar(sc)
+	plt.axhline(np.mean(y), linestyle='--', linewidth=1, label='Average: ' + str(round(np.mean(y), 2)))
+	clb.set_label('delta t [hr]', fontsize=15)
+	plt.xlabel('Flight date', fontsize=15)
+	plt.ylabel('Error in distance [km]', fontsize=15)
+	plt.xticks(np.arange(1, len(d1) + 1, step = 1), labels=labels1, rotation=60)
+	plt.grid(True)
+	plt.legend(loc='best')
+	plt.tight_layout()
 
-s = sorted(zip(labels2, d2))
-labels2, d2 = map(list, zip(*s))
+	fig.savefig(fig_dir + 'results_minD_ep_' + re_endpoints + '.png')
+	plt.close()
 
-flight_no = np.arange(1, len(d1) + 1, 1)
+	fig = plt.figure()
+	plt.rc('axes', axisbelow=True)
 
-fig = plt.figure()
-plt.rc('axes', axisbelow=True)
-plt.axhline(np.mean(d1), linestyle='--', color='red', linewidth=1, label='Average - truncated')
-plt.axhline(np.mean(d2), linestyle='--', color='blue', linewidth=1, label='Average - not truncated')
-plt.plot(flight_no, d1, 'ro', label='Truncated')
-plt.plot(flight_no, d2, 'bo', label='Not Truncated')
-plt.xlabel('Flight date', fontsize=15)
-plt.ylabel('Error in distance [km]', fontsize=15)
-plt.xticks(np.arange(1, len(d1) + 1, step = 1), labels=labels1, rotation=90)
-plt.grid(True)
-plt.legend(loc='best')
-plt.tight_layout()
-fig.savefig(fig_dir + 'results_trunc_vs_untrunc.png')
+	x = [flight_no[i] for i in range(len(labels1)) for j in range(len(d1[i])) if d1[i][j] == min(d1[i])]
+	y = [d1[i][j] for i in range(len(d1)) for j in range(len(d1[i])) if d1[i][j] == min(d1[i])]
+	c = [deltat1[i][j] for i in range(len(d1)) for j in range(len(d1[i])) if d1[i][j] == min(d1[i])]
 
-fig = plt.figure()
-plt.rc('axes', axisbelow=True)
+	plt.axhline(np.mean(y), color='orange', linestyle='--', linewidth=1, label='Mean min. d: ' + str(round(np.mean(y), 2)))
 
-d1 = np.array(d1)
-d2 = np.array(d2)
-diff = d2 - d1
+	sc = plt.scatter(x, y, c=c, s=100, cmap=cm, label='Min. d')
 
-plt.plot(flight_no, diff, 'ro', label='Diff = not truncated - truncated')
-plt.xlabel('Flight date', fontsize=15)
-plt.ylabel('Difference in error [km]', fontsize=15)
-plt.xticks(np.arange(1, len(d1) + 1, step = 1), labels=labels1, rotation=90)
-plt.grid(True)
-plt.legend(loc='best')
-plt.tight_layout()
-fig.savefig(fig_dir + 'diff_trunc_vs_untrunc.png')
+	x = [flight_no[i] for i in range(len(labels1)) for j in range(len(d1[i])) if np.abs(deltat1[i][j]) == min(np.abs(deltat1[i]))]
+	y = [d1[i][j] for i in range(len(d1)) for j in range(len(d1[i])) if np.abs(deltat1[i][j]) == min(np.abs(deltat1[i]))]
+	c = [deltat1[i][j] for i in range(len(d1)) for j in range(len(d1[i])) if np.abs(deltat1[i][j]) == min(np.abs(deltat1[i]))]
+
+	sc = plt.scatter(x, y, c=c, s=100, cmap=cm, marker='^', label='Min. dt')
+
+	clb = plt.colorbar(sc)
+	plt.axhline(np.mean(y), linestyle='--', linewidth=1, label='Mean min. delta t: ' + str(round(np.mean(y), 2)))
+	clb.set_label('delta t [hr]', fontsize=15)
+	plt.xlabel('Flight date', fontsize=15)
+	plt.ylabel('Error in distance [km]', fontsize=15)
+	plt.xticks(np.arange(1, len(d1) + 1, step = 1), labels=labels1, rotation=60)
+	plt.grid(True)
+	plt.legend(loc='best')
+	plt.tight_layout()
+
+	fig.savefig(fig_dir + 'results_minD+T_ep_' + re_endpoints + '.png')
+	plt.close()
+

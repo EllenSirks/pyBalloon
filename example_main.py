@@ -1,5 +1,4 @@
 #!/usr/bin/python
-"""Example main for pyBalloon"""
 
 import numpy as np
 import sys

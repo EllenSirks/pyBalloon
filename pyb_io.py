@@ -1,14 +1,14 @@
 """Input and output functions used by pyBalloon"""
 
+from glob import glob
 import pygrib as pg
 import numpy as np
-import os
-from glob import glob
-import csv
-import pyb_aux
 import requests
+import pyb_aux
+import csv
+import os
 
-def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False):
+def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
 
     """
 
@@ -36,6 +36,11 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
         - altitudes -- Geopotential height [m]
         
     """
+
+    g_0 = 9.80665 # m/s surface acc.
+    R0 = 8.3144621 # Ideal gas constant, J/(mol*K)
+    M_air = 0.0289644 # molar mass of air [kg/mol], altitude dependence
+    T0 = 288.15 # K
     
     if area is not None:
         tlat, llon, blat, rlon = area
@@ -50,11 +55,15 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
     g_msgs = grib.select(name='Geopotential Height')
     t_msgs = grib.select(name='Temperature')
 
-    lats, lons = u_msgs[0].latlons()
+    lats, lons, = u_msgs[0].latlons()
 
     # Find closest pixel location
+    if llon < 0:
+        locs = pyb_aux.all_and([lats <= tlat, lats >= blat, lons <= (rlon+360) % 360, lons >= (llon+360) % 360])
+    else:
+        locs = pyb_aux.all_and([lats <= tlat, lats >= blat, lons <= rlon, lons >= llon])
 
-    locs = pyb_aux.all_and([lats <= tlat, lats >= blat, lons <= rlon, lons >= llon])
+
     row_idx, col_idx = np.where(locs)
     lats = lats[row_idx, col_idx]
     lons = lons[row_idx, col_idx]
@@ -63,49 +72,49 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
     if len(lons) == 0: print( 'Warning! lons is empty!')
 
     # Collect U component of wind data
-
     u_wind = {}
     for msg in u_msgs:
         if msg.typeOfLevel == 'isobaricInhPa':
             u_wind[msg.level] = msg.values[row_idx, col_idx]
     
     # Collect V component of wind data
-
     v_wind = {}
     for msg in v_msgs:
         if msg.typeOfLevel == 'isobaricInhPa':
             v_wind[msg.level] = msg.values[row_idx, col_idx]
 
     # Collect temperatures
-
     temperature = {}
     for msg in t_msgs:
         if msg.typeOfLevel == 'isobaricInhPa':
             temperature[msg.level] = msg.values[row_idx, col_idx]
 
         # Add msg.typeOfLevel == 'surface', save to another variable for later use
-
         if msg.typeOfLevel == 'surface':
             t_surface = msg.values[row_idx, col_idx]
 
     # Collect Geopotential heights
-
     altitude = {}
     for msg in g_msgs:
         if msg.typeOfLevel == 'isobaricInhPa':
             altitude[msg.level] = msg.values[row_idx, col_idx]
 
     # Collect data to correct altitude order. Set "surface" values before real data.
-
-    u_winds = [np.zeros(lats.shape)]
-    v_winds = [np.zeros(lats.shape)]
+    if not descent_only: 
+        u_winds = [np.zeros(lats.shape)]
+        v_winds = [np.zeros(lats.shape)]
+    else:
+        u_winds = []
+        v_winds = []
 
     # Use given surface temperature if available, otherwise use the model value
-
-    if t_0 is None:
-        temperatures = [t_surface]
+    if not descent_only: 
+        if t_0 is None:
+            temperatures = [t_surface]
+        else:
+            temperatures = [t_0*np.ones(lats.shape)]
     else:
-        temperatures = [t_0*np.ones(lats.shape)]
+        temperatures = []
 
     if not descent_only:
         altitudes = [alt0*np.ones(lats.shape)]
@@ -113,28 +122,40 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
         altitudes = []
 
     pressures = u_wind.keys()
-    pressures.append(max(pressures))
+
+    if not descent_only:
+        pressures.append(max(pressures))
+    else:
+        alts_min = np.array([np.min(alt) for alt in altitude.values()])
+
+        diff = np.abs(alts_min - alt0)
+        grid_i1, = np.where(diff == diff.min())
+        grid_i1 = grid_i1[0]
+
+        p_or = altitude.keys()[grid_i1]
+
+        pressures.append(altitude.keys()[grid_i1])
 
     # Put pressures in altitude order and use them as keys
-
     pressures.sort()
     pressures.reverse()
 
+    if descent_only:
+        ind = np.where(np.array(pressures) == p_or)[0][0]
+    else:
+        ind = 0
+
     i = 0
     for key in pressures:
-        if i == 0:
-            i = 1
-        else:
+        if i != ind:
             uwnd, vwnd, temp, alt = [], [], [], []
             uwnd.append(u_wind[key])
             vwnd.append(v_wind[key])
             temp.append(temperature[key])
             alt.append(altitude[key])
 
-            # Add extra data to complement the currently read data,
-            # ie. 1, 2, 3, 5 and 7 hPa levels from GFS main run to
-            # ensembles. Data are expected to be in the same format as
-            # returned by this function.
+            # Add extra data to complement the currently read data, ie. 1, 2, 3, 5 and 7 hPa levels from GFS main run to ensembles. 
+            # Data are expected to be in the same format as returned by this function.
 
             j = 0
             if extra_data is not None:
@@ -156,8 +177,30 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
             temperatures.append(np.hstack(temp))
             altitudes.append(np.hstack(alt))
 
+            i+=1
+        else:
+            i+=1
+
+
     if descent_only:
-        altitudes.append(alt0*np.ones(lats.shape))
+
+        alts_mean = np.array([np.mean(alt) for alt in altitudes])
+        alts_min = np.array([np.min(alt) for alt in altitudes])
+
+        diff = np.abs(alts_min - alt0)
+        grid_i2, = np.where(diff == diff.min())
+        grid_i2 = grid_i2[0]
+
+        if alts_min[grid_i2] > alt0:
+            altitudes.insert(grid_i2, alt0*np.ones(lats.shape))
+            u_winds.insert(grid_i2, np.mean([u_winds[grid_i2], u_winds[grid_i2 - 1]])*np.ones(lats.shape))
+            v_winds.insert(grid_i2, np.mean([v_winds[grid_i2], v_winds[grid_i2 - 1]])*np.ones(lats.shape))
+            temperatures.insert(grid_i2, np.mean([temperatures[grid_i2], temperatures[grid_i2 - 1]])*np.ones(lats.shape))
+        else:
+            altitudes.insert(grid_i2 + 1, alt0*np.ones(lats.shape))
+            u_winds.insert(grid_i2 + 1, np.mean([u_winds[grid_i2 + 1], u_winds[grid_i2]])*np.ones(lats.shape))
+            v_winds.insert(grid_i2 + 1, np.mean([v_winds[grid_i2 + 1], v_winds[grid_i2]])*np.ones(lats.shape))
+            temperatures.insert(grid_i2 + 1, np.mean([temperatures[grid_i2 + 1], temperatures[grid_i2]])*np.ones(lats.shape))
 
     # Convert data in lists to Numpy arrays and add them to a dictionary that is returned
 
@@ -174,6 +217,12 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
         all_pressures.append(100*np.array(pressures)) # Convert hPa to Pa
 
     data['pressures'] = np.array(all_pressures).transpose()
+
+    if descent_only:
+        if alts_min[grid_i2] > alt0:
+            data['pressures'][grid_i2 + 1 ] = data['pressures'][grid_i2]*np.exp(-((g_0*M_air)/(T0*R0))*(alts_min[grid_i2] - alt0))
+        else:
+            data['pressures'][grid_i2] = data['pressures'][grid_i2]*np.exp(-((g_0*M_air)/(T0*R0))*(alts_min[grid_i2] - alt0))
 
     return data
 
@@ -248,7 +297,7 @@ def read_gfs_set(directory, area=None, alt0=0, main='gfs_main.grib2',
     return all_data
 
 
-def read_gfs_single(directory, area=None, alt0=0, descent_only=False):
+def read_gfs_single(directory, area=None, alt0=0, descent_only=False, step=100.):
     """Read a set of 0.5 degree GFS data.
 
     Required arguments:
@@ -270,7 +319,7 @@ def read_gfs_single(directory, area=None, alt0=0, descent_only=False):
 
     fname = os.path.join(directory, (directory + '.grb2'))
     print( "Reading GFS data from", fname)
-    main_run_data = read_gfs_file(fname, area=area, alt0=alt0, descent_only=descent_only)
+    main_run_data = read_gfs_file(fname, area=area, alt0=alt0, descent_only=descent_only, step=step)
     all_data.append(main_run_data)
 
     return all_data
@@ -456,7 +505,7 @@ def save_kml(fname, data, model_start_idx=0,
     kml_str += '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">\n'
     kml_str += '<Document id="feat_2">\n'
     kml_str += '<name>pyballoon trajectory</name>\n'
-    kml_str += '<description>pyballoon trajectories</description>\n'
+    kml_str += '<description>' + str(fname[52:69]) + '</description>\n'
 
     kml_str += '<Style id="stylesel_362">\n'
     kml_str += '<LineStyle id="substyle_363">\n'
