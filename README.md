@@ -10,6 +10,7 @@ Dependencies
 - pygrib
 - scipy.interpolate
 - requests
+- wget
 
 Documentation
 -------------
