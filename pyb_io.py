@@ -297,7 +297,7 @@ def read_gfs_set(directory, area=None, alt0=0, main='gfs_main.grib2',
     return all_data
 
 
-def read_gfs_single(directory, area=None, alt0=0, descent_only=False, step=100.):
+def read_gfs_single(directory=None, area=None, alt0=0, descent_only=False, step=100.):
     """Read a set of 0.5 degree GFS data.
 
     Required arguments:
@@ -313,12 +313,13 @@ def read_gfs_single(directory, area=None, alt0=0, descent_only=False, step=100.)
     Return:
         - List of dictionaries containing u_winds, v_winds, temperatures,
         pressures and altitudes.
+
     """
 
     all_data = []
 
     fname = os.path.join(directory, (directory + '.grb2'))
-    print( "Reading GFS data from", fname)
+    print('Reading GFS data from ' + fname[-28:])
     main_run_data = read_gfs_file(fname, area=area, alt0=alt0, descent_only=descent_only, step=step)
     all_data.append(main_run_data)
 
@@ -525,68 +526,41 @@ def save_kml(fname, data, model_start_idx=0,
     kml_str += '<LineString id="geom_86">\n'
 
     num = 0
-    for dat in data:
-        if num == 0 or eps_mode == 'full':
 
-            #kml_str += '<Placemark>\n'
-            #if num == 0:
-            #    kml_str += '<name>GFS main</name>\n'
-            #else:
-            #    if num == 1:
-            #        kml_str += '<name>GFS Ensemble main</name>\n'
-            #    else:
-            #        kml_str += '<name>GFS Ensemble member %d</name>\n' % \
-            #            (num-1)
-            #if num == 0:
-            #    kml_str += '<description>pyballoon trajectory</description>\n'
-            #else:
-            #    if eps_mode == 'full':
-            #        kml_str += '<description>pyballoon trajectory' \
-            #            '</description>\n'
-            #        kml_str += '<styleUrl>#yellowLineGreenPoly</styleUrl>\n'
+    if num == 0 or eps_mode == 'full':
 
-            #kml_str += '<LineString>\n'
-            #kml_str += '<extrude>1</extrude>\n'
-            #kml_str += '<tessellate>1</tessellate>\n'
-            #kml_str += '<altitudeMode>absolute</altitudeMode>\n'
+        kml_str += '<coordinates>\n'
 
-            kml_str += '<coordinates>\n'
+        t_prev = -2.0
+        for i in range(0, len(data['lats'])):
+            # if data['times'][i] >= t_prev + 0.5:
+            #     t_prev = data['times'][i]
+            kml_str += '%f,%f,%f\n' % (data['lons'][i], data['lats'][i], data['alts'][i])
 
-            t_prev = -2.0
-            for i in range(0, len(dat['lats'])):
-                if dat['times'][i] >= t_prev + 0.5:
-                    t_prev = dat['times'][i]
-                    kml_str += '%f,%f,%f\n' % \
-                        (dat['lons'][i], dat['lats'][i], dat['alts'][i])
+        kml_str += '</coordinates>\n'
+        kml_str += '<extrude>1</extrude>\n'
+        kml_str += '<tessellate>1</tessellate>\n'
+        kml_str += '<altitudeMode>absolute</altitudeMode>\n'
+        kml_str += '</LineString>\n'
+        kml_str += '</Placemark>\n'
 
-            kml_str += '</coordinates>\n'
-            kml_str += '<extrude>1</extrude>\n'
-            kml_str += '<tessellate>1</tessellate>\n'
-            kml_str += '<altitudeMode>absolute</altitudeMode>\n'
-            kml_str += '</LineString>\n'
-            kml_str += '</Placemark>\n'
-        num += 1
+    num += 1
 
     # Add placemarks for the trajectory end-points
-
     num = 0
-    for dat in data:
-        kml_str += '<Placemark>\n'
-        if num == 0:
-            kml_str += '<name>GFS main run</name>\n'
-            kml_str += '<description>End-point based on GFS ' \
-                'main run</description>\n'
-        else:
-            kml_str += '<name># %d</name>\n' % (num-1)
-            kml_str += '<description>End-point based on GFS ' \
-                    'ensemble member %d</description>\n' % (num-1)
+    kml_str += '<Placemark>\n'
+    if num == 0:
+        kml_str += '<name>GFS main run</name>\n'
+        kml_str += '<description>End-point based on GFS main run</description>\n'
+    else:
+        kml_str += '<name># %d</name>\n' % (num-1)
+        kml_str += '<description>End-point based on GFS ensemble member %d</description>\n' % (num-1)
 
-        kml_str += '<Point>\n'
-        kml_str += '<coordinates>%f,%f</coordinates>\n' % \
-            (dat['lons'][-1], dat['lats'][-1])
-        kml_str += '</Point>\n'
-        kml_str += '</Placemark>\n'
-        num += 1
+    kml_str += '<Point>\n'
+    kml_str += '<coordinates>%f,%f</coordinates>\n' % (data['lons'][-1], data['lats'][-1])
+    kml_str += '</Point>\n'
+    kml_str += '</Placemark>\n'
+    num += 1
 
     # Add "other_info" places
     

@@ -21,12 +21,7 @@ def get_rates(next_point='0'):
 
 	dir_pred = '/home/ellen/Desktop/SuperBIT/Weather_data/Trajectories/'
 
-	if next_point == '2':
-		ext = 'next2_points/'
-	elif next_point == '1':
-		ext = 'next_points/'
-	else:
-		ext = 'all_points/'
+	ext = 'start_point' + next_point + '/'
 
 	dir_pred = dir_pred + ext
 	dir_gps = '/home/ellen/Desktop/SuperBIT/Flight_data/'

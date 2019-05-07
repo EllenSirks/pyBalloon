@@ -111,10 +111,9 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
 
                     if x > 0:
                         for i in range(0, y):
-                            if i != 120:
-                                ok_idxs = altitudes[:, i] <= alt0
-                                tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
-                                arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
+                            ok_idxs = altitudes[:, i] <= alt0
+                            tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
+                            arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
                     else:
                         tck = interpolate.splrep(altitudes, d)
                         arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))

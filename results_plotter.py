@@ -12,12 +12,7 @@ def calc_results(trunc='True', next_point='0', re_endpoints='no'):
 
 	### Which point after the max. altitude do you want to check ###
 
-	if next_point == '2':
-		fext = 'next2_points/'
-	elif next_point == '1':
-		fext = 'next_points/'
-	else:
-		fext = 'all_points/'
+	ext = 'start_point' + next_point + '/'
 
 	dir = '/home/ellen/Desktop/SuperBIT/'
 

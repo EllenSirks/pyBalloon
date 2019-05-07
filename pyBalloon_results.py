@@ -8,9 +8,9 @@ import csv
 import sys
 import os
 
-# ext = 'all_points/'
-ext = 'next_points/'
-# ext = 'next2_points/'
+next_point = '0'
+
+ext = 'start_point' + next_point + '/'
 
 dir_pred = '/home/ellen/Desktop/SuperBIT/Weather_data/Endpoints/' + ext
 dir_gps = '/home/ellen/Desktop/SuperBIT/Flight_data/'
