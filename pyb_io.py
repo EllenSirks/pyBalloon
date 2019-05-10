@@ -1,10 +1,12 @@
 """Input and output functions used by pyBalloon"""
 
+from astropy.io import ascii
 from glob import glob
 import pygrib as pg
 import numpy as np
 import requests
 import pyb_aux
+import kml_circle
 import csv
 import os
 
@@ -46,7 +48,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
         tlat, llon, blat, rlon = area
     else:
         print('Do you really wish to search the entire planet?')
-        tlat, llon, blat, rlon = 90., -180., -90., 180.
+        tlat, llon, blat, rlon = 90., 0., -90., 360.
 
     grib = pg.open(fname)
     grib.seek(0)
@@ -55,14 +57,16 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
     g_msgs = grib.select(name='Geopotential Height')
     t_msgs = grib.select(name='Temperature')
 
-    lats, lons, = u_msgs[0].latlons()
+    lats, lons, = u_msgs[0].latlons() # lats: -90 -> 90, lons: 0 -> 360
+    lats2, lons2 = u_msgs[0].latlons()
 
-    # Find closest pixel location
-    if llon < 0:
-        locs = pyb_aux.all_and([lats <= tlat, lats >= blat, lons <= (rlon+360) % 360, lons >= (llon+360) % 360])
-    else:
-        locs = pyb_aux.all_and([lats <= tlat, lats >= blat, lons <= rlon, lons >= llon])
+    for i in range(len(lons2)):
+        for j in range(len(lons2[i])):
+            if lons2[i][j] > 180:
+                lons2[i][j] -= 360
 
+    # Find closest pixel location ### FIXXXX
+    locs = pyb_aux.all_and([lats <= tlat, lats >= blat, lons2 <= rlon, lons2 >= llon])
 
     row_idx, col_idx = np.where(locs)
     lats = lats[row_idx, col_idx]
@@ -543,7 +547,7 @@ def save_kml(fname, data, model_start_idx=0,
         kml_str += '<altitudeMode>absolute</altitudeMode>\n'
         kml_str += '</LineString>\n'
         kml_str += '</Placemark>\n'
-
+        
     num += 1
 
     # Add placemarks for the trajectory end-points
@@ -575,6 +579,14 @@ def save_kml(fname, data, model_start_idx=0,
                 (dat[1], dat[0], dat[2])
             kml_str += '</Point>\n'
             kml_str += '</Placemark>\n'
+
+    efile = 'endpoint_' + fname[65:-4] + '.dat'
+    data = ascii.read(fname[:42] + 'Endpoints/' + fname[52:65] + efile)
+    end_lat = data['lat'][-1]
+    end_lon = data['lon'][-1]
+    kml_str_add = kml_circle.create_circle(lon = end_lon, lat = end_lat)
+    kml_str += kml_str_add
+
 
     kml_str += '</Document>\n'
     kml_str += '</kml>\n'

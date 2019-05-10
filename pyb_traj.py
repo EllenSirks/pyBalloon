@@ -139,7 +139,7 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 
 	# Calculate the movement during ascent
 	i = 0
-	print('Calculating ascent...\n')
+	print('Calculating ascent...')
 	if not descent_only:
 
 		while True:
@@ -160,7 +160,7 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 					new_weather_file = 'gfs_4_' + datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh).zfill(3) + '.grb2'
 					new_weather_file = get_gfs.get_gfs_file(weather_file=new_weather_file)[0]
 					loc = (np.degrees(lat_rad[-1]), np.degrees(lon_rad[-1]), all_alts[-1])
-					data[new_hhhh + new_hhh] = prepare_data(weather_file=new_weather_file, loc0=loc, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only)
+					data[new_hhhh + new_hhh] = prepare_data(weather_file=new_weather_file, loc0=loc0, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only)
 					keys = list(data.keys())
 					checks[j] += 1.
 
@@ -171,7 +171,7 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 				new_weather_file = 'gfs_4_' + datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh).zfill(3) + '.grb2'
 				new_weather_file = get_gfs.get_gfs_file(weather_file=new_weather_file)[0]
 				loc = (np.degrees(lat_rad[-1]), np.degrees(lon_rad[-1]), all_alts[-1])
-				data[new_hhhh + new_hhh] = prepare_data(weather_file=new_weather_file, loc0=loc, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only)
+				data[new_hhhh + new_hhh] = prepare_data(weather_file=new_weather_file, loc0=loc0, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only)
 				keys = list(data.keys())
 
 				if new_hhh == 0.:
@@ -242,7 +242,7 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 	while timer < 60*drift_time: # seconds (drift time is in min.)
 
 		if timer == 0:
-			print('Calculating drift trajectory...\n')
+			print('Calculating drift trajectory...')
 
 		diff = np.sqrt((data_lats - lat_rad[-1])**2 + (data_lons-lon_rad[-1])**2)
 		grid_i, = np.where(diff == diff.min())
@@ -259,7 +259,7 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 				new_weather_file = 'gfs_4_' + datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh).zfill(3) + '.grb2'
 				new_weather_file = get_gfs.get_gfs_file(weather_file=new_weather_file)[0]
 				loc = (np.degrees(lat_rad[-1]), np.degrees(lon_rad[-1]), all_alts[-1])
-				data[new_hhhh + new_hhh] = prepare_data(weather_file=new_weather_file, loc0=loc, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only)
+				data[new_hhhh + new_hhh] = prepare_data(weather_file=new_weather_file, loc0=loc0, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only)
 				keys = list(data.keys())
 				checks[j] += 1.
 
@@ -270,7 +270,7 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 			new_weather_file = 'gfs_4_' + datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh).zfill(3) + '.grb2'
 			new_weather_file = get_gfs.get_gfs_file(weather_file=new_weather_file)[0]
 			loc = (np.degrees(lat_rad[-1]), np.degrees(lon_rad[-1]), all_alts[-1])
-			data[new_hhhh + new_hhh] = prepare_data(weather_file=new_weather_file, loc0=loc, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only)
+			data[new_hhhh + new_hhh] = prepare_data(weather_file=new_weather_file, loc0=loc0, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only)
 			keys = list(data.keys())
 
 			if new_hhh == 0.:
@@ -308,7 +308,7 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 
 		timer += dt
 
-	print('Calculating descent...\n')
+	print('Calculating descent...')
 	# Calculate the movement during descent (same for either option)
 	while i >= 0:
 
@@ -329,7 +329,7 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 				new_weather_file = 'gfs_4_' + datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh).zfill(3) + '.grb2'
 				new_weather_file = get_gfs.get_gfs_file(weather_file=new_weather_file)[0]
 				loc = (np.degrees(lat_rad[-1]), np.degrees(lon_rad[-1]), all_alts[-1])
-				data[new_hhhh + new_hhh] = prepare_data(weather_file=new_weather_file, loc0=loc, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only)
+				data[new_hhhh + new_hhh] = prepare_data(weather_file=new_weather_file, loc0=loc0, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only)
 				keys = list(data.keys())
 				checks[j] += 1.
 
@@ -340,7 +340,7 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 			new_weather_file = 'gfs_4_' + datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh).zfill(3) + '.grb2'
 			new_weather_file = get_gfs.get_gfs_file(weather_file=new_weather_file)[0]
 			loc = (np.degrees(lat_rad[-1]), np.degrees(lon_rad[-1]), all_alts[-1])
-			data[new_hhhh + new_hhh] = prepare_data(weather_file=new_weather_file, loc0=loc, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only)
+			data[new_hhhh + new_hhh] = prepare_data(weather_file=new_weather_file, loc0=loc0, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only)
 			keys = list(data.keys())
 
 			if new_hhh == 0.:

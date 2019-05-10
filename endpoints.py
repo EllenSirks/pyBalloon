@@ -6,31 +6,10 @@ import csv
 import sys
 import os
 
-def get_file(date, fext='all_points/'):
+# method to get more accurate endpoint for predictions as they can go underground.
+def get_endpoint(filename, next_point='0'):
 
-	dir_pred = '/home/ellen/Desktop/SuperBIT/Weather_data/Trajectories/' + fext
-
-	no = 1
-
-	files = [file for file in os.listdir(dir_pred) if file.startswith(date)]
-
-	if len(files) > 1:
-		no = int(input('Flight no.: '))
-
-	t1 = np.array([int(int(file[9:13])/100 + int(file[14:17])) for file in files])
-	t2 = np.array([int(int(file[9:13])/100 + int(file[14:17])) for file in files])
-
-	t1.sort()
-
-	ind = int(np.where(t2 == t1[no - 1])[0])
-	filename = files[ind]
-
-	return filename, fext
-
-def get_endpoint(filename, fext='all_points/'):
-
-	if len(filename) == 8:
-		filename, fext = get_file(date=filename, fext=fext)
+	fext = 'start_point' + next_point + '/'
 
 	dir_pred = '/home/ellen/Desktop/SuperBIT/Weather_data/Trajectories/' + fext
 
@@ -71,7 +50,7 @@ def get_endpoint(filename, fext='all_points/'):
 	print('Old end-point: (' + str(lats[-1]) + ', ' + str(lons[-1]) + ')' )
 	print('New end-point: (' + str(newlat) + ', ' + str(newlon) + ')' )
 
-	f = open('/home/ellen/Desktop/SuperBIT/Weather_data/Endpoints/Precise/' + fext + filename[:-15] +'_endpoint_precise.dat','w+')
+	f = open('/home/ellen/Desktop/SuperBIT/Weather_data/Endpoints/' + fext + 'Precise/' + filename[:-15] +'_endpoint_precise.dat','w+')
 	f.write('lat lon\n')
 	f.write(str(lats[-1]) + ' ' + str(lons[-1]) + '\n')
 	f.write(str(newlat) + ' ' + str(newlon))
@@ -84,15 +63,8 @@ if __name__ == '__main__':
 	time0 = time.time()
 
 	next_point = input('Start at point after max. altitude: ')
+	new_coords = get_endpoint(filename=sys.argv[1], next_point=next_point)
 
-	if next_point == '2':
-		fext = 'next2_points/'
-	elif next_point == '1':
-		fext = 'next_points/'
-	else:
-		fext = 'all_points/'
-
-	new_coords = get_endpoint(filename=sys.argv[1], fext=fext)
 	print('%.1f s elapsed' % (time.time() - time0))
 
 	

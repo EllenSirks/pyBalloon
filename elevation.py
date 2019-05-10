@@ -5,8 +5,11 @@ import time
 import sys
 import os
 
+# methods to find elevation at given lon, lat
+
 srtm_dir = '/home/ellen/Desktop/SuperBIT/SRTM_data/'
 
+# method to find the srtm file with the correct lon/lat limits
 def find_srtm_file(lat, lon):
 
 	data = ascii.read(srtm_dir + 'srtm_data_limits.txt')
@@ -26,7 +29,7 @@ def find_srtm_file(lat, lon):
 		print('Correct SRTM file data is not here!')
 		return
 
-
+# find the elevation at the location (the loc closest in the grid)
 def find_loc(lat, lon, srtm_file):
 
 	file = srtm_dir + srtm_file
@@ -49,14 +52,12 @@ def find_loc(lat, lon, srtm_file):
 
 	elevation = elevations[int(i0)][int(i1)]
 
-	# elevations, diff, lons, lats = None, None, None, None
+	elevations, diff, lons, lats = None, None, None, None
 
 	return min_diff, elevation
 
-
+# run both methods to get elevation
 def get_elevation(lat, lon, srtm_file=None):
-
-	# print('Getting elevation at: (' + str(lat) + ', ' + str(lon) + ')')
 
 	lat, lon = float(lat), float(lon)
 
@@ -67,9 +68,6 @@ def get_elevation(lat, lon, srtm_file=None):
 		srtm_file = find_srtm_file(lat, lon)
 
 	min_diff, elevation0 = find_loc(lat, lon, srtm_file)
-
-	# print('Difference in location: ' + str(min_diff) + ' degrees')
-	# print('Elevation: ' + str(elevation0) + ' m')
 
 	return elevation0
 

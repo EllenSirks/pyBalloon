@@ -35,15 +35,13 @@ def run(weather_file=None, datestr=None, utc_hour=None, lat0=None, lon0=None, al
 	# check if want just descent
 	if descent_only == 'True':
 		descent_only = True
-	else:
+	elif descent_only == 'False':
 		descent_only = False
 
 	# check if want to interpolate
-	if interpolate == 'True':
-		interpolate = True
+	if interpolate:
 		interp = '_interpolated_'
 	else:
-		interpolate = False
 		interp = '_'
 
 	# starting location
@@ -64,12 +62,13 @@ def run(weather_file=None, datestr=None, utc_hour=None, lat0=None, lon0=None, al
 	balloon['burst_radius'] = 9.44/2 # meters
 	balloon['thickness_empty'] = 0.2 * 10**-3 # mm -> meters
 	balloon['Cd_balloon'] = 0.5
-	balloon['Cd_parachute'] = 0.5
+	balloon['simple_ascent_rate'] = 5.0 # m/s
 
+	# parachute parameters
+	balloon['Cd_parachute'] = 0.5
 	radius = 1.0
 	balloon['parachute_areas'] = np.pi * np.array([radius])**2 # m^2
 	balloon['parachute_change_altitude'] = None # meters
-	balloon['simple_ascent_rate'] = 5.0 # m/s
 
 	# check if want interpolation
 	if interpolate:
@@ -109,16 +108,16 @@ def run(weather_file=None, datestr=None, utc_hour=None, lat0=None, lon0=None, al
 
 	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
 
-	# write out file for google-earth
-	kml_fname = kml_dir + file[6:14] + '_' + str(utc_hour) + '_' + str(loc0) + interp + '+' + str(int(drift_time)).zfill(4) + 'min.kml'
-	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info)
-
 	# write out endpoint to file
 	f = open(dir_base + 'Endpoints/' + ext + 'endpoint_' + file[6:14] + '_' + str(utc_hour) + '_' + str(loc0) + interp + '+' + str(int(drift_time)).zfill(4) + 'min.dat','w+')
 	f.write('lat lon alt\n')
 	f.write(str(lat0) + ' ' + str(lon0) + ' ' + str(alt0) + '\n')
 	f.write(str(trajectories['lats'][-1]) + ' ' + str(trajectories['lons'][-1]) + ' ' + str(trajectories['alts'][-1]))
 	f.close()
+
+	# write out file for google-earth
+	kml_fname = kml_dir + file[6:14] + '_' + str(utc_hour) + '_' + str(loc0) + interp + '+' + str(int(drift_time)).zfill(4) + 'min.kml'
+	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info)
 
 	print('\nProgram finished in %.1f s' % (time.time() - time0))
 
@@ -130,4 +129,8 @@ if __name__ == "__main__":
 	# otherwise if we only know the date & time of the starting point run these parameters
 	else:
 		interpolate = str(raw_input('Interpolate? True or False: '))
+		if interpolate == 'True':
+			interpolate = True
+		else:
+			interpolate = False
 		run(datestr=sys.argv[1], utc_hour=sys.argv[2], lat0=sys.argv[3], lon0=sys.argv[4], alt0=sys.argv[5], descent_only=sys.argv[6], next_point=sys.argv[7], interpolate=interpolate, drift_time=sys.argv[8])

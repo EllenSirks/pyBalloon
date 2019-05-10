@@ -75,6 +75,8 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
 
     checks = ['altitudes', 'lats', 'lons']
 
+    # print(data.keys())
+
     for key in data.keys():        
         if key not in checks:
 
@@ -112,6 +114,7 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
                     if x > 0:
                         for i in range(0, y):
                             ok_idxs = altitudes[:, i] <= alt0
+                            # print(key, d[ok_idxs, i])
                             tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
                             arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
                     else:

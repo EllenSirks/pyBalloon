@@ -1,6 +1,8 @@
 from astropy.io import ascii
 import numpy as np
+import kml_circle
 import time
+import sys
 import os
 
 time0 = time.time()
@@ -14,8 +16,18 @@ time0 = time.time()
 # 	interpolated = False
 
 next_point = '2'
-datestr = '20180304'
+datestr = sys.argv[1]
 interpolated = False
+flight_nr = 1
+ext_str = '.'
+
+if datestr == '20180406':
+	flight_nr = int(input('flight 1 or 2? '))
+	if flight_nr == 1:
+		ext_str = '8.9'
+	else:
+		ext_str = '18.6'
+
 
 dir_base = '/home/ellen/Desktop/SuperBIT/Weather_data/'
 ext = 'start_point' + next_point + '/'
@@ -23,11 +35,12 @@ dir1 = dir_base + 'kml_files/' + ext
 
 lines = {}
 for fname in os.listdir(dir1):
-	if fname.endswith('min.kml') and not fname.startswith('merged'):
+	if datestr in fname and fname.endswith('min.kml') and not 'merged' in fname:
 		if interpolated and 'interpolated' in fname or not interpolated and not 'interpolated' in fname:
-			fname0 = fname
-			lines[int(fname[-10:-7])] =  [line.rstrip('\n').split(' ') for line in open(dir1 + fname)]
-
+			if ext_str in fname:
+				fname0 = fname
+				lines[int(fname[-10:-7])] =  [line.rstrip('\n').split(' ') for line in open(dir1 + fname)]
+		
 keys = list(lines.keys())
 
 kml_str1 = '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -101,18 +114,20 @@ for key in keys:
 kml_str2 += '</coordinates>\n'
 kml_str2 += '<extrude>1</extrude>\n'
 kml_str2 += '<tessellate>1</tessellate>\n'
-kml_str2 += '<altitudeMode>absolute</altitudeMode>\n'
+kml_str2 += '<altitudeMode>relativeToGround</altitudeMode>\n'
 kml_str2 += '</LineString>\n'
 kml_str2 += '</Placemark>\n'
 
 for key in keys:
 	kml_str2 += '<Placemark>\n'
-	kml_str2 += '<name>End-point</name>\n'
-	kml_str2 += '<description>End-point based on GFS main run</description>\n'
+	kml_str2 += '<name>End, drift = '+ str(key) + ' min.</name>\n'
 	kml_str2 += '<Point>\n'
 	kml_str2 += '<coordinates>' + str(endpoints[key][1]) + ',' + str(endpoints[key][0]) + '</coordinates>' + '\n'
 	kml_str2 += '</Point>\n'
 	kml_str2 += '</Placemark>\n'
+
+	kml_str_add = kml_circle.create_circle(lon = endpoints[key][1], lat = endpoints[key][0])
+	kml_str2 += kml_str_add
 
 kml_str2 += '</Document>\n'
 kml_str2 += '</kml>'
