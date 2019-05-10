@@ -1,6 +1,8 @@
-import numpy as np
 from scipy import interpolate
+import numpy as np
+import re
 
+# necessary constants
 g_0 = 9.80665 # Earth gravitational acceleration at surface
 R_e = 6371009 # mean Earth radius in meters
 R = 8.3144621 # Ideal gas constant
@@ -23,13 +25,10 @@ def all_and(data):
 
     return result
 
-
+# method to calculate Earth WGS84 based radius on a given latitude.
+# see http://en.wikipedia.org/wiki/Earth_radius#Radius_at_a_given_geodetic_latitude
 def earth_radius(lat_rad):
-    """Calculate Earth WGS84 based radius on a given latitude.
-
-    http://en.wikipedia.org/wiki/Earth_radius#Radius_at_a_given_geodetic_latitude
-    """
-
+    
     # WGS84 reference ellipsoid
     a = 6378.137     # Earth equatorial radius, km
     b = 6356.7523142 # Earth polar radius, km
@@ -42,7 +41,7 @@ def earth_radius(lat_rad):
 
     return r
 
-
+# method to calculate the air density
 def air_density(data):
 
     p = data['pressures'] # Pa
@@ -57,7 +56,7 @@ def air_density(data):
 
     return rho # kg m-3
 
-
+# method to interpolate data to altitude steps
 def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
 
     altitudes = data['altitudes']
@@ -92,9 +91,7 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
                 y, = d.shape
 
             if mode == 'spline':
-
                 if not descent_only:
-
                     if x > 0:
                         for i in range(0, y):
                             ok_idxs = altitudes[:, i] >= alt0
@@ -103,18 +100,10 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
                     else:
                         tck = interpolate.splrep(altitudes, d)
                         arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
-
                 elif descent_only:                       
-
-                    # if x > 0:
-                    #     arr = [np.array(interpolate.splev(new_data['altitudes'], interpolate.splrep(altitudes[altitudes[:, i] <= alt0, i], d[altitudes[:, i] <= alt0, i]))) for i in range(0, y)] #### maybe not < alt0 ??
-                    # else:
-                    #     arr = [np.array(interpolate.splev(new_data['altitudes'], interpolate.splrep(altitudes, d)))]
-
                     if x > 0:
                         for i in range(0, y):
                             ok_idxs = altitudes[:, i] <= alt0
-                            # print(key, d[ok_idxs, i])
                             tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
                             arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
                     else:
@@ -395,3 +384,91 @@ def mooney_rivlin(data, radius_empty, radius_filled,
     all_radii = np.array(all_radii)
 
     return all_radii, gas_mass
+
+# method to find the elevation at the location (the loc closest in the grid)
+def get_elevation(lat, lon, srtm_file):
+
+    srtm_dir = '/home/ellen/Desktop/SuperBIT/SRTM_data/'
+
+    if lon < 0:
+        lon = lon + 360 % 360
+
+    if srtm_file == None:
+        data = ascii.read(srtm_dir + 'srtm_data_limits.txt')
+        files, tlat, blat, llon, rlon = data['file'], data['latN'], data['latS'], data['lonW'], data['lonE']
+
+        file = None
+
+        for i in range(len(files)):
+
+            if lat < tlat[i] and lat > blat[i]:
+                if lon < rlon[i] and lon > llon[i]:
+                    file = files[i]
+
+        if file != None:
+            srtm_file = str(file)
+        else:
+            print('Correct SRTM file data is not here!')
+            return
+
+    file = srtm_dir + srtm_file
+
+    ds = gdal.Open(file)
+
+    band = ds.GetRasterBand(1)
+    elevations = band.ReadAsArray()
+    nrows, ncols = elevations.shape
+    x0, dx, dxdy, y0, dydx, dy = ds.GetGeoTransform()
+
+    lons = np.arange(x0, x0 + dx*(ncols-1) + dx, dx) 
+    lon_arr = np.array([lons for i in range(nrows)])
+    lats = np.arange(y0, y0 + dy *nrows, dy)                                                   
+    lat_arr = np.array([np.array([l for i in range(ncols)]) for l in lats])
+
+    diff = np.sqrt((lon_arr - lon)**2 + (lat_arr - lat)**2)
+    min_diff = np.min(diff)
+    i0, i1 = np.where(diff == min_diff)
+
+    elevation = elevations[int(i0)][int(i1)]
+
+    elevations, diff, lons, lats = None, None, None, None
+
+    return elevation
+
+# method to match prediction to gps file
+def match_pred2gps(date):
+
+    datestr = date[2:4] + '-' + date[4:6] + '-' + date[6:]
+
+    if datestr[3] == '0':
+        datestr = datestr[:3] + datestr[4:]
+        if datestr[5] == '0':
+            datestr = datestr[:5] + datestr[6:]
+    else:
+        if datestr[6] == '0':
+            datestr = datestr[:6] + datestr[7:]
+
+    return datestr
+
+# method to match gps to prediction file
+def match_gps2pred(date):
+
+    if '_' in date:
+        i0 = [m.start() for m in re.finditer('_', date)][0]
+    else:
+        i0 = len(date)
+
+    inds = [m.start() for m in re.finditer('-', date)]
+    i1, i2 = inds[0], inds[1]
+
+    if i2 - i1 == 2:
+        month = '0' + date[i1+1]
+    else:
+        month = date[i1+1:i1+3]
+
+    if i0 - i2 == 2:
+        day = '0' + date[i2+1:]
+    else:
+        day =  date[i2+1:]
+
+    return '20' + date[:2] + month + day
