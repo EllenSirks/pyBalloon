@@ -22,16 +22,23 @@ warnings.filterwarnings("ignore")
 # requires the starting location & starting point (0 for highest), whether or not its descent only, and
 # either the date & time of the starting point OR the relevent weather file
 
-def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, descent_only=False, next_point='0', interpolate=False, drift_time=0):
+def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, params=None):
 
 	print('')
 	time0 = time.time()
 
-	descent_only = p.descent_only
-	interpolate = p.interpolate
-	if descent_only:
-		next_point = p.next_point
-	drift_time = p.drift_time
+	if params == None:
+		descent_only = p.descent_only
+		interpolate = p.interpolate
+		if descent_only:
+			next_point = p.next_point
+		drift_time = p.drift_time
+	else:
+		descent_only = bool(params[0])
+		interpolate = bool(params[-2])
+		if descent_only:
+			next_point = str(params[1])
+		drift_time = float(params[-1])
 
 	# create relevant paths/folders
 	dir_base = '/home/ellen/Desktop/SuperBIT/Weather_data/'
@@ -47,9 +54,6 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, descent_on
 	end_dir = dir_base + 'Endpoints/' + ext
 
 	# check if the paths exist/make them
-	if not os.path.exists(in_dir):
-		os.makedirs(in_dir)
-
 	if not os.path.exists(kml_dir):
 		os.makedirs(kml_dir)
 
@@ -127,12 +131,10 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, descent_on
 
 	# write out file for google-earth
 	kml_fname = kml_dir + file[6:14] + '_' + str(utc_hour) + '_' + str(loc0) + interp + '+' + str(int(drift_time)).zfill(4) + 'min.kml'
-	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info)
+	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params)
 
 	print('\nProgram finished in %.1f s' % (time.time() - time0))
 
 if __name__ == "__main__":
-
-	print('Is this location correct for the starting point?')
 
 	run(datestr=sys.argv[1], utc_hour=sys.argv[2], lat0=sys.argv[3], lon0=sys.argv[4], alt0=sys.argv[5])

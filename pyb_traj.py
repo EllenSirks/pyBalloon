@@ -115,7 +115,7 @@ def calc_displacements(data=None, balloon=None, descent_only=False):
 
 	if not descent_only:
 
-		max_altitudes, max_alt_idxs = pyb_aux.burst_altitude(data, balloon['burst_radius'])
+		data['max_altitudes'], data['max_alt_idxs'] = pyb_aux.burst_altitude(data, balloon['burst_radius'])
 
 		delta_t = balloon['altitude_step'] / data['ascent_speeds']
 
@@ -198,6 +198,7 @@ def update_files(data, lat_rad, lon_rad, all_alts, balloon, datestr, utc_hour, l
 
 	return data, keys, checks, index
 
+# method to calculate the trajectory of the balloon/parachute given a start position & other input parameters
 def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=None, alt_change_fit=10, descent_only=False, interpolate=False, drift_time=0):
 
 	time0 = time.time()
@@ -271,7 +272,7 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 					speed = data[keys[index]]['ascent_speeds'][grid_i, i]
 
 
-				if all_alts[-1] >= max_altitudes[grid_i]:
+				if all_alts[-1] >= data[keys[index]]['max_altitudes'][grid_i]:
 					if drift_time == 0:
 						stage += 2
 					else:
@@ -360,7 +361,7 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 	output['distance'] = distance_travelled
 
 	# print out relevant quantities
-	print('\nTrajectories calculated, %.3f s elapsed' % (time.time() - time0) + '\n')
+	print('Trajectories calculated, %.3f s elapsed' % (time.time() - time0) + '\n')
 	print('Maximum altitude: ' + str(np.max(all_alts)) + ' m')
 	print('Landing location: (%.6f, %.6f)' % (output['lats'][-1], output['lons'][-1]))
 	print('Total flight time: %d min' % (int(output['times'][-1])) + ', total distance travelled: %.1f' % distance_travelled + ' km')

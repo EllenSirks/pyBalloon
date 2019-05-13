@@ -14,6 +14,7 @@ import csv
 import sys
 import os
 
+import param_file as p
 import pyb_aux
 
 def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
@@ -478,9 +479,8 @@ def read_live_data(fname, delimiter=',', temp_conv=(1, 0),
 
     return live_data
 
-
 def save_kml(fname, data, model_start_idx=0, 
-             eps_mode='end', other_info=None):
+             eps_mode='end', other_info=None, params=None):
     """Save given trajectories as KML. The first trajectory is assumed
     to be from GFS main run, the second from ensemble main and the
     rest from other ensemble members.
@@ -511,6 +511,20 @@ def save_kml(fname, data, model_start_idx=0,
             - change color of the trajectory at model_start_idx
             - or different paths?
     """
+
+    if params == None:
+        descent_only = p.descent_only
+        if descent_only:
+            next_point = p.next_point
+        interpolate = p.interpolate
+        drift_time = p.drift_time
+
+    else:
+        descent_only = bool(params[0])
+        if descent_only:
+            next_point = str(params[1])
+        interpolate = bool(params[-2])
+        drift_time = float(params[-1])
 
     kml_str = '<?xml version="1.0" encoding="UTF-8"?>\n'
     kml_str += '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">\n'
@@ -586,8 +600,15 @@ def save_kml(fname, data, model_start_idx=0,
             kml_str += '</Point>\n'
             kml_str += '</Placemark>\n'
 
-    end_dir = fname[:42] + 'Endpoints/' + fname[52:78]
-    efile = 'endpoint_' + fname[78:-4] + '.dat'
+    if descent_only:
+
+        end_dir = fname[:42] + 'Endpoints/' + fname[52:78]
+        efile = 'endpoint_' + fname[78:-4] + '.dat'
+
+    else:
+
+        end_dir = fname[:42] + 'Endpoints/' + fname[52:67]
+        efile = 'endpoint_' + fname[67:-4] + '.dat'
 
     data = ascii.read(end_dir + efile)
     end_lat = data['lat'][-1]
@@ -654,26 +675,44 @@ def create_circle(lon=None, lat=None):
 
     return kml_str
 
-def merge_kml(datestr, next_point='0', interpolated=False):
+def merge_kml(datestr, params=None):
 
-    flight_nr = 1
+    if params == None:
+        descent_only = p.descent_only
+        if descent_only:
+            next_point = p.next_point
+        interpolate = p.interpolate
+        drift_time = p.drift_time
+
+    else:
+
+        descent_only = bool(params[0])
+        if descent_only:
+            next_point = str(params[1])
+        interpolate = bool(params[-2])
+        drift_time = float(params[-1])
+
     ext_str = '.'
 
-    if datestr == '20180406':
-        flight_nr = int(input('flight 1 or 2? '))
-        if flight_nr == 1:
-            ext_str = '8.9'
-        else:
-            ext_str = '18.6'
+    if datestr == '20180406_1':
+        ext_str = '_8.'
+    elif datestr == '20180406_2':
+        ext_str = '_18.'
 
     dir_base = '/home/ellen/Desktop/SuperBIT/Weather_data/'
-    ext = 'start_point' + next_point + '/'
+
+    if descent_only:
+        ext = 'descent_only/start_point' + next_point + '/'
+
+    else:
+        ext = 'ascent+descent/'
+
     dir1 = dir_base + 'kml_files/' + ext
 
     lines = {}
     for fname in os.listdir(dir1):
-        if datestr in fname and fname.endswith('min.kml') and not 'merged' in fname:
-            if interpolated and 'interpolated' in fname or not interpolated and not 'interpolated' in fname:
+        if datestr in fname and fname.endswith(str(int(drift_time)).zfill(4) + .'min.kml') and not 'merged' in fname:
+            if interpolate and 'interpolated' in fname or not interpolate and not 'interpolated' in fname:
                 if ext_str in fname:
                     fname0 = fname
                     lines[int(fname[-10:-7])] =  [line.rstrip('\n').split(' ') for line in open(dir1 + fname)]
@@ -774,9 +813,27 @@ def merge_kml(datestr, next_point='0', interpolated=False):
     fid.close()
 
 # method to get more accurate endpoint for predictions as they can go underground.
-def get_endpoint(filename, next_point='0'):
+def get_endpoint(filename, params=None):
 
-    fext = 'start_point' + next_point + '/'
+    if params == None:
+        descent_only = p.descent_only
+        if descent_only:
+            next_point = p.next_point
+        interpolate = p.interpolate
+        drift_time = p.drift_time
+
+    else:
+
+        descent_only = bool(params[0])
+        if descent_only:
+            next_point = str(params[1])
+        interpolate = bool(params[-2])
+        drift_time = float(params[-1])
+
+    if descent_only:
+        fext = 'descent_only/start_point' + next_point + '/'
+    else:
+        fext = 'ascent+descent/'
 
     dir_pred = '/home/ellen/Desktop/SuperBIT/Weather_data/Trajectories/' + fext
 

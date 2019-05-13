@@ -266,7 +266,7 @@ def get_latest_gfs_file(verbose=False):
 	else:
 		print(weather_file + ' already downloaded!')
 
-	return [weather_file[:-5]]
+	return [weather_file]
 
 # method to find & download weather files needed for interpolation (3)
 def get_interpolation_gfs_files(weather_file=None, datestr=None, utc_hour=None):
@@ -309,6 +309,7 @@ if __name__ == '__main__':
 
 	time0 = time.time()
 
-	res = get_closest_hr(utc_hour=sys.argv[1])
+	res = get_latest_gfs_file()
+	print(res)
 
 	print('Program finished in %.1f s' % (time.time() - time0))

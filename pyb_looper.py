@@ -4,28 +4,41 @@ import time
 from pyb_runner import run
 import param_file as p
 
-time0 = time.time()
+def looper(params=None):
 
-dir = '/home/ellen/Desktop/SuperBIT/Flight_data/'
+	time0 = time.time()
 
-if p.descent_only:
+	dir = '/home/ellen/Desktop/SuperBIT/Flight_data/'
 
-	next_point = p.next_point
+	if params == None:
 
-	fname = 'descent_only_start' + next_point + '.txt'
+		descent_only == p.descent_only:	
+		next_point = p.next_point
+
+	else:
+
+		descent_only = params[0]
+		if descent_only:
+			next_point = params[1]
+
+	if descent_only:
+		fname = 'descent_only_start' + next_point + '.txt'
+
+	else:
+		print('No file with specified flight data!')
 
 	print('\nRunning file: ' + fname)
 
-else:
+	lines = [line.rstrip('\n').split(' ') for line in open(dir + fname)]
+	for i in range(len(lines)):
+		try: 
+			run(datestr=lines[i][0], utc_hour=lines[i][1], lat0=lines[i][2], lon0=lines[i][3], alt0=lines[i][4], params=params)
+		except Exception as e: 
+			print(e)
+			continue
 
-	print('There is no file with ascent start positions!')
+	print('Total time elapsed: %.1f s' % (time.time() - time0))
 
-lines = [line.rstrip('\n').split(' ') for line in open(dir + fname)]
-for i in range(len(lines)):
-	try: 
-		run(datestr=lines[i][0], utc_hour=lines[i][1], lat0=lines[i][2], lon0=lines[i][3], alt0=lines[i][4])
-	except Exception as e: 
-		print(e)
-		continue
+if __name__ == '__main__':
 
-print('Total time elapsed: %.1f s' % (time.time() - time0))
+	looper()

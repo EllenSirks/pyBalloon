@@ -14,7 +14,7 @@ import pyb_aux
 
 alt_err = 2.
 
-def get_rates(next_point='0'):
+def get_rates(params=None):
 
 	FMT = "%H:%M:%S"
 
@@ -26,22 +26,34 @@ def get_rates(next_point='0'):
 
 	dir_pred = '/home/ellen/Desktop/SuperBIT/Weather_data/Trajectories/'
 
-	descent_only = p.descent_only
+	if params == None:
+		descent_only = p.descent_only
+		if descent_only:
+			next_point = p.next_point
+		interpolate = p.interpolate
+		drift_time = p.drift_time
+
+	else:
+
+		descent_only = bool(params[0])
+		if descent_only:
+			next_point = str(params[1])
+		interpolate = bool(params[-2])
+		drift_time = float(params[-1])
 
 	if descent_only:
-		next_point = p.next_point
 		ext = 'descent_only/start_point' + next_point + '/'
 	else:
 		ext = 'ascent+descent/'
 
-	dir_pred = dir_pred + ext
+	dir_pred += ext
 	dir_gps = '/home/ellen/Desktop/SuperBIT/Flight_data/'
 
 	add = int(next_point)
 
 	for filename in os.listdir(dir_pred):
-		# if filename.endswith('0000min.dat') and '20180811' not in filename and '20180803' not in filename and 'interpolate' not in filename:
-		if filename.endswith('0000min.dat') and 'interpolate' not in filename:
+		if filename.endswith(str(int(drift_time)).zfill(4) + 'min.dat') and '20180811' not in filename and '20180803' not in filename and 'interpolate' not in filename:
+		# if ilename.endswith(str(int(drift_time)).zfill(4) + 'min.dat') and 'interpolate' not in filename:
 
 			data = ascii.read(dir_pred + filename)
 
@@ -57,13 +69,13 @@ def get_rates(next_point='0'):
 			else:
 				datestr_pred = filename[11:19]
 
-			descent_rates_pred[datestr_pred] = descent_speeds
-			alts_pred[datestr_pred] = np.array(alts)
+			descent_rates_pred[datestr_pred] = descent_speeds[1:]
+			alts_pred[datestr_pred] = np.array(alts)[1:]
 
 			datestr_gps = pyb_aux.match_pred2gps(datestr_pred)
 			gps_file = datestr_gps + '.csv'
 
-			with open(dir_gps + gps_file, newline='') as csvfile:
+			with open(dir_gps + gps_file) as csvfile:
 
 				data_gps = np.array(list(csv.reader(csvfile)))
 
@@ -83,27 +95,37 @@ def get_rates(next_point='0'):
 
 				alt0 = np.max(alts)
 
-				descent_rates_gps[datestr_pred] = np.array([(alts[i+1] - alts[i])/(datetime.strptime(times[i+1], FMT) - datetime.strptime(times[i], FMT)).seconds for i in range(ind, len(alts)-2)])
+				descent_rates_gps[datestr_pred] = np.array([float((alts[i+1] - alts[i]))/(datetime.strptime(times[i+1], FMT) - datetime.strptime(times[i], FMT)).seconds for i in range(ind, len(alts)-2)])
 				alts_gps[datestr_pred] = np.array([alts[i] for i in range(ind, len(alts) -2)])
 
-	return (descent_rates_gps, descent_rates_pred, alts_gps, alts_pred), gps_indices
+	return (descent_rates_gps, descent_rates_pred, alts_gps, alts_pred)
 
-def plot_results(data=None):
-
-	gps_indices = None
+def plot_rates(data=None, params=None):
 
 	if data == None:
-		(descent_rates_gps, descent_rates_pred, alts_gps, alts_pred), gps_indices = get_rates(next_point=next_point)
+		(descent_rates_gps, descent_rates_pred, alts_gps, alts_pred) = get_rates()
 
-	descent_only = p.descent_only
+	if params == None:
+		descent_only = p.descent_only
+		if descent_only:
+			next_point = p.next_point
+		interpolate = p.interpolate
+		drift_time = p.drift_time
+
+	else:
+
+		descent_only = bool(params[0])
+		if descent_only:
+			next_point = str(params[1])
+		interpolate = bool(params[-2])
+		drift_time = float(params[-1])
 
 	if descent_only:
-		next_point = p.next_point
 		ext = 'descent_only/start_point' + next_point + '/'
 	else:
 		ext = 'ascent+descent/'
 
-	fig_dir = '/home/ellen/Desktop/SuperBIT/figs/DescentRates/' + ext
+	fig_dir = '/home/ellen/Desktop/SuperBIT/figs/DescentRates/' + ext + str(drift_time) + 'drift/'
 
 	if not os.path.exists(fig_dir):
 	    os.makedirs(fig_dir)
@@ -113,8 +135,6 @@ def plot_results(data=None):
 
 	descent_rates_gps_vals = list(descent_rates_gps.values())
 	descent_rates_pred_vals = list(descent_rates_pred.values())
-
-	gps_indices_l = list(gps_indices.values())
 
 	alts_gps_vals = list(alts_gps.values())
 	alts_pred_vals = list(alts_pred.values())
@@ -297,4 +317,4 @@ def plot_rho(descent_only=True, next_point='0'):
 	return
 
 if __name__ == '__main__':
-	plot_results()
+	plot_rates()
