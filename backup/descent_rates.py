@@ -3,14 +3,11 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from scipy import interpolate
 from astropy.io import ascii
+import match_files as mf
 import numpy as np
 import csv
 import sys
 import os
-
-import param_file as p
-import pyb_aux
-
 
 alt_err = 2.
 
@@ -26,13 +23,7 @@ def get_rates(next_point='0'):
 
 	dir_pred = '/home/ellen/Desktop/SuperBIT/Weather_data/Trajectories/'
 
-	descent_only = p.descent_only
-
-	if descent_only:
-		next_point = p.next_point
-		ext = 'descent_only/start_point' + next_point + '/'
-	else:
-		ext = 'ascent+descent/'
+	ext = 'start_point' + next_point + '/'
 
 	dir_pred = dir_pred + ext
 	dir_gps = '/home/ellen/Desktop/SuperBIT/Flight_data/'
@@ -47,7 +38,7 @@ def get_rates(next_point='0'):
 
 			alts = np.array(data['alts'])
 			times = np.array(data['times'])
-			descent_speeds = np.array(data['speeds'])
+			descent_speeds = np.array(data['descent_speeds'])
 
 			if '20180406' in filename:
 				if '8.9' in filename:
@@ -60,7 +51,7 @@ def get_rates(next_point='0'):
 			descent_rates_pred[datestr_pred] = descent_speeds
 			alts_pred[datestr_pred] = np.array(alts)
 
-			datestr_gps = pyb_aux.match_pred2gps(datestr_pred)
+			datestr_gps = mf.match_pred2gps(datestr_pred)
 			gps_file = datestr_gps + '.csv'
 
 			with open(dir_gps + gps_file, newline='') as csvfile:
@@ -86,22 +77,14 @@ def get_rates(next_point='0'):
 				descent_rates_gps[datestr_pred] = np.array([(alts[i+1] - alts[i])/(datetime.strptime(times[i+1], FMT) - datetime.strptime(times[i], FMT)).seconds for i in range(ind, len(alts)-2)])
 				alts_gps[datestr_pred] = np.array([alts[i] for i in range(ind, len(alts) -2)])
 
-	return (descent_rates_gps, descent_rates_pred, alts_gps, alts_pred), gps_indices
+	return (descent_rates_gps, descent_rates_pred, alts_gps, alts_pred), gps_indices, ext
 
-def plot_results(data=None):
+def plot_results(data=None, next_point='0', ext='all_points'):
 
 	gps_indices = None
 
 	if data == None:
-		(descent_rates_gps, descent_rates_pred, alts_gps, alts_pred), gps_indices = get_rates(next_point=next_point)
-
-	descent_only = p.descent_only
-
-	if descent_only:
-		next_point = p.next_point
-		ext = 'descent_only/start_point' + next_point + '/'
-	else:
-		ext = 'ascent+descent/'
+		(descent_rates_gps, descent_rates_pred, alts_gps, alts_pred), gps_indices, ext = get_rates(next_point=next_point)
 
 	fig_dir = '/home/ellen/Desktop/SuperBIT/figs/DescentRates/' + ext
 
@@ -125,6 +108,7 @@ def plot_results(data=None):
 	for i in range(len(descent_rates_gps_vals)):
 
 		### x-coordinates at which to evaluate the interpolated values, x&y coordinates used in the interpolation
+
 		descent_rates_interp_pred = np.interp(alts_gps_vals[i][::-1], alts_pred_vals[i][::-1], descent_rates_pred_vals[i][::-1]) 
 		testx = np.arange(-0.5 + min(descent_rates_gps_vals[i]), max(descent_rates_gps_vals[i]) + 0.5, 0.5)
 
@@ -164,12 +148,14 @@ def plot_results(data=None):
 		pred_all_drates_tot.append(descent_rates_interp_pred[::-1])
 
 		if i == 0:
-			plt.plot(descent_rates_gps_vals[i], descent_rates_interp_pred[::-1], 'ro-', markersize=1, linewidth=0.5, label='Predictions')
-			# plt.errorbar(x=descent_rates_gps_vals[i], y=descent_rates_interp_pred[::-1], xerr=alt_err*np.sqrt(2), fmt='ro-', markersize=1, linewidth=0.5, label='Predictions')
+			# plt.plot(descent_rates_gps_vals[i], descent_rates_interp_pred[::-1], 'ro-', markersize=1, linewidth=0.5, label='Predictions')
+			# plt.plot(descent_rates_gps_vals[i][gps_indices_l[i]], descent_rates_interp_pred[::-1][gps_indices_l[i]], 'bo', markersize=4, label='End Point GPS')
+			plt.errorbar(x=descent_rates_gps_vals[i], y=descent_rates_interp_pred[::-1], xerr=alt_err*np.sqrt(2), fmt='ro-', markersize=1, linewidth=0.5, label='Predictions')
 
 		else:
-			plt.plot(descent_rates_gps_vals[i], descent_rates_interp_pred[::-1], 'ro-', markersize=1, linewidth=0.5)
-			# plt.errorbar(x=descent_rates_gps_vals[i], y=descent_rates_interp_pred[::-1], xerr=alt_err*np.sqrt(2), fmt='ro-', markersize=1, linewidth=0.5)
+			# plt.plot(descent_rates_gps_vals[i], descent_rates_interp_pred[::-1], 'ro-', markersize=1, linewidth=0.5, label='Predictions')
+			# plt.plot(descent_rates_gps_vals[i][gps_indices_l[i]], descent_rates_interp_pred[::-1][gps_indices_l[i]], 'bo', markersize=4)
+			plt.errorbar(x=descent_rates_gps_vals[i], y=descent_rates_interp_pred[::-1], xerr=alt_err*np.sqrt(2), fmt='ro-', markersize=1, linewidth=0.5)
 
 
 	testx = np.arange(minimum, 0, 0.5)
@@ -184,117 +170,44 @@ def plot_results(data=None):
 
 	plt.clf()
 
-	# return
+	# gps_all_drates_tot = [rates for rates in descent_rates_gps_vals]
 
-def plot_rho(descent_only=True, next_point='0'):
+	# gps_all_drates = [gps_all_drates_tot[i][j] for i in range(len(gps_all_drates_tot)) for j in range(len(gps_all_drates_tot[i])) if j < gps_indices_l[i]]
+	# pred_all_drates = [pred_all_drates_tot[i][j] for i in range(len(pred_all_drates_tot)) for j in range(len(pred_all_drates_tot[i])) if j < gps_indices_l[i]]
 
-	descent_only = p.descent_only
+	# gps_all_drates_rej = [gps_all_drates_tot[i][j] for i in range(len(gps_all_drates_tot)) for j in range(len(gps_all_drates_tot[i])) if j > gps_indices_l[i]]
+	# pred_all_drates_rej = [pred_all_drates_tot[i][j] for i in range(len(pred_all_drates_tot)) for j in range(len(pred_all_drates_tot[i])) if j > gps_indices_l[i]]
+
+	# epx = [gps_all_drates_tot[i][gps_indices_l[i]] for i in range(len(gps_all_drates_tot))]
+	# epy = [pred_all_drates_tot[i][gps_indices_l[i]] for i in range(len(pred_all_drates_tot))]
+
+	# def func(x, m, c):
+	# 	return m*x + c
+
+	# lim = np.inf
+
+	# popt, pcov = curve_fit(func, np.array(gps_all_drates)[np.array(gps_all_drates) <= lim,...], np.array(pred_all_drates)[np.array(gps_all_drates) <= lim,...])
+
+	# plt.plot(gps_all_drates, func(np.array(gps_all_drates), popt[0], popt[1]), 'm-', linewidth=1, label='Best Fit')
+	# plt.axvline(lim, linestyle='--', linewidth=1)
 	
-	if descent_only:
-		next_point = p.next_point
-		ext = 'descent_only/start_point' + next_point + '/'
-	else:
-		ext = 'ascent+descent/'
+	# plt.plot(testx, testx, 'b--', linewidth=1, label=r'$v_{pred}=v_{true}$')
+	# plt.scatter(gps_all_drates_rej, pred_all_drates_rej, color='green', s=1, label='After endpoint')
+	# plt.scatter(gps_all_drates, pred_all_drates, color='red', s=2, label='Before endpoint')
+	# plt.plot(epx, epy, 'bo', markersize=1, label='Endpoints')
 
+	# plt.xlabel(r'$v_{true}$ [m/s]', fontsize=15)
+	# plt.grid(True)
+	# plt.legend(loc='best')
 
-	dir = '/home/ellen/Desktop/SuperBIT/properties/' + ext
-	fig_dir = '/home/ellen/Desktop/SuperBIT/figs/properties/' + ext
+	# fig.savefig(fig_dir + 'vdescent_all2.png')
 
-	fig = plt.figure()
+	# plt.clf()
 
-	for filename in os.listdir(dir):
-
-		if filename.startswith('prop_preinterp'):
-
-			fpre = dir + filename
-			fafter = dir + 'prop_afterinterp' + filename[14:]
-
-			name = filename[14:-4]
-
-			data_pre = ascii.read(fpre)
-			data_after = ascii.read(fafter)
-
-			alt_pre = data_pre['alt']
-			rho_pre = data_pre['rho']
-			u_pre = data_pre['u']
-			v_pre = data_pre['v']
-			T_pre = data_pre['T']
-
-			alt_after = data_after['alt']
-			rho_after = data_after['rho']
-			u_after = data_after['u']
-			v_after = data_after['v']
-			T_after = data_after['T']
-
-			alt0 = data_after['alt0'][0]
-			grids = data_after['grid']
-
-			plt.plot(alt_after, rho_after, 'bo', markersize=1, label='After Interpolation')
-			plt.plot(alt_pre, rho_pre, 'ro', markersize=3, label='Before Interpolation')
-			plt.xlabel('Altitude [m]', fontsize=15)
-			plt.ylabel(r'Density [kg $m^{-3}$]', fontsize=15)
-
-			plt.axvline(alt0, linestyle='--', linewidth=1, label='alt0 = ' + str(alt0) + ' m')
-
-			plt.ylim([0, 1.4])
-			plt.xlim([0, 50000])
-
-			plt.grid(True)
-			plt.legend(loc='best')
-			plt.tight_layout()
-			fig.savefig(fig_dir + 'rho/' + 'rho_check' + str(name) + '.png')
-
-			plt.clf()
-
-			plt.plot(alt_after, u_after, 'bo', markersize=1, label='After Interpolation')
-			plt.plot(alt_pre, u_pre, 'ro', markersize=3, label='Before Interpolation')
-			plt.xlabel('Altitude [m]', fontsize=15)
-			plt.ylabel(r'U wind', fontsize=15)
-
-			plt.axvline(alt0, linestyle='--', linewidth=1, label='alt0 = ' + str(alt0) + ' m')
-
-			plt.xlim([0, 50000])
-
-			plt.grid(True)
-			plt.legend(loc='best')
-			plt.tight_layout()
-			fig.savefig(fig_dir + 'u_wind/' + 'u_check' + str(name) + '.png')
-
-			plt.clf()
-
-			plt.plot(alt_after, v_after, 'bo', markersize=1, label='After Interpolation')
-			plt.plot(alt_pre, v_pre, 'ro', markersize=3, label='Before Interpolation')
-			plt.xlabel('Altitude [m]', fontsize=15)
-			plt.ylabel(r'V wind', fontsize=15)
-
-			plt.axvline(alt0, linestyle='--', linewidth=1, label='alt0 = ' + str(alt0) + ' m')
-
-			plt.xlim([0, 50000])
-
-			plt.grid(True)
-			plt.legend(loc='best')
-			plt.tight_layout()
-			fig.savefig(fig_dir + 'v_wind/' + 'v_check' + str(name) + '.png')
-
-			plt.clf()
-
-			plt.plot(alt_after, T_after, 'bo', markersize=1, label='After Interpolation')
-			plt.plot(alt_pre, T_pre, 'ro', markersize=3, label='Before Interpolation')
-			plt.xlabel('Altitude [m]', fontsize=15)
-			plt.ylabel(r'Temperature [K]', fontsize=15)
-
-			plt.axvline(alt0, linestyle='--', linewidth=1, label='alt0 = ' + str(alt0) + ' m')
-
-			plt.xlim([0, 50000])
-
-			plt.grid(True)
-			plt.legend(loc='best')
-			plt.tight_layout()
-			fig.savefig(fig_dir + 'temperature/' +'T_check' + str(name) + '.png')
-
-			plt.clf()
-
-	return
+	# return popt, pcov
 
 if __name__ == '__main__':
-	plot_results()
+	next_point = input('Start at point after max. altitude: ')
+	plot_results(next_point=next_point)
+	# res = get_rates(next_point=next_point)
+

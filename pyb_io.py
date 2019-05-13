@@ -3,18 +3,18 @@
 from shapely.geometry import Point, mapping
 from shapely.ops import transform
 from functools import partial
-
 from astropy.io import ascii
 from glob import glob
 import pygrib as pg
 import numpy as np
 import requests
-import pyb_aux
 import pyproj
 import json
 import csv
 import sys
 import os
+
+import pyb_aux
 
 def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
 
@@ -586,8 +586,10 @@ def save_kml(fname, data, model_start_idx=0,
             kml_str += '</Point>\n'
             kml_str += '</Placemark>\n'
 
-    efile = 'endpoint_' + fname[65:-4] + '.dat'
-    data = ascii.read(fname[:42] + 'Endpoints/' + fname[52:65] + efile)
+    end_dir = fname[:42] + 'Endpoints/' + fname[52:78]
+    efile = 'endpoint_' + fname[78:-4] + '.dat'
+
+    data = ascii.read(end_dir + efile)
     end_lat = data['lat'][-1]
     end_lon = data['lon'][-1]
     kml_str_add = create_circle(lon = end_lon, lat = end_lat)

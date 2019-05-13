@@ -1,4 +1,5 @@
 #!/usr/bin/python
+
 from shutil import copyfile
 import datetime as dt
 import numpy as np
@@ -210,7 +211,7 @@ def get_closest_gfs_file(datestr=None, utc_hour=None, verbose=False):
 def get_latest_gfs_file(verbose=False):
 
 	now = dt.datetime.now()
-	now_hour = int(round(now.hour - 5 + now.minute/60.)) ### check what time is being used!! Now using washington DC time
+	now_hour = int(round(now.hour - 1 + now.minute/60.)) ### using UTC time
 
 	url_base = 'https://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/'
 	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/grb_files/'
@@ -309,7 +310,5 @@ if __name__ == '__main__':
 	time0 = time.time()
 
 	res = get_closest_hr(utc_hour=sys.argv[1])
-	# hr = nearest_hr(utc_hour=sys.argv[1])
-	print(res)
 
 	print('Program finished in %.1f s' % (time.time() - time0))

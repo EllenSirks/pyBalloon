@@ -311,3 +311,199 @@ if __name__ == '__main__':
 	(t1, f1), (t2, f2) = calc_time_frac(current_time=11, weather_times=[9, 12, 15])
 
 	print(t1, f1, t2, f2)
+
+# method to calculate movement of balloon until it has reached the ground
+def calc_movements_2(data=None, loc0=None, datestr=None, utc_hour=None, balloon=None, alt_change_fit=10, descent_only=False, interpolate=False, drift_time=0):
+
+	time0 = time.time()
+	lat0, lon0, alt0 = loc0
+
+	keys = list(data.keys())
+	checks = [0. for key in keys]
+	index = 0
+
+	# set initial conditions
+	alts = data[keys[0]]['altitudes'] # alts, lats and lons are the same for all weather files (if we dont give it different areas)
+	data_lats = np.radians(data[keys[0]]['lats'])
+	data_lons = np.radians(data[keys[0]]['lons'])
+
+	lat_rad = [np.radians(lat0)]
+	lon_rad = [np.radians(lon0)]
+	all_alts = [alt0]
+	total_time = [0]
+	dists = [0]
+	distance_travelled = 0
+	descent_speeds = []
+
+	# Calculate the movement during ascent
+	i = 0
+	print('Calculating ascent...')
+	while True:
+
+		if not descent_only:
+
+			# Find the closest grid point
+			diff = np.sqrt((data_lats - lat_rad[-1])**2 + (data_lons - lon_rad[-1])**2)
+			grid_i, = np.where(diff == diff.min())
+			grid_i = grid_i[0]
+
+			data, keys, checks, index = update_files(data=data, lat_rad=lat_rad, lon_rad=lon_rad, all_alts=all_alts, balloon=balloon, datestr=datestr, utc_hour=utc_hour, \
+				loc0=loc0, total_time=total_time, checks=checks, index=index, descent_only=descent_only)
+
+			# calculate change in latitude & longitude, and distance travelled
+			if interpolate:
+
+				current_time = float(utc_hour) + np.cumsum(np.array(total_time))[-1]/3600
+				(t1, f1), (t2, f2) = calc_time_frac(current_time = current_time, weather_times=keys)
+
+				dx = f1*data[t1]['dxs_up'][grid_i, i] + f2*data[t2]['dxs_up'][grid_i, i]
+				dy = f1*data[t1]['dys_up'][grid_i, i] + f2*data[t2]['dys_up'][grid_i, i]
+				dt = f1*data[t1]['ascent_time_steps'][grid_i, i] + f2*data[t2]['ascent_time_steps'][grid_i, i]
+
+			else:
+
+				dx = data[keys[index]]['dxs_up'][grid_i, i]
+				dy = data[keys[index]]['dys_up'][grid_i, i]
+				dt = data[keys[index]]['ascent_time_steps'][grid_i, i]
+
+			total_time.append(dt)
+
+			lat, lon, dist = movement2ll(lat_rad=lat_rad[-1], lon_rad=lon_rad[-1], alt=alts[i], dx=dx, dy=dy)
+
+			lat_rad.append(lat)
+			lon_rad.append(lon)
+			all_alts.append(alts[i])
+			distance_travelled += dist
+
+			if all_alts[-1] >= max_altitudes[grid_i]:
+				break
+
+			i += 1
+
+		else: 
+
+			# Mimick the movement during ascent if we only want descent
+			if alts[i] >= alt0:
+				break
+			i += 1
+
+	i -= 1
+
+	# add first descent speed (needs to be outside of the loop atm.)
+	diff = np.sqrt((data_lats - lat_rad[-1])**2 + (data_lons-lon_rad[-1])**2)
+	grid_i, = np.where(diff == diff.min())
+	grid_i = grid_i[0]
+
+	if interpolate:
+		current_time = float(utc_hour) + np.cumsum(np.array(total_time))[-1]/3600
+		(t1, f1), (t2, f2) = calc_time_frac(current_time = current_time, weather_times=keys)
+		descent_speed = f1*data[t1]['descent_speeds'][grid_i, i+1] + f2*data[t2]['descent_speeds'][grid_i, i+1]
+	else:
+		descent_speed = data[keys[index]]['descent_speeds'][grid_i, i+1]
+
+	descent_speeds.append(descent_speed)
+
+	# option for drifting the balloon before descent
+	timer, dt = 0, 1 # seconds
+	while timer < 60*drift_time: # seconds (drift time is in min.)
+
+		if timer == 0:
+			print('Calculating drift trajectory...')
+
+		diff = np.sqrt((data_lats - lat_rad[-1])**2 + (data_lons-lon_rad[-1])**2)
+		grid_i, = np.where(diff == diff.min())
+		grid_i = grid_i[0]
+
+		data, keys, checks, index = update_files(data=data, lat_rad=lat_rad, lon_rad=lon_rad, all_alts=all_alts, balloon=balloon, datestr=datestr, utc_hour=utc_hour, \
+			loc0=loc0, total_time=total_time, checks=checks, index=index, descent_only=descent_only)
+
+		# calculate change in latitude & longitude, and distance travelled
+		if interpolate:
+
+			current_time = float(utc_hour) + np.cumsum(np.array(total_time))[-1]/3600
+			(t1, f1), (t2, f2) = calc_time_frac(current_time = current_time, weather_times=keys)
+
+			dx = (f1*data[t1]['u_winds'][grid_i, i] + f2*data[t2]['u_winds'][grid_i, i])*dt
+			dy = (f1*data[t1]['v_winds'][grid_i, i] + f2*data[t2]['v_winds'][grid_i, i])*dt
+			descent_speed = f1*data[t1]['descent_speeds'][grid_i, i] + f2*data[t2]['descent_speeds'][grid_i, i]
+
+		else:
+
+			dx = data[keys[index]]['u_winds'][grid_i, i]*dt
+			dy = data[keys[index]]['v_winds'][grid_i, i]*dt
+			descent_speed = data[keys[index]]['descent_speeds'][grid_i, i]
+
+		total_time.append(dt)
+		descent_speeds.append(descent_speed)
+
+		lat, lon, dist = movement2ll(lat_rad=lat_rad[-1], lon_rad=lon_rad[-1], alt=all_alts[-1], dx=dx, dy=dy)
+
+		all_alts.append(all_alts[-1])
+		lat_rad.append(lat)
+		lon_rad.append(lon)
+		dists.append(dist)
+		distance_travelled += dist
+
+		timer += dt
+
+	print('Calculating descent...')
+
+	# Calculate the movement during descent (same for either option)
+	while i >= 0:
+
+		# Find the closest grid point
+		diff = np.sqrt((data_lats - lat_rad[-1])**2 + (data_lons-lon_rad[-1])**2)
+		grid_i, = np.where(diff == diff.min())
+		grid_i = grid_i[0]
+
+		data, keys, checks, index = update_files(data=data, lat_rad=lat_rad, lon_rad=lon_rad, all_alts=all_alts, balloon=balloon, datestr=datestr, utc_hour=utc_hour, \
+			loc0=loc0, total_time=total_time, checks=checks, index=index, descent_only=descent_only)
+
+		# calculate change in latitude & longitude, and distance travelled
+		if interpolate:
+
+			current_time = float(utc_hour) + np.cumsum(np.array(total_time))[-1]/3600
+			(t1, f1), (t2, f2) = calc_time_frac(current_time = current_time, weather_times=keys)
+
+			dx = f1*data[t1]['dxs_down'][grid_i, i] + f2*data[t2]['dxs_down'][grid_i, i]
+			dy = f1*data[t1]['dys_down'][grid_i, i] + f2*data[t2]['dys_down'][grid_i, i]
+			dt = f1*data[t1]['descent_time_steps'][grid_i, i] + f2*data[t2]['descent_time_steps'][grid_i, i]
+			descent_speed = f1*data[t1]['descent_speeds'][grid_i, i] + f2*data[t2]['descent_speeds'][grid_i, i]
+
+		else:
+
+			dx = data[keys[index]]['dxs_down'][grid_i, i]
+			dy = data[keys[index]]['dys_down'][grid_i, i]
+			dt = data[keys[index]]['descent_time_steps'][grid_i, i]
+			descent_speed = data[keys[index]]['descent_speeds'][grid_i, i]
+
+		total_time.append(dt)
+		descent_speeds.append(descent_speed)
+
+		lat, lon, dist = movement2ll(lat_rad=lat_rad[-1], lon_rad=lon_rad[-1], alt=alts[i], dx=dx, dy=dy)
+
+		lat_rad.append(lat)
+		lon_rad.append(lon)
+		all_alts.append(alts[i])
+		dists.append(dist)
+		distance_travelled += dist
+
+		i -= 1
+
+	# Convert the result array lists to Numpy 2D-arrays
+	output = {}
+	output['lats'] = np.degrees(np.array(lat_rad)) # to decimal degrees
+	output['lons'] = np.degrees(np.array(lon_rad)) # to decimal degrees
+	output['alts'] = np.array(all_alts)
+	output['dists'] = np.array(dists)
+	output['descent_speeds'] = np.array(descent_speeds)
+	output['times'] = np.cumsum(np.array(total_time))/60 # to minutes
+	output['distance'] = distance_travelled
+
+	# print out relevant quantities
+	print('\nTrajectories calculated, %.3f s elapsed' % (time.time() - time0) + '\n')
+	print('Maximum altitude: ' + str(np.max(all_alts)) + ' m')
+	print('Landing location: (%.6f, %.6f)' % (output['lats'][-1], output['lons'][-1]))
+	print('Total flight time: %d min' % (int(output['times'][-1])) + ', total distance travelled: %.1f' % distance_travelled + ' km')
+
+	return output

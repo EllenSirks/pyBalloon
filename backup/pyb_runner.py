@@ -1,20 +1,12 @@
-""" 
-Script for running a single trajectory.
-Certain parameters are read from the param_file, or can be manually fed in.
-"""
-
 from astropy.io import ascii
 import numpy as np
 import warnings
-import time
-import sys
-import os
-
 import pyb_traj
 import get_gfs
 import pyb_io
-
-import param_file as p
+import time
+import sys
+import os
 
 warnings.filterwarnings("ignore")
 
@@ -22,29 +14,16 @@ warnings.filterwarnings("ignore")
 # requires the starting location & starting point (0 for highest), whether or not its descent only, and
 # either the date & time of the starting point OR the relevent weather file
 
-def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, descent_only=False, next_point='0', interpolate=False, drift_time=0):
+def run(weather_file=None, datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, descent_only=False, next_point='0', interpolate=False, drift_time=0):
 
 	print('')
 	time0 = time.time()
 
-	descent_only = p.descent_only
-	interpolate = p.interpolate
-	if descent_only:
-		next_point = p.next_point
-	drift_time = p.drift_time
-
 	# create relevant paths/folders
+	ext = 'start_point' + next_point + '/'
 	dir_base = '/home/ellen/Desktop/SuperBIT/Weather_data/'
-
-	if descent_only:
-		ext = 'descent_only/start_point' + next_point + '/'
-	else:
-		ext = 'ascent+descent/'
-
 	in_dir = dir_base + 'grb_files/'
 	kml_dir = dir_base + 'kml_files/' + ext
-	traj_dir = dir_base + 'Trajectories/' + ext
-	end_dir = dir_base + 'Endpoints/' + ext
 
 	# check if the paths exist/make them
 	if not os.path.exists(in_dir):
@@ -53,11 +32,11 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, descent_on
 	if not os.path.exists(kml_dir):
 		os.makedirs(kml_dir)
 
-	if not os.path.exists(traj_dir):
-		os.makedirs(traj_dir)
-
-	if not os.path.exists(end_dir):
-		os.makedirs(end_dir)
+	# check if want just descent
+	if descent_only == 'True':
+		descent_only = True
+	elif descent_only == 'False':
+		descent_only = False
 
 	# check if want to interpolate
 	if interpolate:
@@ -74,6 +53,7 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, descent_on
 
 	# set balloon parameters
 	balloon = {}
+
 	balloon['altitude_step'] = 100.0 # meters
 	balloon['equip_mass'] = 1.608 # kg
 	balloon['balloon_mass'] = 1.50 # kg
@@ -92,20 +72,30 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, descent_on
 
 	# check if want interpolation
 	if interpolate:
+
 		# get all the files needed for the interpolation
 		files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour)
 		file = files[0]
 
 	else:
-		# retrieve relevant weather_file
-		files = get_gfs.get_closest_gfs_file(datestr=datestr, utc_hour=utc_hour, verbose=True)
-		file = files[0]
+
+		# retrieve relevant weather_file if none is given
+		if weather_file is None:
+
+			files = get_gfs.get_closest_gfs_file(datestr=datestr, utc_hour=utc_hour, verbose=True)
+			file = files[0]
+
+		# retrieve relevant weather_file if given
+		else:
+
+			files = get_gfs.get_gfs_file(weather_file=weather_file, verbose=True)
+			datestr = files[0][6:14]
 
 	# calculate the trajectory of the balloon
 	trajectories = pyb_traj.run_traj(weather_files=files, loc0=loc0, datestr=datestr, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only, interpolate=interpolate, drift_time=drift_time)
 
-	traj_file = traj_dir + 'trajectory_' + file[6:14] + '_' + str(utc_hour) + '_' + str(loc0) + interp + '+' + str(int(drift_time)).zfill(4) + 'min.dat'
-	ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds']], traj_file, names=['lats', 'lons', 'alts', 'dists', 'times', 'speeds'], overwrite=True)
+	traj_file = '/home/ellen/Desktop/SuperBIT/Weather_data/Trajectories/' + ext + 'trajectory_' + file[6:14] + '_' + str(utc_hour) + '_' + str(loc0) + interp + '+' + str(int(drift_time)).zfill(4) + 'min.dat'
+	ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['descent_speeds']], traj_file, names=['lats', 'lons', 'alts', 'dists', 'times', 'descent_speeds'], overwrite=True)
 
 	# highest point in main-run trajectory (bit obsolete for descent only)
 	idx, = np.where(trajectories['alts'] == np.max(trajectories['alts']))
@@ -119,7 +109,7 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, descent_on
 	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
 
 	# write out endpoint to file
-	f = open(end_dir + 'endpoint_' + file[6:14] + '_' + str(utc_hour) + '_' + str(loc0) + interp + '+' + str(int(drift_time)).zfill(4) + 'min.dat','w+')
+	f = open(dir_base + 'Endpoints/' + ext + 'endpoint_' + file[6:14] + '_' + str(utc_hour) + '_' + str(loc0) + interp + '+' + str(int(drift_time)).zfill(4) + 'min.dat','w+')
 	f.write('lat lon alt\n')
 	f.write(str(lat0) + ' ' + str(lon0) + ' ' + str(alt0) + '\n')
 	f.write(str(trajectories['lats'][-1]) + ' ' + str(trajectories['lons'][-1]) + ' ' + str(trajectories['alts'][-1]))
@@ -133,6 +123,14 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, descent_on
 
 if __name__ == "__main__":
 
-	print('Is this location correct for the starting point?')
-
-	run(datestr=sys.argv[1], utc_hour=sys.argv[2], lat0=sys.argv[3], lon0=sys.argv[4], alt0=sys.argv[5])
+	# if we know the weather file run these parameters
+	if 'grb2' in sys.argv[1] or 'gfs.' in sys.argv[1]:
+		run(weather_file=sys.argv[1], lat0=sys.argv[2], lon0=sys.argv[3], alt0=sys.argv[4], descent_only=sys.argv[5], next_point=sys.argv[6], drift_time=sys.argv[7])
+	# otherwise if we only know the date & time of the starting point run these parameters
+	else:
+		interpolate = str(raw_input('Interpolate? True or False: '))
+		if interpolate == 'True':
+			interpolate = True
+		else:
+			interpolate = False
+		run(datestr=sys.argv[1], utc_hour=sys.argv[2], lat0=sys.argv[3], lon0=sys.argv[4], alt0=sys.argv[5], descent_only=sys.argv[6], next_point=sys.argv[7], interpolate=interpolate, drift_time=sys.argv[8])
