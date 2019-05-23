@@ -10,6 +10,12 @@ import time
 import sys
 import os
 
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+from mpl_toolkits.basemap import Basemap
+
 import pyb_traj
 import get_gfs
 import pyb_io
@@ -22,7 +28,7 @@ warnings.filterwarnings("ignore")
 # requires the starting location & starting point (0 for highest), whether or not its descent only, and
 # either the date & time of the starting point OR the relevent weather file
 
-def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, params=None):
+def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon=None, params=None, verbose=False):
 
 	print('')
 	time0 = time.time()
@@ -32,13 +38,35 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, params=Non
 		interpolate = p.interpolate
 		if descent_only:
 			next_point = p.next_point
-		drift_time = p.drift_time
+		drift_time = float(p.drift_time)
 	else:
 		descent_only = bool(params[0])
 		interpolate = bool(params[-2])
 		if descent_only:
 			next_point = str(params[1])
 		drift_time = float(params[-1])
+
+	if balloon == None:
+		balloon = p.balloon
+
+	if verbose:
+		print('General Parameters')
+		print('----------')
+		print('descent_only: ' + str(descent_only))
+		if descent_only:
+			print('starting point: ' + next_point)
+		print('interpolate: ' + str(interpolate))
+		print('drift time: ' + str(drift_time) + ' minutes')
+		print('----------')
+		print('\nBalloon/Parachute Parameters')
+		print('----------')
+		print('altitude step: ' + str(balloon['altitude_step']) + ' m')
+		print('equipment mass: ' + str(balloon['equip_mass']) + ' kg')
+		print('parachute Cd: ' + str(balloon['Cd_parachute']))
+		print('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2')
+		print('----------\n')
+
+		print('Running date: ' + datestr + '\n')
 
 	# create relevant paths/folders
 	dir_base = '/home/ellen/Desktop/SuperBIT/Weather_data/'
@@ -48,7 +76,7 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, params=Non
 	else:
 		ext = 'ascent+descent/'
 
-	in_dir = dir_base + 'grb_files/'
+	in_dir = dir_base + 'GFS/'
 	kml_dir = dir_base + 'kml_files/' + ext
 	traj_dir = dir_base + 'Trajectories/' + ext
 	end_dir = dir_base + 'Endpoints/' + ext
@@ -73,27 +101,6 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, params=Non
 	lat0, lon0, alt0 = float(lat0), float(lon0), float(alt0)
 	loc0 = (lat0, lon0, alt0)
 
-	# drift time
-	drift_time = float(drift_time)
-
-	# set balloon parameters
-	balloon = {}
-	balloon['altitude_step'] = 100.0 # meters
-	balloon['equip_mass'] = 1.608 # kg
-	balloon['balloon_mass'] = 1.50 # kg
-	balloon['fill_radius'] = 2.122/2 # meters
-	balloon['radius_empty'] = 2.41/2 # meters (flaccid body length - neck length)
-	balloon['burst_radius'] = 9.44/2 # meters
-	balloon['thickness_empty'] = 0.2 * 10**-3 # mm -> meters
-	balloon['Cd_balloon'] = 0.5
-	balloon['simple_ascent_rate'] = 5.0 # m/s
-
-	# parachute parameters
-	balloon['Cd_parachute'] = 0.5
-	radius = 1.0
-	balloon['parachute_areas'] = np.pi * np.array([radius])**2 # m^2
-	balloon['parachute_change_altitude'] = None # meters
-
 	# check if want interpolation
 	if interpolate:
 		# get all the files needed for the interpolation
@@ -109,7 +116,7 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, params=Non
 	trajectories = pyb_traj.run_traj(weather_files=files, loc0=loc0, datestr=datestr, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only, interpolate=interpolate, drift_time=drift_time)
 
 	traj_file = traj_dir + 'trajectory_' + file[6:14] + '_' + str(utc_hour) + '_' + str(loc0) + interp + '+' + str(int(drift_time)).zfill(4) + 'min.dat'
-	ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds']], traj_file, names=['lats', 'lons', 'alts', 'dists', 'times', 'speeds'], overwrite=True)
+	ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds'], trajectories['temperatures']], traj_file, names=['lats', 'lons', 'alts', 'dists', 'times', 'speeds', 'temps'], overwrite=True)
 
 	# highest point in main-run trajectory (bit obsolete for descent only)
 	idx, = np.where(trajectories['alts'] == np.max(trajectories['alts']))
@@ -117,6 +124,19 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, params=Non
 	lonx = trajectories['lons'][idx][0]
 	altx = trajectories['alts'][idx][0]
 	timex = trajectories['times'][idx][0]
+
+	fig = plt.figure()
+	m = Basemap(projection='stere', lon_0=lon0, lat_0=lat0, lat_ts=lat0, 
+	            llcrnrlat=lat0-2, urcrnrlat=lat0+2, 
+	            llcrnrlon=lon0-2, urcrnrlon=lon0+2,
+	            rsphere=6371200.,resolution='l',area_thresh=10000)
+	m.drawcoastlines()
+	m.drawcountries()
+	x, y = m(trajectories['lons'], trajectories['lats'])
+	plt.plot(x, y, 'r')
+	plt.ylabel('Latitude (deg)')
+	plt.xlabel('Longitude (deg)')
+	fig.savefig(traj_dir + 'trajectory_' + file[6:14] + '_' + str(utc_hour) + '_' + str(loc0) + interp + '+' + str(int(drift_time)).zfill(4) + 'min.png')
 
 	print('Starting location: (' + str(float(latx)) + ', ' + str(float(lonx)) + '), altitude ' +  str(float(altx)) + ', at %.0f minutes' % (timex))
 
@@ -137,4 +157,4 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, params=Non
 
 if __name__ == "__main__":
 
-	run(datestr=sys.argv[1], utc_hour=sys.argv[2], lat0=sys.argv[3], lon0=sys.argv[4], alt0=sys.argv[5])
+	run(datestr=sys.argv[1], utc_hour=sys.argv[2], lat0=sys.argv[3], lon0=sys.argv[4], alt0=sys.argv[5], verbose=True)
