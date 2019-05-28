@@ -33,6 +33,11 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon=No
 	print('')
 	time0 = time.time()
 
+	# starting location
+	lat0, lon0, alt0 = float(lat0), float(lon0), float(alt0)
+	loc0 = (lat0, lon0, alt0)
+
+	# set parameters
 	if params == None:
 		descent_only = p.descent_only
 		interpolate = p.interpolate
@@ -66,7 +71,8 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon=No
 		print('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2')
 		print('----------\n')
 
-		print('Running date: ' + datestr + '\n')
+		print('Running date/time: ' + datestr + ', ' + utc_hour + ' hr')
+		print('Starting point: ' + str(lat0) + ' lat., ' + str(lon0) + ' lon., ' + str(alt0) + ' m\n')
 
 	# create relevant paths/folders
 	dir_base = '/home/ellen/Desktop/SuperBIT/Weather_data/'
@@ -84,37 +90,28 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon=No
 	# check if the paths exist/make them
 	if not os.path.exists(kml_dir):
 		os.makedirs(kml_dir)
-
 	if not os.path.exists(traj_dir):
 		os.makedirs(traj_dir)
-
 	if not os.path.exists(end_dir):
 		os.makedirs(end_dir)
 
-	# check if want to interpolate
-	if interpolate:
-		interp = '_interpolated_'
-	else:
-		interp = '_'
-
-	# starting location
-	lat0, lon0, alt0 = float(lat0), float(lon0), float(alt0)
-	loc0 = (lat0, lon0, alt0)
-
 	# check if want interpolation
 	if interpolate:
+		interp = '_interpolated_'
 		# get all the files needed for the interpolation
 		files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour)
 		file = files[0]
 
 	else:
-		# retrieve relevant weather_file
-		files = get_gfs.get_closest_gfs_file(datestr=datestr, utc_hour=utc_hour, verbose=True)
+		interp = '_'
+		# retrieve relevant (initial) weather_file
+		files = get_gfs.get_closest_gfs_file(datestr=datestr, utc_hour=utc_hour)
 		file = files[0]
 
 	# calculate the trajectory of the balloon
 	trajectories = pyb_traj.run_traj(weather_files=files, loc0=loc0, datestr=datestr, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only, interpolate=interpolate, drift_time=drift_time)
 
+	# write out trajectory to file
 	traj_file = traj_dir + 'trajectory_' + file[6:14] + '_' + str(utc_hour) + '_' + str(loc0) + interp + '+' + str(int(drift_time)).zfill(4) + 'min.dat'
 	ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds'], trajectories['temperatures']], traj_file, names=['lats', 'lons', 'alts', 'dists', 'times', 'speeds', 'temps'], overwrite=True)
 
@@ -124,19 +121,6 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon=No
 	lonx = trajectories['lons'][idx][0]
 	altx = trajectories['alts'][idx][0]
 	timex = trajectories['times'][idx][0]
-
-	fig = plt.figure()
-	m = Basemap(projection='stere', lon_0=lon0, lat_0=lat0, lat_ts=lat0, 
-	            llcrnrlat=lat0-2, urcrnrlat=lat0+2, 
-	            llcrnrlon=lon0-2, urcrnrlon=lon0+2,
-	            rsphere=6371200.,resolution='l',area_thresh=10000)
-	m.drawcoastlines()
-	m.drawcountries()
-	x, y = m(trajectories['lons'], trajectories['lats'])
-	plt.plot(x, y, 'r')
-	plt.ylabel('Latitude (deg)')
-	plt.xlabel('Longitude (deg)')
-	fig.savefig(traj_dir + 'trajectory_' + file[6:14] + '_' + str(utc_hour) + '_' + str(loc0) + interp + '+' + str(int(drift_time)).zfill(4) + 'min.png')
 
 	print('Starting location: (' + str(float(latx)) + ', ' + str(float(lonx)) + '), altitude ' +  str(float(altx)) + ', at %.0f minutes' % (timex))
 
@@ -150,10 +134,17 @@ def run(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon=No
 	f.close()
 
 	# write out file for google-earth
+	# radius = np.sqrt((np.sqrt(np.sum(trajectories['sigmas_u']**2)))**2 + (np.sqrt(np.sum(trajectories['sigmas_v']**2)))**2)*1000.
+	# no_steps = len(trajectories['times'])
+	# radius = radius*200/no_steps
+	radius=5000
+
 	kml_fname = kml_dir + file[6:14] + '_' + str(utc_hour) + '_' + str(loc0) + interp + '+' + str(int(drift_time)).zfill(4) + 'min.kml'
-	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params)
+	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, radius=radius)
 
 	print('\nProgram finished in %.1f s' % (time.time() - time0))
+
+	# return trajectories['distance']
 
 if __name__ == "__main__":
 

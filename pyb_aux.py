@@ -1,6 +1,17 @@
+from scipy.interpolate import griddata
+import matplotlib.pyplot as plt
 from scipy import interpolate
+from astropy.io import ascii
+from shutil import copyfile
+import pygrib as pg
 import numpy as np
+import gdal
+import json
+import os
 import re
+
+import pyb_io
+import param_file as p
 
 # necessary constants
 g_0 = 9.80665 # Earth gravitational acceleration at surface
@@ -36,8 +47,7 @@ def earth_radius(lat_rad):
     cos_lat = np.cos(lat_rad)
     sin_lat = np.sin(lat_rad)
 
-    r = np.sqrt(((a*a*cos_lat)**2 + (b*b*sin_lat)**2) / 
-                ((a*cos_lat)**2 + (b*sin_lat)**2))
+    r = np.sqrt(((a*a*cos_lat)**2 + (b*b*sin_lat)**2) / ((a*cos_lat)**2 + (b*sin_lat)**2))
 
     return r
 
@@ -74,8 +84,6 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
 
     checks = ['altitudes', 'lats', 'lons']
 
-    # print(data.keys())
-
     for key in data.keys():        
         if key not in checks:
 
@@ -100,6 +108,7 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
                     else:
                         tck = interpolate.splrep(altitudes, d)
                         arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
+
                 elif descent_only:                       
                     if x > 0:
                         for i in range(0, y):
@@ -116,22 +125,20 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
                     for i in range(0, len(d)):
                         tck = interpolate.interp1d(altitudes[:, i], d[:, i])
                         arr.append(tck(new_data['altitudes']))
-
             new_data[key] = np.array(arr)
 
+    # print(len(new_data['pressures']), len(new_data['altitudes']))
     return new_data
 
 def lift(data, mass):
-    """Calculate effective lift (force, in Newtons) caused by the
-    balloon.
+    """Calculate effective lift (force, in Newtons) caused by the balloon.
 
     Required arguments:
         - data -- Dictionary containing 'altitudes' (meters), balloon
         'volumes' (m^3) and 'air_densities' (kg/m^3)
         - mass -- Mass of the whole balloon
 
-    Return:
-        - Resultant lift force.
+    Return resultant lift force.
     """
 
     h = data['altitudes']
@@ -161,8 +168,7 @@ def balloon_volume(data):
 
 
 def balloon_volume_ideal_gas(data, gas_mass, gas_molar_mass=M_helium):
-    """Calculate gas (~balloon) volume based on ideal gas law: pV =
-    nRT.
+    """Calculate gas (~balloon) volume based on ideal gas law: pV = nRT.
 
     Required arguments:
         - data -- Dictionary returned by read_gfs_data()
@@ -205,8 +211,7 @@ def burst_altitude(data, burst_radius):
 
 
 def neutral_buoyancy_level(data):
-    """Find the level of neutral buoyancy (or more precise, the level
-    where effective lift is closest to zero).
+    """Find the level of neutral buoyancy (or more precise, the level where effective lift is closest to zero).
 
     Required arguments:
         - data -- Dictionary containing 'altitudes' and corresponding 'lifts'
@@ -229,8 +234,7 @@ def neutral_buoyancy_level(data):
 
 
 def ascent_speed(data, mass, Cd=Cd_sphere):
-    """Calculate the rate of ascent (in m/s) for the inflated balloon
-    at given levels.
+    """Calculate the rate of ascent (in m/s) for the inflated balloon at given levels.
 
     Required arguments:
         - data -- Dictionary with 'altitudes' and corresponding
@@ -265,7 +269,6 @@ def ascent_speed(data, mass, Cd=Cd_sphere):
     v = np.sqrt(2*F/(rho*Cd*A))
 
     return v
-
 
 def descent_speed(data, mass, Cd, areas, alt_step, change_alt=None):
     """Calculate the rate of descent for deflated (burst) balloon with
@@ -306,8 +309,7 @@ def descent_speed(data, mass, Cd, areas, alt_step, change_alt=None):
     return -1*np.array(speeds)
     
 
-def mooney_rivlin(data, radius_empty, radius_filled, 
-                  thickness_empty, gas_molar_mass=M_helium):
+def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_mass=M_helium):
 
     r0 = radius_empty # in meters
     r1 = radius_filled # in meters
@@ -385,90 +387,431 @@ def mooney_rivlin(data, radius_empty, radius_filled,
 
     return all_radii, gas_mass
 
-# method to find the elevation at the location (the loc closest in the grid)
-def get_elevation(lat, lon, srtm_file):
+def get_elevation(lon, lat):
 
-    srtm_dir = '/home/ellen/Desktop/SuperBIT/SRTM_data/'
+    SAMPLES = 1201  # Change this to 3601 for SRTM1
+    HGTDIR = '/home/ellen/Desktop/SuperBIT/SRTM_data/'
 
-    if lon < 0:
-        lon = lon + 360 % 360
+    if lat >= 0:
+        ns = 'N'
+    elif lat < 0:
+        ns = 'S'
 
-    if srtm_file == None:
-        data = ascii.read(srtm_dir + 'srtm_data_limits.txt')
-        files, tlat, blat, llon, rlon = data['file'], data['latN'], data['latS'], data['lonW'], data['lonE']
+    if lon >= 0:
+        ew = 'E'
+    elif lon < 0:
+        ew = 'W'
 
-        file = None
+    hgt_file = "%(ns)s%(lat)02d%(ew)s%(lon)03d.hgt" % {'lat': abs(lat), 'lon': abs(lon), 'ns': ns, 'ew': ew}
+    hgt_file_path = os.path.join(HGTDIR, hgt_file)
 
-        for i in range(len(files)):
+    if not os.path.isfile(hgt_file_path):
+        print(str(hgt_file) + ' does not exist!')
+        return -32768
 
-            if lat < tlat[i] and lat > blat[i]:
-                if lon < rlon[i] and lon > llon[i]:
-                    file = files[i]
-
-        if file != None:
-            srtm_file = str(file)
-        else:
-            print('Correct SRTM file data is not here!')
-            return
-
-    file = srtm_dir + srtm_file
-
-    ds = gdal.Open(file)
-
-    band = ds.GetRasterBand(1)
-    elevations = band.ReadAsArray()
-    nrows, ncols = elevations.shape
-    x0, dx, dxdy, y0, dydx, dy = ds.GetGeoTransform()
-
-    lons = np.arange(x0, x0 + dx*(ncols-1) + dx, dx) 
-    lon_arr = np.array([lons for i in range(nrows)])
-    lats = np.arange(y0, y0 + dy *nrows, dy)                                                   
-    lat_arr = np.array([np.array([l for i in range(ncols)]) for l in lats])
-
-    diff = np.sqrt((lon_arr - lon)**2 + (lat_arr - lat)**2)
-    min_diff = np.min(diff)
-    i0, i1 = np.where(diff == min_diff)
-
-    elevation = elevations[int(i0)][int(i1)]
-
-    elevations, diff, lons, lats = None, None, None, None
-
-    return elevation
-
-# method to match prediction to gps file
-def match_pred2gps(date):
-
-    datestr = date[2:4] + '-' + date[4:6] + '-' + date[6:]
-
-    if datestr[3] == '0':
-        datestr = datestr[:3] + datestr[4:]
-        if datestr[5] == '0':
-            datestr = datestr[:5] + datestr[6:]
     else:
-        if datestr[6] == '0':
-            datestr = datestr[:6] + datestr[7:]
+        with open(hgt_file_path, 'rb') as hgt_data:
+            # HGT is 16bit signed integer(i2) - big endian(>)
+            elevations = np.fromfile(hgt_data, np.dtype('>i2'), SAMPLES*SAMPLES).reshape((SAMPLES, SAMPLES))
 
-    return datestr
+            lat_row = int(round((lat - int(lat)) * (SAMPLES - 1), 0))
+            lon_row = int(round((lon - int(lon)) * (SAMPLES - 1), 0))
 
-# method to match gps to prediction file
-def match_gps2pred(date):
+            return elevations[SAMPLES - 1 - lat_row, lon_row].astype(int)
 
-    if '_' in date:
-        i0 = [m.start() for m in re.finditer('_', date)][0]
+# method to get more accurate endpoint for predictions as they can go underground.
+def get_endpoint(data=None, filename=None, params=None):
+
+    if params == None:
+        descent_only = p.descent_only
+        if descent_only:
+            next_point = p.next_point
+        interpolate = p.interpolate
+        drift_time = p.drift_time
+
     else:
-        i0 = len(date)
 
-    inds = [m.start() for m in re.finditer('-', date)]
-    i1, i2 = inds[0], inds[1]
+        descent_only = bool(params[0])
+        if descent_only:
+            next_point = str(params[1])
+        interpolate = bool(params[-2])
+        drift_time = float(params[-1])
 
-    if i2 - i1 == 2:
-        month = '0' + date[i1+1]
+    if descent_only:
+        fext = 'descent_only/start_point' + next_point + '/'
     else:
-        month = date[i1+1:i1+3]
+        fext = 'ascent+descent/'
 
-    if i0 - i2 == 2:
-        day = '0' + date[i2+1:]
+    dir_pred = '/home/ellen/Desktop/SuperBIT/Weather_data/Trajectories/' + fext
+
+    if data == None:
+
+        data  = ascii.read(dir_pred + filename)
+
+        lats = data['lats']
+        lons = data['lons']
+        alts = data['alts']
+        dists = data['dists']
+
     else:
-        day =  date[i2+1:]
 
-    return '20' + date[:2] + month + day
+        lats, lons, alts, dists = data
+
+    elevations = []
+
+    print('Checking altitudes & elevations...')
+
+    for i in range(1, len(lats)):
+        elevation = get_elevation(lat=lats[-i], lon=lons[-i])
+        elevations.append(elevation)
+        if elevation < alts[-i]:
+            break
+
+    inds = (-i, -i + 1)
+
+    dlon = lons[inds[0]] - lons[inds[1]]
+    dlat = lats[inds[0]] - lats[inds[1]]
+
+    x1 = dists[inds[1]]
+
+    y1 = alts[inds[0]] - alts[inds[1]]
+    y2 = elevations[-2] - alts[inds[1]]
+
+    dx = x1*(y2/y1)
+    x2 = x1 - dx
+    f = dx/x1
+
+    newlon = lons[inds[1]] + f*dlon
+    newlat = lats[inds[1]] + f*dlat
+
+    return (newlat, newlon), get_elevation(lat=newlat, lon=newlon)
+
+def calc_uv_errs_new(weather_file=None, loc0=None, descent_only=False, main_data=None):
+
+    print('\nCalculating u/v_wind errors...\n')
+
+    g_0 = 9.80665 # m/s surface acc.
+    R0 = 8.3144621 # Ideal gas constant, J/(mol*K)
+    M_air = 0.0289644 # molar mass of air [kg/mol], altitude dependence
+    T0 = 288.15 # K
+
+    datestr = weather_file[6:14]
+    hhhh, hhh = int(int(weather_file[15:19])/100), int(weather_file[20:23])
+
+    GFS_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
+    GEFS_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GEFS/' + datestr + '/'
+
+    tile_size = 10.
+    lat0, lon0, alt0 = loc0
+    area = lat0 + tile_size/2, lon0 - tile_size/2, lat0 - tile_size/2, lon0 + tile_size/2
+
+    if '.grb2' not in weather_file:
+        weather_file += '.grb2'
+
+    if main_data == None:
+        main_data = pyb_io.read_gfs_file(fname= GFS_dir + weather_file, area=area, alt0=alt0, descent_only=descent_only)
+
+    print(main_data['pressures'][:, 0])
+
+    if area is not None:
+        tlat, llon, blat, rlon = area
+    else:
+        print('Do you really wish to search the entire planet?')
+        tlat, llon, blat, rlon = 90., 0., -90., 360.
+
+    for filename in os.listdir(GEFS_dir):
+        if 'pgrb2a.0p50' in filename:
+            copyfile(GEFS_dir + filename, GEFS_dir + filename[:5] + '_0p50_' + GEFS_dir[-9:-1] + '_' + str(int(filename[7:9])*100).zfill(4) + '_' + str(int(filename[24:])).zfill(3) + '.grb2')
+            os.remove(GEFS_dir + filename)
+
+    fname = 'gespr_0p50_' + datestr + '_' + str(hhhh*100).zfill(4) + '_' + str(hhh).zfill(3) + '.grb2'
+
+    grib = pg.open(GEFS_dir + fname)
+    grib.seek(0)
+    u_msgs = grib.select(name='U component of wind')
+    v_msgs = grib.select(name='V component of wind')
+    g_msgs = grib.select(name='Geopotential Height')
+    t_msgs = grib.select(name='Temperature')
+
+    lats, lons, = u_msgs[0].latlons() # lats: -90 -> 90, lons: 0 -> 360
+    lats2, lons2 = u_msgs[0].latlons()
+
+    for i in range(len(lons2)):
+        for j in range(len(lons2[i])):
+            if lons2[i][j] > 180:
+                lons2[i][j] -= 360
+
+    locs = all_and([lats <= tlat, lats >= blat, lons2 <= rlon, lons2 >= llon])
+    row_idx, col_idx = np.where(locs)
+    lats = lats[row_idx, col_idx]
+    lons = lons[row_idx, col_idx]
+
+    if len(lats) == 0: print( 'Warning! lats is empty!')
+    if len(lons) == 0: print( 'Warning! lons is empty!')
+
+    u_wind = {}
+    for msg in u_msgs:
+        if msg.typeOfLevel == 'isobaricInhPa':
+            u_wind[msg.level] = msg.values[row_idx, col_idx]
+        
+    v_wind = {}
+    for msg in v_msgs:
+        if msg.typeOfLevel == 'isobaricInhPa':
+            v_wind[msg.level] = msg.values[row_idx, col_idx]
+
+    u_winds = []
+    v_winds = []
+
+    pressures = list(u_wind.keys())
+
+    pressures.sort()
+    pressures.reverse()
+
+    for key in pressures:
+        uwnd, vwnd = [], []
+        uwnd.append(u_wind[key])
+        vwnd.append(v_wind[key])
+
+        u_winds.append(np.hstack(uwnd))
+        v_winds.append(np.hstack(vwnd))
+
+    data = {}
+    data['lats'] = np.array(lats)
+    data['lons'] = np.array(lons)
+    data['u_winds'] = np.array(u_winds)
+    data['v_winds'] = np.array(v_winds)
+    all_pressures = []
+
+    for dat in data['lats']:
+        all_pressures.append(100*np.array(pressures)) # Convert hPa to Pa
+
+    data['pressures'] = np.array(all_pressures).transpose()
+
+    main_keys = list(main_data['pressures'][:, 0])
+    keys = list(data['pressures'][:, 0])
+
+    x, y = data['u_winds'].shape
+
+    u_errs = {}
+    v_errs = {}
+
+    for key in main_keys:
+        u_errs[key] = []
+        v_errs[key] = []
+
+    for i in range(0, y):
+
+        f1 = interpolate.interp1d(keys, data['u_winds'][:, i], 'cubic', fill_value='extrapolate')
+        f2 = interpolate.interp1d(keys, data['v_winds'][:, i], 'cubic', fill_value='extrapolate')
+
+        for j in range(len(main_keys)):
+            u_errs[main_keys[j]].append(float(f1(main_keys[j])))
+            v_errs[main_keys[j]].append(float(f2(main_keys[j])))
+
+    data['u_winds'] = np.array(list(u_errs.values()))
+    data['v_winds'] = np.array(list(v_errs.values()))
+
+    return data
+
+def calc_uv_errs(weather_file=None, loc0=None, descent_only=False, main_data=None):
+
+    print('\nCalculating u/v_wind errors...\n')
+
+    g_0 = 9.80665 # m/s surface acc.
+    R0 = 8.3144621 # Ideal gas constant, J/(mol*K)
+    M_air = 0.0289644 # molar mass of air [kg/mol], altitude dependence
+    T0 = 288.15 # K
+
+    datestr = weather_file[6:14]
+    hhhh, hhh = int(int(weather_file[15:19])/100), int(weather_file[20:23])
+
+    GFS_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
+    GEFS_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GEFS/' + datestr + '/'
+
+    tile_size = 10.
+    lat0, lon0, alt0 = loc0
+    area = lat0 + tile_size/2, lon0 - tile_size/2, lat0 - tile_size/2, lon0 + tile_size/2
+
+    if '.grb2' not in weather_file:
+        weather_file += '.grb2'
+
+    if main_data == None:
+        main_data = pyb_io.read_gfs_file(fname= GFS_dir + weather_file, area=area, alt0=alt0, descent_only=descent_only)
+
+    if area is not None:
+        tlat, llon, blat, rlon = area
+    else:
+        print('Do you really wish to search the entire planet?')
+        tlat, llon, blat, rlon = 90., 0., -90., 360.
+
+    u_winds, v_winds, altitudes = {}, {}, {}
+    for no in range(0, 21):
+
+        ens_fname = 'gens_3_' + datestr +  str(hhhh).zfill(2) + '_' + str(no).zfill(2) + '.g2/gens-a_3_' + datestr + '_' + str(hhhh*100).zfill(4) + '_' + str(hhh).zfill(3) + '_' + str(no).zfill(2) + '.grb2'
+
+        grib = pg.open(GEFS_dir + ens_fname)
+        grib.seek(0)
+        u_msgs = grib.select(name='U component of wind')
+        v_msgs = grib.select(name='V component of wind')
+        g_msgs = grib.select(name='Geopotential Height')
+
+        lats, lons, = u_msgs[0].latlons() # lats: -90 -> 90, lons: 0 -> 360
+        lats2, lons2 = u_msgs[0].latlons()
+
+        for i in range(len(lons2)):
+            for j in range(len(lons2[i])):
+                if lons2[i][j] > 180:
+                    lons2[i][j] -= 360
+
+        locs = all_and([lats <= tlat, lats >= blat, lons2 <= rlon, lons2 >= llon])
+        row_idx, col_idx = np.where(locs)
+        lats = lats[row_idx, col_idx]
+        lons = lons[row_idx, col_idx]
+
+        if len(lats) == 0: print( 'Warning! lats is empty!')
+        if len(lons) == 0: print( 'Warning! lons is empty!')
+
+        u_wind = {}
+        for msg in u_msgs:
+            if msg.typeOfLevel == 'isobaricInhPa':
+                u_wind[msg.level] = msg.values[row_idx, col_idx]
+            
+        v_wind = {}
+        for msg in v_msgs:
+            if msg.typeOfLevel == 'isobaricInhPa':
+                v_wind[msg.level] = msg.values[row_idx, col_idx]
+
+        altitude = {}
+        for msg in g_msgs:
+            if msg.typeOfLevel == 'isobaricInhPa':
+                altitude[msg.level] = msg.values[row_idx, col_idx]
+
+        u_winds[no], v_winds[no], altitudes[no] = u_wind, v_wind, altitude
+
+    u_winds_std, v_winds_std, altitudes_mean = {}, {}, {}
+
+    for key in list(u_winds[0].keys()):
+        u_winds_std[key] = []
+        for j in range(len(u_winds[0][key])):
+            u_winds_std[key].append(np.std([u_winds[i][key][j] for i in range(0, 21)]))
+
+    for key in list(v_winds[0].keys()):
+        v_winds_std[key] = []
+        for j in range(len(v_winds[0][key])):
+            v_winds_std[key].append(np.std([v_winds[i][key][j] for i in range(0, 21)]))
+
+    for key in list(altitudes[0].keys()):
+        altitudes_mean[key] = []
+        for j in range(len(altitudes[0][key])):
+            altitudes_mean[key].append(np.mean([altitudes[i][key][j] for i in range(0, 21)]))
+
+    u_winds_l = []
+    v_winds_l = []
+    altitudes_mean_l = []
+
+    pressures = list(u_winds_std.keys())
+
+    pressures.sort()
+    pressures.reverse()
+
+    for key in pressures:
+        uwnd, vwnd, alt = [], [], []
+        uwnd.append(u_winds_std[key])
+        vwnd.append(v_winds_std[key])
+
+        u_winds_l.append(np.hstack(uwnd))
+        v_winds_l.append(np.hstack(vwnd))
+
+        if key in list(altitudes_mean.keys()):
+            alt.append(altitude[key])
+            altitudes_mean_l.append(np.hstack(alt))
+
+    data = {}
+    data['lats'] = np.array(lats)
+    data['lons'] = np.array(lons)
+    data['u_winds'] = np.array(u_winds_l)
+    data['v_winds'] = np.array(v_winds_l)
+    data['altitudes_mean'] = np.array(altitudes_mean_l)
+    # print(data['altitudes_mean'][:, 0])
+    all_pressures = []
+
+    for dat in data['lats']:
+        all_pressures.append(100*np.array(pressures)) # Convert hPa to Pa
+
+    data['pressures'] = np.array(all_pressures).transpose()
+
+    main_keys = list(main_data['pressures'][:, 0])
+    keys1 = list(data['pressures'][:, 0])
+    keys2 = list(altitudes_mean.keys())
+
+    keys2.sort()
+    keys2.reverse()
+    keys2 = [key*100 for key in keys2]
+
+    x, y = data['u_winds'].shape
+
+    u_errs = {}
+    v_errs = {}
+    alt_mean = {}
+
+    for key in main_keys:
+        u_errs[key] = []
+        v_errs[key] = []
+        alt_mean[key] = []
+
+    for i in range(0, y):
+
+        f1 = interpolate.interp1d(keys1, data['u_winds'][:, i], 'cubic', fill_value='extrapolate')
+        f2 = interpolate.interp1d(keys1, data['v_winds'][:, i], 'cubic', fill_value='extrapolate')
+        f3 = interpolate.interp1d(keys2, data['altitudes_mean'][:, i], fill_value='extrapolate')
+
+        for j in range(len(main_keys)):
+            u_errs[main_keys[j]].append(float(f1(main_keys[j])))
+            v_errs[main_keys[j]].append(float(f2(main_keys[j])))
+            alt_mean[main_keys[j]].append(float(f3(main_keys[j])))
+
+    data['u_winds'] = np.array([u_errs[key] for key in main_keys]) 
+    data['v_winds'] = np.array([v_errs[key] for key in main_keys]) 
+    data['altitudes'] = np.array([alt_mean[key] for key in main_keys]) 
+
+    # print(data['altitudes'][:, 0])
+
+    data.pop('altitudes_mean')
+
+    inds1 = [ind for ind in range(len(main_data['lats'])) if main_data['lats'][ind] in data['lats']]
+    inds2 = [ind for ind in range(len(main_data['lons'])) if main_data['lons'][ind] in data['lons']]
+
+    inds3 = list(set(inds1).intersection(inds2))
+
+    pressures = main_data['pressures'][:, inds3]
+
+    data['pressures'] = pressures
+
+    new_data = data_interpolation(data=data, alt0=alt0, step=100, mode='spline', descent_only=descent_only)
+
+    return new_data
+
+def add_uv_errs(main_data=None, err_data=None):
+
+    print('Adding u/v wind errors...\n')
+
+    main_data['u_wind_errs'] = err_data['u_winds']
+    main_data['v_wind_errs'] = err_data['u_winds']
+    main_data['lats_err'] = err_data['lats']
+    main_data['lons_err'] = err_data['lons']
+
+    return main_data
+
+if __name__ == '__main__':
+
+    fname1 = 'gfs_4_20181028_0600_006.grb2'
+    fname2 = 'gfs_4_20190522_0000_000.grb2'
+    descent_only = True
+    loc0 = 30.776012, -5.613083, 25892
+
+    # main_data_new1 = calc_uv_errs(fname1, loc0, descent_only)
+    new_data = calc_uv_errs(fname1, loc0, descent_only)
+    # main_data_new2 = calc_uv_errs_new(fname2, loc0, descent_only)
+
+    # print(main_data_new1)
+    # print(main_data_new2)
