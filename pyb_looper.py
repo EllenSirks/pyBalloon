@@ -1,10 +1,10 @@
 from astropy.io import ascii
 import time
 
-from pyb_runner import run
+from pyb_runner import runner
 import param_file as p
 
-def looper(params=None, balloon=None, verbose=False):
+def looper(params=None, balloon=None, run=None, verbose=False):
 
 	time0 = time.time()
 
@@ -60,11 +60,11 @@ def looper(params=None, balloon=None, verbose=False):
 		print('\n----------')
 		print('\nRunning date: ' + lines[i][0])
 		print('Starting point: ' + str(lines[i][2]) + ' lat., ' + str(lines[i][2]) + ' lon., ' + str(lines[i][4]) + ' m')
-		try: 
-			run(datestr=lines[i][0], utc_hour=lines[i][1], lat0=lines[i][2], lon0=lines[i][3], alt0=lines[i][4], params=params, balloon=balloon)
-		except Exception as e: 
-			print(e)
-			continue
+		# try: 
+		runner(datestr=lines[i][0], utc_hour=lines[i][1], lat0=lines[i][2], lon0=lines[i][3], alt0=lines[i][4], params=params, balloon=balloon, run=run)
+		# except Exception as e: 
+		# 	print(e)
+		# 	continue
 
 	print('Total time elapsed: %.1f s' % (time.time() - time0))
 

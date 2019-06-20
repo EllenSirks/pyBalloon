@@ -53,26 +53,29 @@ def get_interval(datestr=None, utc_hour=None):
 # method to find time & date that is nearest to the time of ascent/descent
 def get_closest_hr(utc_hour=None):
 
+
 	utc_hour = float(utc_hour)
 	hr = nearest_hr(utc_hour)
 
 	hhhh = [0., 6., 12., 18., 24.]
 
 	if utc_hour in hhhh:
-		return (int(utc_hour), 0)
+		min_hr = int(utc_hour)
+		hhh1 = 0
 
-	for hh in hhhh:
-		if hh < utc_hour:
-			min_hr = int(hh)
+	else:
 
-	diffs = np.array([np.abs(min_hr - utc_hour + 3.*i) for i in range(0, 129)])
-	hhh = 3*np.where(diffs == min(diffs))[0][0]
+		for hh in hhhh:
+			if hh < utc_hour:
+				min_hr = int(hh)
 
-	# if hrs[int(min_ind)] == 24.:
-	# 	hrs[int(min_ind)] = 0.
-	# 	datestr = date_check(datestr=datestr)
+		diffs1 = np.array([np.abs(min_hr - utc_hour + 3.*i) for i in range(0, 129)])
+		hhh1 = 3*np.where(diffs1 == min(diffs1))[0][0]
 
-	return (min_hr, hhh)
+	diffs2 = np.array([np.abs(min_hr - utc_hour + 6.*i) for i in range(0, 65)])
+	hhh2 = 6*np.where(diffs2 == min(diffs2))[0][0]
+
+	return min_hr, hhh1, hhh2
 
 # method to iterate date by 1 day and return new datestr
 def date_check(datestr=None):
@@ -84,9 +87,9 @@ def date_check(datestr=None):
 	return new_datestr
 
 # method to download weather file if entire file string is given
-def get_gfs_file(weather_file=None, verbose=False):
+def get_gfs_file(weather_file=None, file_type='GFS', verbose=False):
 
-	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
+	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/' + file_type + '/'
 
 	if weather_file == None:
 
@@ -160,7 +163,7 @@ def get_closest_gfs_file(datestr=None, utc_hour=None, verbose=False):
 	url_base = 'https://nomads.ncdc.noaa.gov/data/gfs4/'
 	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
 
-	hhhh, hhh = get_closest_hr(utc_hour=utc_hour)
+	hhhh, hhh, hhh2 = get_closest_hr(utc_hour=utc_hour)
 
 	month = datestr[0:6]
 	day = datestr

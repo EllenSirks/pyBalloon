@@ -151,7 +151,6 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 		p_or = list(altitude.keys())[grid_i1]
 		pressures.append(p_or)
 
-
 	# Put pressures in altitude order and use them as keys
 	pressures.sort()
 	pressures.reverse()
@@ -484,37 +483,24 @@ def read_live_data(fname, delimiter=',', temp_conv=(1, 0),
 
 	return live_data
 
+# method to save given trajectories as KML files.
 def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, params=None, radius=5000):
-	"""Save given trajectories as KML. The first trajectory is assumed
-	to be from GFS main run, the second from ensemble main and the
-	rest from other ensemble members.
 
-	Required arguments:
-		- fname -- File to save the KML data to
-		- data -- List of dictionaries containing 'lats', 'lons',
-		'altitudes' and 'times.
+	# Required arguments:
+	# 	- fname -- File to save the KML data to
+	# 	- data -- List of dictionaries containing 'lats', 'lons',
+	# 	'altitudes' and 'times.
 
-	Optional arguments
-		- model_start_idx -- Vector index to show where model
-		trajectory starts. Trajectory before this is from live
-		data. Default: 0
-		- eps_mode -- How to present ensemble predictions of
-		trajectories. Possible modes are 'end' and 'full'. Default:
-		'end'
-		- other_info -- Additional information to save into the KML
-		path: eg.  other_info = [(lat, lon, alt, 'marker name', 
-								  'marker description')]
-
-	Todo:
-		- modelled current location of the balloon
-		- latest live data location
-		- important times / altitudes / ...
-		- maximum modelled altitude / maximum gained altitude (balloon
-		burst at T+xx:xx:xx, xx.x km)
-		- different colors for model / live data parts of the trajectory?
-			- change color of the trajectory at model_start_idx
-			- or different paths?
-	"""
+	# Optional arguments
+	# 	- model_start_idx -- Vector index to show where model
+	# 	trajectory starts. Trajectory before this is from live
+	# 	data. Default: 0
+	# 	- eps_mode -- How to present ensemble predictions of
+	# 	trajectories. Possible modes are 'end' and 'full'. Default:
+	# 	'end'
+	# 	- other_info -- Additional information to save into the KML
+	# 	path: eg.  other_info = [(lat, lon, alt, 'marker name', 
+	# 							  'marker description')]
 
 	if params == None:
 		descent_only = p.descent_only
@@ -606,19 +592,7 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 			kml_str += '</Point>\n'
 			kml_str += '</Placemark>\n'
 
-	if descent_only:
-
-		end_dir = fname[:42] + 'Endpoints/' + fname[52:78]
-		efile = 'endpoint_' + fname[78:-4] + '.dat'
-
-	else:
-
-		end_dir = fname[:42] + 'Endpoints/' + fname[52:67]
-		efile = 'endpoint_' + fname[67:-4] + '.dat'
-
-	data = ascii.read(end_dir + efile)
-	end_lat = data['lat'][-1]
-	end_lon = data['lon'][-1]
+ 	end_lat, end_lon = data['lats'][-1], data['lons'][-1]
 	kml_str_add = create_circle(lon = end_lon, lat = end_lat, radius=radius)
 	kml_str += kml_str_add
 

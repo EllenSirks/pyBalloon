@@ -1,8 +1,8 @@
 import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
-from datetime import datetime
 from scipy import interpolate
 from astropy.io import ascii
+import datetime as dt
 import numpy as np
 import time
 import csv
@@ -14,9 +14,12 @@ import pyb_io
 
 alt_err = 2.
 
-def get_rates(params=None):
+def get_rates(params=None, run=None):
 
 	FMT = "%H:%M:%S"
+
+	now = dt.datetime.now()
+	now_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
 
 	descent_rates_pred = {}
 	descent_rates_gps = {}
@@ -24,7 +27,7 @@ def get_rates(params=None):
 	alts_pred = {}
 	alts_gps = {}
 
-	dir_pred = '/home/ellen/Desktop/SuperBIT/Weather_data/Trajectories/'
+	dir_pred = '/home/ellen/Desktop/SuperBIT/Output/'
 
 	if params == None:
 		descent_only = p.descent_only
@@ -41,12 +44,16 @@ def get_rates(params=None):
 		interpolate = bool(params[-2])
 		drift_time = float(params[-1])
 
-	if descent_only:
-		ext = 'descent_only/start_point' + next_point + '/'
-	else:
-		ext = 'ascent+descent/'
+	if run == None:
 
-	dir_pred += ext
+		files = [filename for filename in os.listdir(dir_pred) if now_str in filename]
+		folder = now_str + '_' + str(len(files)-1) + '/'
+
+	else:
+		folder = run + '/'
+
+	dir_pred += folder + 'trajectories/'
+
 	dir_gps = '/home/ellen/Desktop/SuperBIT/Flight_data/'
 
 	add = int(next_point)
@@ -57,7 +64,7 @@ def get_rates(params=None):
 
 			if interpolate and not 'interpolate' in filename:
 				continue
-			elif not interpolate and 'interpolate' not in filename:
+			elif not interpolate and 'interpolate' in filename:
 				continue
 
 			data = ascii.read(dir_pred + filename)
@@ -76,6 +83,9 @@ def get_rates(params=None):
 
 			descent_rates_pred[datestr_pred] = descent_speeds
 			alts_pred[datestr_pred] = np.array(alts)
+
+			# if datestr_pred == '20190101':
+			# 	print(descent_speeds)
 
 			datestr_gps = pyb_io.match_pred2gps(datestr_pred)
 			gps_file = datestr_gps + '.csv'
@@ -100,12 +110,12 @@ def get_rates(params=None):
 
 				alt0 = np.max(alts)
 
-				descent_rates_gps[datestr_pred] = np.array([float((alts[i+1] - alts[i]))/(datetime.strptime(times[i+1], FMT) - datetime.strptime(times[i], FMT)).seconds for i in range(ind, len(alts)-2)])
+				descent_rates_gps[datestr_pred] = np.array([float((alts[i+1] - alts[i]))/(dt.datetime.strptime(times[i+1], FMT) - dt.datetime.strptime(times[i], FMT)).seconds for i in range(ind, len(alts)-2)])
 				alts_gps[datestr_pred] = np.array([alts[i] for i in range(ind, len(alts) -2)])
 
-	return (descent_rates_gps, descent_rates_pred, alts_gps, alts_pred)
+	return (descent_rates_gps, descent_rates_pred, alts_gps, alts_pred), dir_pred
 
-def plot_rates(data=None, params=None):
+def plot_rates(data=None, params=None, dir_pred=None, run=None):
 
 	time0 = time.time()
 
@@ -115,7 +125,7 @@ def plot_rates(data=None, params=None):
 		return m*x + c
 
 	if data == None:
-		(descent_rates_gps, descent_rates_pred, alts_gps, alts_pred) = get_rates()
+		(descent_rates_gps, descent_rates_pred, alts_gps, alts_pred), dir_pred = get_rates(run=run)
 
 	if params == None:
 		descent_only = p.descent_only
@@ -137,15 +147,10 @@ def plot_rates(data=None, params=None):
 	else:
 		interp = ''
 
-	if descent_only:
-		ext = 'descent_only/start_point' + next_point + '/'
-	else:
-		ext = 'ascent+descent/'
-
-	fig_dir = '/home/ellen/Desktop/SuperBIT/figs/DescentRates/' + ext + 'drift_' + str(int(drift_time)).zfill(4) + 'min/'
+	fig_dir = dir_pred + '../figs/DescentRates/'
 
 	if not os.path.exists(fig_dir):
-	    os.makedirs(fig_dir)
+		os.makedirs(fig_dir)
 
 	pred_keys = list(descent_rates_pred.keys())
 	gps_keys = list(descent_rates_gps.keys())
@@ -159,23 +164,10 @@ def plot_rates(data=None, params=None):
 	fig = plt.figure()
 	plt.rc('axes', axisbelow=True)
 
-	# maxlimx = []
-	# maxlimy = []
-	# minlimx = []
-	# minlimy = []
-
 	for i in range(len(descent_rates_gps_vals)):
 
 		### x-coordinates at which to evaluate the interpolated values, x&y coordinates used in the interpolation
 		descent_rates_interp_pred = np.interp(alts_gps_vals[i][::-1], alts_pred_vals[i][::-1], descent_rates_pred_vals[i][::-1])[::-1]
-
-		# for j in range(len(descent_rates_interp_pred)):
-		# 	if descent_rates_interp_pred[j] > func(descent_rates_gps_vals[i][j], 1, 0):
-		# 		maxlimx.append(descent_rates_gps_vals[i][j])
-		# 		maxlimy.append(descent_rates_interp_pred[j])
-		# 	if descent_rates_interp_pred[j] < func(descent_rates_gps_vals[i][j], 1, 0):
-		# 		minlimx.append(descent_rates_gps_vals[i][j])
-		# 		minlimy.append(descent_rates_interp_pred[j])
 
 		plt.plot(descent_rates_gps_vals[i], descent_rates_interp_pred, 'ro--', markersize=2, label='Results')
 		plt.plot(descent_rates_gps_vals[i], descent_rates_gps_vals[i], 'b--', linewidth=1, label=r'$v_{pred}=v_{true}$')
@@ -202,12 +194,6 @@ def plot_rates(data=None, params=None):
 
 	minimum = np.inf
 	pred_all_drates_tot = []
-
-	# maxlimy_sorted = [y for _,y in sorted(zip(maxlimx, maxlimy))]
-	# maxlimx.sort()
-
-	# minlimy_sorted = [y for _,y in sorted(zip(minlimx, minlimy))]
-	# minlimx.sort()
 
 	purple_dot = mlines.Line2D([], [], color='m', marker='o', linestyle='--', linewidth=0.5, markersize=1, label='Morocco')
 	green_dot = mlines.Line2D([], [], color='g', marker='o', linestyle='--', linewidth=0.5, markersize=1, label='Greenland')
@@ -240,127 +226,114 @@ def plot_rates(data=None, params=None):
 
 	fig.savefig(fig_dir + 'vdescent' + interp + '_all.png', dpi=1000)
 
-	# plt.clf()
-
-	# plt.fill_between(np.array(minlimx), np.array(minlimy_sorted), minlimx, color='red', alpha=0.5, label='$xy$ range')
-	# plt.fill_between(np.array(maxlimx), np.array(maxlimy_sorted), maxlimx, color='red', alpha=0.5)
-
-	# plt.plot(testx, testx, 'b--', linewidth=1, label=r'$v_{pred}=v_{true}$')
-	# plt.ylabel(r'$v_{pred}$ [m/s]', fontsize=15)
-	# plt.xlabel(r'$v_{true}$ [m/s]', fontsize=15)
-	# plt.grid(True)
-	# plt.legend(loc='best')
-
-	# fig.savefig(fig_dir + 'vdescent' + interp + '_all_lims.png', dpi=1000)
-
 	print('Total time elapsed: %.1f s' % (time.time() - time0))
 
-def plot_rho(descent_only=True, next_point='0'):
+# def plot_rho(descent_only=True, next_point='0'):
 
-	descent_only = p.descent_only
+# 	descent_only = p.descent_only
 	
-	if descent_only:
-		next_point = p.next_point
-		ext = 'descent_only/start_point' + next_point + '/'
-	else:
-		ext = 'ascent+descent/'
+# 	if descent_only:
+# 		next_point = p.next_point
+# 		ext = 'descent_only/start_point' + next_point + '/'
+# 	else:
+# 		ext = 'ascent+descent/'
 
-	dir = '/home/ellen/Desktop/SuperBIT/properties/' + ext
-	fig_dir = '/home/ellen/Desktop/SuperBIT/figs/properties/' + ext
+# 	dir = '/home/ellen/Desktop/SuperBIT/properties/' + ext
+# 	fig_dir = '/home/ellen/Desktop/SuperBIT/figs/properties/' + ext
 
-	fig = plt.figure()
+# 	fig = plt.figure()
 
-	for filename in os.listdir(dir):
+# 	for filename in os.listdir(dir):
 
-		if filename.startswith('prop_preinterp'):
+# 		if filename.startswith('prop_preinterp'):
 
-			fpre = dir + filename
-			fafter = dir + 'prop_afterinterp' + filename[14:]
+# 			fpre = dir + filename
+# 			fafter = dir + 'prop_afterinterp' + filename[14:]
 
-			name = filename[14:-4]
+# 			name = filename[14:-4]
 
-			data_pre = ascii.read(fpre)
-			data_after = ascii.read(fafter)
+# 			data_pre = ascii.read(fpre)
+# 			data_after = ascii.read(fafter)
 
-			alt_pre = data_pre['alt']
-			rho_pre = data_pre['rho']
-			u_pre = data_pre['u']
-			v_pre = data_pre['v']
-			T_pre = data_pre['T']
+# 			alt_pre = data_pre['alt']
+# 			rho_pre = data_pre['rho']
+# 			u_pre = data_pre['u']
+# 			v_pre = data_pre['v']
+# 			T_pre = data_pre['T']
 
-			alt_after = data_after['alt']
-			rho_after = data_after['rho']
-			u_after = data_after['u']
-			v_after = data_after['v']
-			T_after = data_after['T']
+# 			alt_after = data_after['alt']
+# 			rho_after = data_after['rho']
+# 			u_after = data_after['u']
+# 			v_after = data_after['v']
+# 			T_after = data_after['T']
 
-			alt0 = data_after['alt0'][0]
-			grids = data_after['grid']
+# 			alt0 = data_after['alt0'][0]
+# 			grids = data_after['grid']
 
-			plt.plot(alt_after, rho_after, 'bo', markersize=1, label='After Interpolation')
-			plt.plot(alt_pre, rho_pre, 'ro', markersize=3, label='Before Interpolation')
-			plt.xlabel('Altitude [m]', fontsize=15)
-			plt.ylabel(r'Density [kg $m^{-3}$]', fontsize=15)
+# 			plt.plot(alt_after, rho_after, 'bo', markersize=1, label='After Interpolation')
+# 			plt.plot(alt_pre, rho_pre, 'ro', markersize=3, label='Before Interpolation')
+# 			plt.xlabel('Altitude [m]', fontsize=15)
+# 			plt.ylabel(r'Density [kg $m^{-3}$]', fontsize=15)
 
-			plt.axvline(alt0, linestyle='--', linewidth=1, label='alt0 = ' + str(alt0) + ' m')
+# 			plt.axvline(alt0, linestyle='--', linewidth=1, label='alt0 = ' + str(alt0) + ' m')
 
-			plt.ylim([0, 1.4])
-			plt.xlim([0, 50000])
+# 			plt.ylim([0, 1.4])
+# 			plt.xlim([0, 50000])
 
-			plt.grid(True)
-			plt.legend(loc='best')
-			plt.tight_layout()
-			fig.savefig(fig_dir + 'rho/' + 'rho_check' + str(name) + '.png')
+# 			plt.grid(True)
+# 			plt.legend(loc='best')
+# 			plt.tight_layout()
+# 			fig.savefig(fig_dir + 'rho/' + 'rho_check' + str(name) + '.png')
 
-			plt.clf()
+# 			plt.clf()
 
-			plt.plot(alt_after, u_after, 'bo', markersize=1, label='After Interpolation')
-			plt.plot(alt_pre, u_pre, 'ro', markersize=3, label='Before Interpolation')
-			plt.xlabel('Altitude [m]', fontsize=15)
-			plt.ylabel(r'U wind', fontsize=15)
+# 			plt.plot(alt_after, u_after, 'bo', markersize=1, label='After Interpolation')
+# 			plt.plot(alt_pre, u_pre, 'ro', markersize=3, label='Before Interpolation')
+# 			plt.xlabel('Altitude [m]', fontsize=15)
+# 			plt.ylabel(r'U wind', fontsize=15)
 
-			plt.axvline(alt0, linestyle='--', linewidth=1, label='alt0 = ' + str(alt0) + ' m')
+# 			plt.axvline(alt0, linestyle='--', linewidth=1, label='alt0 = ' + str(alt0) + ' m')
 
-			plt.xlim([0, 50000])
+# 			plt.xlim([0, 50000])
 
-			plt.grid(True)
-			plt.legend(loc='best')
-			plt.tight_layout()
-			fig.savefig(fig_dir + 'u_wind/' + 'u_check' + str(name) + '.png')
+# 			plt.grid(True)
+# 			plt.legend(loc='best')
+# 			plt.tight_layout()
+# 			fig.savefig(fig_dir + 'u_wind/' + 'u_check' + str(name) + '.png')
 
-			plt.clf()
+# 			plt.clf()
 
-			plt.plot(alt_after, v_after, 'bo', markersize=1, label='After Interpolation')
-			plt.plot(alt_pre, v_pre, 'ro', markersize=3, label='Before Interpolation')
-			plt.xlabel('Altitude [m]', fontsize=15)
-			plt.ylabel(r'V wind', fontsize=15)
+# 			plt.plot(alt_after, v_after, 'bo', markersize=1, label='After Interpolation')
+# 			plt.plot(alt_pre, v_pre, 'ro', markersize=3, label='Before Interpolation')
+# 			plt.xlabel('Altitude [m]', fontsize=15)
+# 			plt.ylabel(r'V wind', fontsize=15)
 
-			plt.axvline(alt0, linestyle='--', linewidth=1, label='alt0 = ' + str(alt0) + ' m')
+# 			plt.axvline(alt0, linestyle='--', linewidth=1, label='alt0 = ' + str(alt0) + ' m')
 
-			plt.xlim([0, 50000])
+# 			plt.xlim([0, 50000])
 
-			plt.grid(True)
-			plt.legend(loc='best')
-			plt.tight_layout()
-			fig.savefig(fig_dir + 'v_wind/' + 'v_check' + str(name) + '.png')
+# 			plt.grid(True)
+# 			plt.legend(loc='best')
+# 			plt.tight_layout()
+# 			fig.savefig(fig_dir + 'v_wind/' + 'v_check' + str(name) + '.png')
 
-			plt.clf()
+# 			plt.clf()
 
-			plt.plot(alt_after, T_after, 'bo', markersize=1, label='After Interpolation')
-			plt.plot(alt_pre, T_pre, 'ro', markersize=3, label='Before Interpolation')
-			plt.xlabel('Altitude [m]', fontsize=15)
-			plt.ylabel(r'Temperature [K]', fontsize=15)
+# 			plt.plot(alt_after, T_after, 'bo', markersize=1, label='After Interpolation')
+# 			plt.plot(alt_pre, T_pre, 'ro', markersize=3, label='Before Interpolation')
+# 			plt.xlabel('Altitude [m]', fontsize=15)
+# 			plt.ylabel(r'Temperature [K]', fontsize=15)
 
-			plt.axvline(alt0, linestyle='--', linewidth=1, label='alt0 = ' + str(alt0) + ' m')
+# 			plt.axvline(alt0, linestyle='--', linewidth=1, label='alt0 = ' + str(alt0) + ' m')
 
-			plt.xlim([0, 50000])
+# 			plt.xlim([0, 50000])
 
-			plt.grid(True)
-			plt.legend(loc='best')
-			plt.tight_layout()
-			fig.savefig(fig_dir + 'temperature/' +'T_check' + str(name) + '.png')
+# 			plt.grid(True)
+# 			plt.legend(loc='best')
+# 			plt.tight_layout()
+# 			fig.savefig(fig_dir + 'temperature/' +'T_check' + str(name) + '.png')
 
-			plt.clf()
+# 			plt.clf()
 
 if __name__ == '__main__':
 	plot_rates()
