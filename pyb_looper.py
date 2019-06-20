@@ -1,4 +1,5 @@
 from astropy.io import ascii
+import datetime as dt
 import time
 
 from pyb_runner import runner
@@ -8,32 +9,43 @@ def looper(params=None, balloon=None, run=None, verbose=False):
 
 	time0 = time.time()
 
+	if run == None:
+
+		now = dt.datetime.now()
+		now_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
+
+		files = [filename for filename in os.listdir(out_dir) if now_str in filename]
+		run = now_str + '_' + str(len(files))
+
 	dir = '/home/ellen/Desktop/SuperBIT/Flight_data/'
 
 	if params == None:
-
 		descent_only = p.descent_only
 		if descent_only:
 			next_point = p.next_point
+		else:
+			next_point = '0'
 		interpolate = p.interpolate
 		drift_time = p.drift_time
 
-	else:
+		params = [descent_only, next_point, interpolate, drift_time]
 
+	else:
 		descent_only = params[0]
 		if descent_only:
 			next_point = params[1]
-		interpolate = params[-2]
-		drift_time = params[-1]
-
-	if descent_only:
-		fname = 'descent_only_start' + next_point + '.txt'
-
-	else:
-		print('No file with specified flight data!')
+		else:
+			next_point = '0'
+		interpolate = params[2]
+		drift_time = params[3]
 
 	if balloon == None:
 		balloon = p.balloon
+
+	if descent_only:
+		fname = 'descent_only_start' + next_point + '.txt'
+	else:
+		print('No file with specified flight data!')
 
 	if verbose:
 
@@ -57,14 +69,16 @@ def looper(params=None, balloon=None, run=None, verbose=False):
 
 	lines = [line.rstrip('\n').split(' ') for line in open(dir + fname)]
 	for i in range(len(lines)):
+
 		print('\n----------')
 		print('\nRunning date: ' + lines[i][0])
 		print('Starting point: ' + str(lines[i][2]) + ' lat., ' + str(lines[i][2]) + ' lon., ' + str(lines[i][4]) + ' m')
-		# try: 
-		runner(datestr=lines[i][0], utc_hour=lines[i][1], lat0=lines[i][2], lon0=lines[i][3], alt0=lines[i][4], params=params, balloon=balloon, run=run)
-		# except Exception as e: 
-		# 	print(e)
-		# 	continue
+
+		try: 
+			runner(datestr=lines[i][0], utc_hour=lines[i][1], lat0=lines[i][2], lon0=lines[i][3], alt0=lines[i][4], params=params, balloon=balloon, run=run)
+		except Exception as e: 
+			print(e)
+			continue
 
 	print('Total time elapsed: %.1f s' % (time.time() - time0))
 

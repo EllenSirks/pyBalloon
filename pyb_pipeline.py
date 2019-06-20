@@ -4,30 +4,42 @@ import datetime as dt
 import time
 import os
 
-import pyb_property_plotter
-import pyb_results_plotter
-import param_file as p
+import pyb_plotter
 import pyb_looper
+
+import param_file as p
 
 def pipeline(params=None, balloon=None):
 
 	time0 = time.time()
 
+	out_dir = '/home/ellen/Desktop/SuperBIT/Output/'
+
 	now = dt.datetime.now()
 	now_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
-
-	out_dir = '/home/ellen/Desktop/SuperBIT/Output/'
 
 	files = [filename for filename in os.listdir(out_dir) if now_str in filename]
 	run = now_str + '_' + str(len(files))
 
 	if params == None:
-
 		descent_only = p.descent_only
 		if descent_only:
 			next_point = p.next_point
+		else:
+			next_point = '0'
 		interpolate = p.interpolate
 		drift_time = p.drift_time
+
+		params = [descent_only, next_point, interpolate, drift_time]
+
+	else:
+		descent_only = bool(params[0])
+		if descent_only:
+			next_point = str(params[1])
+		else:
+			next_point = '0'
+		interpolate = bool(params[2])
+		drift_time = float(params[3])
 
 	if balloon == None:
 		balloon = p.balloon
@@ -49,8 +61,8 @@ def pipeline(params=None, balloon=None):
 	print('----------')
 
 	pyb_looper.looper(params=params, balloon=balloon, run=run)
-	pyb_property_plotter.plot_rates(params=params, run=run)
-	pyb_results_plotter.plot_results(params=params, run=run)
+	pyb_plotter.plot_rates(params=params, run=run)
+	pyb_plotter.plot_results(params=params, run=run)
 
 	print('Program finished. Total time elapsed: %.1f s' % (time.time() - time0))
 

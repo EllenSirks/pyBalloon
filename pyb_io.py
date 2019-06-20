@@ -506,6 +506,8 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 		descent_only = p.descent_only
 		if descent_only:
 			next_point = p.next_point
+		else:
+			next_point = '0'
 		interpolate = p.interpolate
 		drift_time = p.drift_time
 
@@ -513,6 +515,8 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 		descent_only = bool(params[0])
 		if descent_only:
 			next_point = str(params[1])
+		else:
+			next_point = '0'			
 		interpolate = bool(params[-2])
 		drift_time = float(params[-1])
 
@@ -547,8 +551,6 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 
 		t_prev = -2.0
 		for i in range(0, len(data['lats'])):
-			# if data['times'][i] >= t_prev + 0.5:
-			#	 t_prev = data['times'][i]
 			kml_str += '%f,%f,%f\n' % (data['lons'][i], data['lats'][i], data['alts'][i])
 
 		kml_str += '</coordinates>\n'
@@ -577,12 +579,9 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 	num += 1
 
 	# Add "other_info" places
-	
 	if other_info is not None:
 		for dat in other_info:
 			kml_str += '<Placemark>\n'
-			# kml_str += '<name>'+dat[3]+'</name>\n' ## change this
-			# kml_str += '<description>'+dat[4]+'</description>\n'
 			kml_str += '<name>initial condition</name>\n' ## change this
 			kml_str += '<description>initial condition</description>\n'
 			kml_str += '<Point>\n'
@@ -655,7 +654,7 @@ def create_circle(lon=None, lat=None, radius=5000):
 
 	return kml_str
 
-def merge_kml(datestr, params=None, drift_times=None):
+def merge_kml(datestr=None, folders=None, params=None, balloon=None, drift_times=None):
 
 	if params == None:
 		descent_only = p.descent_only
@@ -672,50 +671,40 @@ def merge_kml(datestr, params=None, drift_times=None):
 		interpolate = bool(params[-2])
 		drift_time = float(params[-1])
 
-	ext_str = '.'
+	# if datestr == '20180406_1':
+	# 	ext_str = '_8.'
+	# elif datestr == '20180406_2':
+	# 	ext_str = '_18.'
 
-	if datestr == '20180406_1':
-		ext_str = '_8.'
-	elif datestr == '20180406_2':
-		ext_str = '_18.'
+	dir_base = '/home/ellen/Desktop/SuperBIT/Output/'
 
-	dir_base = '/home/ellen/Desktop/SuperBIT/Weather_data/'
-
-	if descent_only:
-		ext = 'descent_only/start_point' + next_point + '/'
-
-	else:
-		ext = 'ascent+descent/'
-
-	dir1 = dir_base + 'kml_files/' + ext
-
-	lines = {}
-	for fname in os.listdir(dir1):
-		if datestr in fname and not 'merged' in fname and float(fname[-11:-7]) in drift_times:
-			if interpolate:
-				if 'interpolated' in fname:
-					if ext_str in fname:
-						print(fname)
-						fname0 = fname
-						lines[int(fname[-10:-7])] =  [line.rstrip('\n').split(' ') for line in open(dir1 + fname)]
-			else:
-				if not 'interpolated' in fname:
-					if ext_str in fname:
-						fname0 = fname
-						lines[int(fname[-10:-7])] =  [line.rstrip('\n').split(' ') for line in open(dir1 + fname)]
-
-			
-	keys = list(lines.keys())
+	fkeys = list(folders.keys())
+	fs =  list(folders.values())
 
 	kml_str1 = '<?xml version="1.0" encoding="UTF-8"?>\n'
 	kml_str1 += '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">\n'
 	kml_str1 += '<Document id="feat_2">\n'
 
+	key0 = fkeys[0]
 
-	key0 = keys[0]
+	endpoints = {}
 
-	for key in keys:
-		info = lines[key]
+	for fkey in fkeys:
+
+		dir1 = dir_base + str(folders[fkey]) + '/kml_files/'
+		dir2 = dir_base + str(folders[fkey]) + '/trajectories/'
+
+		fname = [f for f in os.listdir(dir1) if datestr in f][0]
+		info =  [line.rstrip('\n').split(' ') for line in open(dir1 + fname)]
+
+		fname = [f for f in os.listdir(dir2) if datestr in f][0]
+		data_pred = ascii.read(dir2 + fname)
+
+		end_lat_pred = data_pred['lats'][-1]
+		end_lon_pred = data_pred['lons'][-1]
+		end_alt_pred = data_pred['alts'][-1]
+
+		endpoints[fkey] = [end_lat_pred, end_lon_pred, end_alt_pred]
 
 		for i in range(len(info)):
 
@@ -729,7 +718,7 @@ def merge_kml(datestr, params=None, drift_times=None):
 
 		for i in range(len(info)):
 			if i >= ind1 and i <= ind2:
-				if key != key0:
+				if fkey != key0:
 					if i < ind3 or i > ind4:
 						for j in range(len(info[i])):
 							if j == len(info[i]) - 1:
@@ -742,33 +731,23 @@ def merge_kml(datestr, params=None, drift_times=None):
 								kml_str1 += str(info[i][j]) + '\n'
 							else:
 								kml_str1 += str(info[i][j]) + ' '
-								
+									
 	kml_str1 += '</Document>\n'
 	kml_str1 += '</kml>\n'
 
-	kml_fname1 = 'merged_' + fname0[:-13] + '_' + str(min(keys)) + '-' + str(max(keys)) + 'min.kml'
+	kml_fname1 = 'merged_' + datestr + '.kml'
 
-	fid = open(dir1 + kml_fname1, 'w')
+	files = [filename for filename in os.listdir(dir_base + 'drift_output/')]
+	file = str(len(files))
+
+	output_dir = dir_base + 'drift_output/' + file + '/'
+	os.mkdir(output_dir)
+
+	fid = open(output_dir + kml_fname1, 'w')
 	fid.write(kml_str1)
 	fid.close()
 
-	dir2 = dir_base + 'Endpoints/' + ext
-
-	endpoints = {}
-	for fname in os.listdir(dir2):
-		if datestr in fname:
-			if interpolate:
-				if 'interpolated' in fname:
-					data = ascii.read(dir2 + fname)
-					endpoint = [data['lat'][1], data['lon'][1], data['alt'][1]]
-					endpoints[int(fname[-11:-7])] = endpoint
-			else:
-				if not 'interpolated' in fname:
-					data = ascii.read(dir2 + fname)
-					endpoint = [data['lat'][1], data['lon'][1], data['alt'][1]]
-					endpoints[int(fname[-11:-7])] = endpoint
-
-	kml_fname2 = 'endpoints_merged_' + fname0[:-13] + '_' + str(min(keys)) + '-' + str(max(keys)) + 'min.kml'
+	kml_fname2 = 'endpoints_merged_' + datestr + ' .kml'
 
 	kml_str2 = '<?xml version="1.0" encoding="UTF-8"?>\n'
 	kml_str2 += '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">\n'
@@ -795,8 +774,8 @@ def merge_kml(datestr, params=None, drift_times=None):
 	keys = list(endpoints.keys())
 	keys.sort()
 
-	for key in keys:
-		kml_str2 += str(endpoints[key][1]) + ',' + str(endpoints[key][0])  + ',' + str(endpoints[key][2]) + '\n'
+	for fkey in fkeys:
+		kml_str2 += str(endpoints[fkey][1]) + ',' + str(endpoints[fkey][0])  + ',' + str(endpoints[fkey][2]) + '\n'
 
 	kml_str2 += '</coordinates>\n'
 	kml_str2 += '<extrude>1</extrude>\n'
@@ -805,23 +784,47 @@ def merge_kml(datestr, params=None, drift_times=None):
 	kml_str2 += '</LineString>\n'
 	kml_str2 += '</Placemark>\n'
 
-	for key in keys:
+	for fkey in fkeys:
 		kml_str2 += '<Placemark>\n'
-		kml_str2 += '<name>End, drift = '+ str(key) + ' min.</name>\n'
+		kml_str2 += '<name>End, drift = '+ str(fkey) + ' min.</name>\n'
 		kml_str2 += '<Point>\n'
-		kml_str2 += '<coordinates>' + str(endpoints[key][1]) + ',' + str(endpoints[key][0]) + '</coordinates>' + '\n'
+		kml_str2 += '<coordinates>' + str(endpoints[fkey][1]) + ',' + str(endpoints[fkey][0]) + '</coordinates>' + '\n'
 		kml_str2 += '</Point>\n'
 		kml_str2 += '</Placemark>\n'
 
-		kml_str_add = create_circle(lon = endpoints[key][1], lat = endpoints[key][0])
+		kml_str_add = create_circle(lon = endpoints[fkey][1], lat = endpoints[fkey][0])
 		kml_str2 += kml_str_add
 
 	kml_str2 += '</Document>\n'
 	kml_str2 += '</kml>'
 
-	fid = open(dir1 + kml_fname2, 'w')
+	fid = open(output_dir + kml_fname2, 'w')
 	fid.write(kml_str2)
 	fid.close()
+
+	# write parameters of this run to file
+	f = open(output_dir + 'params.txt', 'w+')
+
+	f.write('drift times: ' + str(drift_times) + ' min\n')
+	f.write('runs used:' + str(fs) + '\n')
+	f.write('----------------------\n')
+	f.write('\n')
+	f.write('General parameters\n')
+	f.write('----------------------\n')
+	f.write('descent_only: ' + str(descent_only) + '\n')
+	if descent_only:
+		f.write('starting point: ' + str(next_point) + '\n')
+	f.write('interpolate: ' + str(interpolate) + '\n')
+	f.write('----------------------\n')
+	f.write('\n')
+	f.write('Balloon/Parachute parameters\n')
+	f.write('----------------------\n')
+	f.write('altitude step: ' + str(balloon['altitude_step']) + ' m\n')
+	f.write('equipment mass: ' + str(balloon['equip_mass']) + ' kg\n')
+	f.write('parachute Cd: ' + str(balloon['Cd_parachute']) + '\n')
+	f.write('parachute radius: ' + str(round(np.sqrt(balloon['parachute_areas'][0]/np.pi), 2)) + ' m\n')
+	f.write('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2\n')
+	f.close()
 
 # method to match prediction to gps file
 def match_pred2gps(date):

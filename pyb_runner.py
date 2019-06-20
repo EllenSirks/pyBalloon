@@ -11,11 +11,10 @@ import time
 import sys
 import os
 
+from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap
 
 import pyb_traj
 import get_gfs
@@ -30,13 +29,10 @@ warnings.filterwarnings("ignore")
 # requires the starting location & starting point (0 for highest), whether or not its descent only, and
 # either the date & time of the starting point OR the relevent weather file
 
-def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon=None, params=None, run=None, verbose=False):
+def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon=None, params=None, run=None, make_folder=True, verbose=False):
 
 	print('')
 	time0 = time.time()
-
-	now = dt.datetime.now()
-	now_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
 
 	# starting location
 	lat0, lon0, alt0 = float(lat0), float(lon0), float(alt0)
@@ -45,16 +41,20 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 	# set parameters
 	if params == None:
 		descent_only = p.descent_only
-		interpolate = p.interpolate
 		if descent_only:
 			next_point = p.next_point
+		else:
+			next_point = '0'
+		interpolate = p.interpolate
 		drift_time = float(p.drift_time)
 	else:
 		descent_only = bool(params[0])
-		interpolate = bool(params[-2])
 		if descent_only:
 			next_point = str(params[1])
-		drift_time = float(params[-1])
+		else:
+			next_point = '0'
+		interpolate = bool(params[2])
+		drift_time = float(params[3])
 
 	if balloon == None:
 		balloon = p.balloon
@@ -86,21 +86,13 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 	in_dir = dir_base + '/Weather_data/GFS/'
 	traj_dir = dir_base + 'Output/'
 
-	if run == None:
-
-		files = [filename for filename in os.listdir(traj_dir) if now_str in filename]
-
-		if len(files) == 0:
-			folder = now_str + '_0/'
-		else:
-			latest_folder = now_str + '_' + str(len(files)-1) + '/'
-			if len([filename for filename in os.listdir(traj_dir + latest_folder + 'trajectories/')]) < 15:
-				folder = latest_folder
-			else:
-				folder = now_str + '_' + str(len(files)) + '/'
-
-	else:
+	if run != None:
 		folder = run + '/'
+	else:
+		now = dt.datetime.now()
+		now_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
+		files = [filename for filename in os.listdir(traj_dir) if now_str in filename]
+		folder = now_str + '_' + str(len(files)) + '/'		
 
 	kml_dir = traj_dir + folder + 'kml_files/'
 	params_dir = traj_dir + folder
@@ -114,24 +106,16 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 
 	# check if want interpolation
 	if interpolate:
-		interp = '_interpolated_'
-		# get all the files needed for the interpolation
 		files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour)
-		file = files[0]
-
 	else:
-		interp = '_'
-		# retrieve relevant (initial) weather_file
 		files = test.get_closest_gfs_file(datestr=datestr, utc_hour=utc_hour, file_type='GFS')
-		file = files[0]
 
 	# calculate the trajectory of the balloon
 	trajectories = pyb_traj.run_traj(weather_files=files, loc0=loc0, datestr=datestr, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only, interpolate=interpolate, drift_time=drift_time)
 
 	# write out trajectory to file
-	traj_file = traj_dir + 'trajectory_' + file[6:14] + '_' + str(utc_hour) + '_' + str(loc0) + interp + '+' + str(int(drift_time)).zfill(4) + 'min.dat'
+	traj_file = traj_dir + 'trajectory_' + files[0][6:14] + '_' + str(utc_hour) + '_' + str(loc0) + '.dat'
 	ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds'], trajectories['temperatures']], traj_file, names=['lats', 'lons', 'alts', 'dists', 'times', 'speeds', 'temps'], overwrite=True)
-
 
 	# write parameters of this run to file
 	f = open(params_dir + 'params.txt', 'w+')
@@ -158,7 +142,6 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 	runs = [lines[i][0] for i in range(len(lines)) if i != 0]
 
 	f = open(dir_base + 'Output/runs_info.txt', 'a+')
-
 	if folder[:-1] not in runs:
 		f.write('\n' + str(folder[:-1]) + ' ' + str(descent_only) + ' ' + str(next_point) + ' ' +  str(interpolate) + ' ' + str(drift_time) + ' ' + str(balloon['Cd_parachute']) + ' ' + str(np.sqrt(balloon['parachute_areas'][0]/np.pi)) + ' ' + \
 		 str(balloon['altitude_step'])  + ' ' + str(balloon['equip_mass']) + ' ' + str(balloon['balloon_mass']) + ' ' +  str(balloon['fill_radius']) + ' ' + str(balloon['radius_empty']) + ' ' + \
@@ -178,7 +161,7 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
 
 	# write out file for google-earth
-	kml_fname = kml_dir + file[6:14] + '_' + str(utc_hour) + '_' + str(loc0) + interp + '+' + str(int(drift_time)).zfill(4) + 'min.kml'
+	kml_fname = kml_dir + files[0][6:14] + '_' + str(utc_hour) + '_' + str(loc0) + '.kml'
 	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params)
 
 	print('\nProgram finished in %.1f s' % (time.time() - time0))
