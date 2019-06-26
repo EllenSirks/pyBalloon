@@ -2,6 +2,7 @@
 
 from scipy import interpolate
 from haversine import haversine
+from scipy.optimize import curve_fit
 from astropy.io import ascii
 import datetime as dt
 import numpy as np
@@ -10,6 +11,7 @@ import csv
 import sys
 import os
 
+import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -23,6 +25,8 @@ def get_rates(params=None, run=None):
 
 	descent_rates_pred = {}
 	descent_rates_gps = {}
+	z_rates_pred = {}
+	omegas_pred = {}
 	gps_indices = {}
 	alts_pred = {}
 	alts_gps = {}
@@ -35,10 +39,8 @@ def get_rates(params=None, run=None):
 			next_point = p.next_point
 		else:
 			next_point = '0'
-		interpolate = p.interpolate
-		drift_time = p.drift_time
 
-		params = [descent_only, next_point, interpolate, drift_time]
+		params = [descent_only, next_point]
 
 	else:
 
@@ -47,15 +49,17 @@ def get_rates(params=None, run=None):
 			next_point = str(params[1])
 		else:
 			next_point = '0'
-		interpolate = bool(params[2])
-		drift_time = float(params[3])
+
 
 	if run == None:
 
 		now = dt.datetime.now()
-		now_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
+		now_str = str(now.year)
+
 		files = [filename for filename in os.listdir(dir_pred) if now_str in filename]
-		folder = now_str + '_' + str(len(files)-1) + '/'
+		files.sort()
+
+		folder = files[-1] + '/'
 
 	else:
 		folder = run + '/'
@@ -72,6 +76,8 @@ def get_rates(params=None, run=None):
 		alts = np.array(data['alts'])
 		times = np.array(data['times'])
 		descent_speeds = np.array(data['speeds'])
+		z_speeds = np.array(data['z_speeds'])
+		omegas = np.array(data['omegas'])
 
 		if '20180406' in filename:
 			if '8.9' in filename:
@@ -82,6 +88,8 @@ def get_rates(params=None, run=None):
 			datestr_pred = filename[11:19]
 
 		descent_rates_pred[datestr_pred] = descent_speeds
+		z_rates_pred[datestr_pred] = z_speeds
+		omegas_pred[datestr_pred] = omegas
 		alts_pred[datestr_pred] = np.array(alts)
 
 		datestr_gps = pyb_io.match_pred2gps(datestr_pred)
@@ -107,16 +115,16 @@ def get_rates(params=None, run=None):
 			descent_rates_gps[datestr_pred] = np.array([float((alts[i+1] - alts[i]))/(dt.datetime.strptime(times[i+1], FMT) - dt.datetime.strptime(times[i], FMT)).seconds for i in range(ind, len(alts)-2)])
 			alts_gps[datestr_pred] = np.array([alts[i] for i in range(ind, len(alts) -2)])
 
-	return (descent_rates_gps, descent_rates_pred, alts_gps, alts_pred), dir_pred
+	return (descent_rates_gps, descent_rates_pred, z_rates_pred, omegas_pred, alts_gps, alts_pred), dir_pred
 
-def plot_rates(data=None, params=None, dir_pred=None, run=None):
+def plot_rates(data=None, params=None, dir_pred=None, all_plots=True, run=None):
 
 	time0 = time.time()
 
 	print('Plotting descent speeds...')
 
 	if data == None or dir_pred == None:
-		(descent_rates_gps, descent_rates_pred, alts_gps, alts_pred), dir_pred = get_rates(params=params, run=run)
+		(descent_rates_gps, descent_rates_pred, z_rates_pred, omegas_pred, alts_gps, alts_pred), dir_pred = get_rates(params=params, run=run)
 
 	fig_dir = dir_pred + '../figs/DescentRates/'
 
@@ -128,6 +136,8 @@ def plot_rates(data=None, params=None, dir_pred=None, run=None):
 
 	descent_rates_gps_vals = list(descent_rates_gps.values())
 	descent_rates_pred_vals = list(descent_rates_pred.values())
+	z_rates_pred_vals = list(z_rates_pred.values())
+	omegas_pred_vals = list(omegas_pred.values())
 
 	alts_gps_vals = list(alts_gps.values())
 	alts_pred_vals = list(alts_pred.values())
@@ -135,48 +145,203 @@ def plot_rates(data=None, params=None, dir_pred=None, run=None):
 	fig = plt.figure()
 	plt.rc('axes', axisbelow=True)
 
-	for i in range(len(descent_rates_gps_vals)):
+	# plot individual descent plots for each date
+	if all_plots:
 
-		### x-coordinates at which to evaluate the interpolated values, x&y coordinates used in the interpolation
-		descent_rates_interp_pred = np.interp(alts_gps_vals[i][::-1], alts_pred_vals[i][::-1], descent_rates_pred_vals[i][::-1])[::-1]
+		for i in range(len(descent_rates_gps_vals)):
 
-		plt.plot(descent_rates_gps_vals[i], descent_rates_interp_pred, 'ro--', markersize=2, label='Results')
-		plt.plot(descent_rates_gps_vals[i], descent_rates_gps_vals[i], 'b--', linewidth=1, label=r'$v_{pred}=v_{true}$')
+			### x-coordinates at which to evaluate the interpolated values, x&y coordinates used in the interpolation
+			descent_rates_interp_pred = np.interp(alts_gps_vals[i][::-1], alts_pred_vals[i][::-1], descent_rates_pred_vals[i][::-1])[::-1]
 
-		plt.ylabel(r'$v_{pred}$ [m/s]', fontsize=15)
-		plt.xlabel(r'$v_{true}$ [m/s]', fontsize=15)
-		plt.legend(loc='best')
-		plt.grid(True)
-		fig.savefig(fig_dir + 'vdescent_' + pred_keys[i] + '.png')
+			plt.plot(descent_rates_gps_vals[i], descent_rates_interp_pred, 'ro--', markersize=2, label='Results')
+			plt.plot(descent_rates_gps_vals[i], descent_rates_gps_vals[i], 'b--', linewidth=1, label=r'$v_{pred}=v_{true}$')
 
-		plt.clf()
+			plt.ylabel(r'$v_{pred}$ [m/s]', fontsize=15)
+			plt.xlabel(r'$v_{true}$ [m/s]', fontsize=15)
+			plt.legend(loc='best')
+			plt.grid(True)
+			fig.savefig(fig_dir + 'vdescent_interp_' + pred_keys[i] + '.png')
 
-		plt.plot(alts_pred_vals[i], descent_rates_pred_vals[i], 'bo--', markersize=2, label='Predicted')
-		plt.plot(alts_gps_vals[i], descent_rates_gps_vals[i], 'ro--', markersize=2, label='True')
+			plt.clf()
 
-		plt.ylabel('Descent rate [m/s]', fontsize=15)
-		plt.xlabel('Altitude [m]', fontsize=15)
-		plt.grid(True)
-		plt.legend(loc='best')
-		fig.savefig(fig_dir + 'vdescent_' + pred_keys[i] + '.png', dpi=1000)
+			plt.plot(alts_pred_vals[i], descent_rates_pred_vals[i], 'bo--', markersize=2, label='Predicted')
+			plt.plot(alts_gps_vals[i], descent_rates_gps_vals[i], 'ro--', markersize=2, label='True')
 
-		plt.clf()
+			plt.ylabel('Descent rate [m/s]', fontsize=15)
+			plt.xlabel('Altitude [m]', fontsize=15)
+			plt.grid(True)
+			plt.legend(loc='best')
+			fig.savefig(fig_dir + 'vdescent_' + pred_keys[i] + '.png', dpi=1000)
 
-	for i in range(len(descent_rates_gps_vals)):
+			plt.clf()
 
-		descent_rates_interp_pred = np.interp(alts_gps_vals[i][::-1], alts_pred_vals[i][::-1], descent_rates_pred_vals[i][::-1])[::-1]
-		plt.plot(descent_rates_gps_vals[i], descent_rates_interp_pred, 'ro-', markersize=1, linewidth=0.5)
+	# plot all flights on one figure
 
 	minimum = min([min(descent_rates_gps_vals[i]) for i in range(len(descent_rates_gps_vals))])
 	testx = np.arange(minimum, 0, 0.5)
 
 	plt.plot(testx, testx, 'b--', linewidth=1, label=r'$v_{pred}=v_{true}$')
+
+	descent_rates_interp_pred_l = []
+	z_rates_interp_pred_l = []
+
+	for i in range(len(descent_rates_gps_vals)):
+
+		descent_rates_interp_pred = np.interp(alts_gps_vals[i][::-1], alts_pred_vals[i][::-1], descent_rates_pred_vals[i][::-1])[::-1]
+		descent_rates_interp_pred_l.append(descent_rates_interp_pred)
+		z_rates_interp_pred = np.interp(alts_gps_vals[i][::-1], alts_pred_vals[i][::-1], z_rates_pred_vals[i][::-1])[::-1]
+		z_rates_interp_pred_l.append(z_rates_interp_pred)
+
+		plt.plot(descent_rates_gps_vals[i], descent_rates_interp_pred, 'ro-', markersize=1, linewidth=0.5)
+
 	plt.ylabel(r'$v_{pred}$ [m/s]', fontsize=15)
 	plt.xlabel(r'$v_{true}$ [m/s]', fontsize=15)
 	plt.grid(True)
 	plt.legend(loc='best', prop={'size':10})
 
 	fig.savefig(fig_dir + 'vdescent_all.png', dpi=1000)
+
+	# all flights again but with points
+
+	descent_rates_interp_pred_flattened = np.array([item for sublist in descent_rates_interp_pred_l for item in sublist])
+	descent_rates_gps_vals_flattened = np.array([item for sublist in descent_rates_gps_vals for item in sublist])
+	z_rates_interp_pred_flattened = np.array([item for sublist in z_rates_interp_pred_l for item in sublist])
+	z_rates_pred_flattened = np.array([item for sublist in z_rates_pred_vals for item in sublist])
+	omegas_pred_flattened = np.array([item for sublist in omegas_pred_vals for item in sublist])
+
+	plt.clf()
+
+	plt.plot(testx, testx, 'b--', linewidth=1, label=r'$v_{pred}=v_{true}$')
+
+	for i in range(len(descent_rates_gps_vals)):
+		plt.plot(descent_rates_gps_vals[i], descent_rates_interp_pred_l[i], 'ro', markersize=3, linewidth=0.5)
+
+	plt.ylabel(r'$v_{pred}$ [m/s]', fontsize=15)
+	plt.xlabel(r'$v_{true}$ [m/s]', fontsize=15)
+	plt.grid(True)
+	plt.legend(loc='best', prop={'size':10})
+
+	fig.savefig(fig_dir + 'vdescent_all_points.png', dpi=1000)
+
+ 	# all flights, ratio of true - pred to pred flights
+
+	plt.clf()
+
+	ratio = (descent_rates_gps_vals_flattened - descent_rates_interp_pred_flattened)/descent_rates_interp_pred_flattened
+
+	plt.axhline(0, linewidth=1, color='black', linestyle='--')
+	plt.axhline(np.mean(ratio), linewidth=1, color='blue', linestyle='--', label='Mean: ' + str(round(np.mean(ratio) ,2)))
+
+	plt.plot(descent_rates_gps_vals_flattened, ratio, 'ro', markersize=2)
+
+	plt.ylabel(r'$(v_{true} - v_{pred})/v_{pred}$', fontsize=15)
+	plt.xlabel(r'$v_{true}$ [m/s]', fontsize=15)
+	plt.grid(True)
+	plt.legend(loc='best', prop={'size':10})
+
+	fig.savefig(fig_dir + 'ratiovsvtrue_all.png', dpi=1000)
+
+	# omega as a function of vertical/z wind speeds
+
+	plt.clf()
+
+	plt.axhline(np.mean(omegas_pred_flattened), linewidth=1, color='blue', linestyle='--', label='Mean: ' + str(round(np.mean(omegas_pred_flattened), 3)))
+	plt.axvline(np.mean(z_rates_pred_flattened), linewidth=1, color='green', linestyle='--', label='Mean: ' + str(round(np.mean(z_rates_pred_flattened), 3)))
+
+	for i in range(len(z_rates_pred_vals)):
+		if i == 0:
+			plt.plot(z_rates_pred_vals[i], omegas_pred_vals[i], 'o', markersize=1)
+
+	plt.ylabel(r'$\omega$ [Pa/s]', fontsize=15)
+	plt.xlabel(r'Vertical Wind Speed [m/s]', fontsize=13)
+	plt.grid(True)
+	plt.legend(loc='best', prop={'size':10})
+
+	fig.savefig(fig_dir + 'omegasvz_all.png', dpi=1000)
+
+	# same ratio but as a function of vertical/z wind speeds
+
+	plt.clf()
+
+	plt.axhline(0, linewidth=1, color='black', linestyle='--')
+	plt.axhline(np.mean(ratio), linewidth=1, color='blue', linestyle='--', label='Mean: ' + str(round(np.mean((descent_rates_gps_vals_flattened - descent_rates_interp_pred_flattened)/descent_rates_interp_pred_flattened) ,2)))
+
+	plt.plot(z_rates_interp_pred_flattened, ratio, 'ro', markersize=2)
+
+	plt.ylabel(r'$(v_{true} - v_{pred})/v_{pred}$', fontsize=15)
+	plt.xlabel(r'Vertical Wind Speed [m/s]', fontsize=13)
+	plt.grid(True)
+	plt.legend(loc='best', prop={'size':10})
+
+	fig.savefig(fig_dir + 'ratiovsvz_all.png', dpi=1000)
+
+	# all flights fitted with points
+
+	plt.clf()
+
+	def func(x, m, c):
+		return m*x + c
+
+	popt, pcov = curve_fit(func, descent_rates_gps_vals_flattened, descent_rates_interp_pred_flattened)
+	testy = func(np.array(descent_rates_gps_vals_flattened), popt[0], popt[1])
+	testy_2 = func(np.array(testx), popt[0], popt[1])
+	residuals = [descent_rates_interp_pred_flattened[i] - testy[i] for i in range(len(descent_rates_gps_vals_flattened))]
+
+	fig, (ax1, ax2) = plt.subplots(2, sharex = True, gridspec_kw = {'height_ratios':[4, 2]})
+	plt.rc('axes', axisbelow=True)
+
+	ax1.plot(testx, testy_2, 'g--', linewidth=1, label='Best fit to data')
+	ax1.plot(testx, testx, 'b--', linewidth=1, label=r'$v_{pred}=v_{true}$')
+	ax1.plot(descent_rates_gps_vals_flattened, descent_rates_interp_pred_flattened, 'ro', markersize=2, linewidth=0.5)
+
+	ax2.axhline(0, linestyle='--', linewidth=1)
+	ax2.plot(descent_rates_gps_vals_flattened, residuals, 'ko', markersize=2)
+
+	ax2.set_xlabel(r'$v_{true}$ [m/s]', fontsize=15)
+	ax1.set_ylabel(r'$v_{pred}$ [m/s]', fontsize=15)
+	ax2.set_ylabel(r'Residuals', fontsize=15)
+
+	ax1.grid(True)
+	ax2.grid(True)
+
+	extraString = 'slope: ' + str(round(popt[0], 3)) + '+/-' + str(round(np.sqrt(pcov[0][0]), 3)) + '\noffset: ' + str(round(popt[1], 3)) + '+/-' + str(round(np.sqrt(pcov[1][1]), 3))
+	handles, labels = ax1.get_legend_handles_labels()
+	handles.append(mpatches.Patch(color='none', label=extraString))
+	ax1.legend(handles=handles, loc='best', prop={'size':8})
+
+	fig.savefig(fig_dir + 'vdescent_all_fit_points.png', dpi=1000)
+
+	print('The slope is: ' + str(round(popt[0], 3)) + '+/-' + str(round(np.sqrt(pcov[0][0]), 3)) + ', and the offset is: ' + str(round(popt[1], 3)) + '+/-' + str(round(np.sqrt(pcov[1][1]), 3)) + '.')
+	print('Ignoring the offset, the vertical speeds are ' + str(round(np.sqrt(popt[0]), 3)) + ' times what they should be.')
+
+	# all flights fitted
+
+	plt.clf()
+
+	fig, (ax1, ax2) = plt.subplots(2, sharex = True, gridspec_kw = {'height_ratios':[4, 2]})
+
+	ax1.plot(testx, testx, 'b--', linewidth=1, label=r'$v_{pred}=v_{true}$')
+	ax1.plot(testx, testy_2, 'g--', linewidth=1, label='Best Fit')
+
+	for i in range(len(descent_rates_gps_vals)):
+		ax1.plot(descent_rates_gps_vals[i], descent_rates_interp_pred_l[i], 'ro-', markersize=1, linewidth=0.5)
+
+	ax2.axhline(0, linestyle='--', linewidth=1)
+	ax2.plot(descent_rates_gps_vals_flattened, residuals, 'ko', markersize=2)
+
+	ax2.set_xlabel(r'$v_{true}$ [m/s]', fontsize=15)
+	ax1.set_ylabel(r'$v_{pred}$ [m/s]', fontsize=15)
+	ax2.set_ylabel(r'Residuals', fontsize=15)
+
+	ax1.grid(True)
+	ax2.grid(True)
+
+	extraString = 'slope: ' + str(round(popt[0], 3)) + '+/-' + str(round(np.sqrt(pcov[0][0]), 3)) + '\noffset: ' + str(round(popt[1], 3)) + '+/-' + str(round(np.sqrt(pcov[1][1]), 3))
+	handles, labels = ax1.get_legend_handles_labels()
+	handles.append(mpatches.Patch(color='none', label=extraString))
+	ax1.legend(handles=handles, loc='best', prop={'size':8})
+
+	fig.savefig(fig_dir + 'vdescent_all_fit.png', dpi=1000)
 
 	print('Total time elapsed: %.1f s' % (time.time() - time0))
 
@@ -327,7 +492,7 @@ def plot_results(run=None, params=None):
 
 	plt.clf()
 
-	plt.axhline(mean, linestyle='--', color='black', linewidth=1, label='Average error: ' + str(round(mean, 1)) + ' km')
+	plt.axhline(mean, linestyle='--', color='black', linewidth=1, label='Avg. error: ' + str(round(mean, 1)) + ' km')
 	plt.axvline(np.mean(times), linestyle='--', color='blue', linewidth=0.5, label='Avg. time: ' + str(round(np.mean(times), 1)) + ' min')
 	plt.axhline(5, linestyle='--', color='red', linewidth=1, label='5 km')
 
@@ -344,7 +509,7 @@ def plot_results(run=None, params=None):
 
 	plt.clf()
 
-	plt.axhline(mean, linestyle='--', color='black', linewidth=1, label='Average error: ' + str(round(mean, 1)) + ' km')
+	plt.axhline(mean, linestyle='--', color='black', linewidth=1, label='Avg. error: ' + str(round(mean, 1)) + ' km')
 	plt.axvline(np.mean(dists), linestyle='--', color='blue', linewidth=0.5, label='Avg. distance: ' + str(round(np.mean(dists), 1)) + ' km')
 	plt.axhline(5, linestyle='--', color='red', linewidth=1, label='5 km')
 
@@ -411,5 +576,11 @@ def plot_results(run=None, params=None):
 	print('Total time elapsed: %.1f s' % (time.time() - time0))
 
 if __name__ == '__main__':
-	plot_rates()
-	plot_results()
+
+	if len(sys.argv) > 1:
+		run = sys.argv[1]
+	else:
+		run = None
+
+	plot_rates(all_plots=False, run=run)
+	# plot_results()

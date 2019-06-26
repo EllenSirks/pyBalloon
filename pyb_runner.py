@@ -19,6 +19,7 @@ import matplotlib as mpl
 import pyb_traj
 import get_gfs
 import pyb_io
+
 import test
 
 import param_file as p
@@ -47,6 +48,7 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 			next_point = '0'
 		interpolate = p.interpolate
 		drift_time = float(p.drift_time)
+		resolution = float(p.resolution)
 	else:
 		descent_only = bool(params[0])
 		if descent_only:
@@ -55,6 +57,7 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 			next_point = '0'
 		interpolate = bool(params[2])
 		drift_time = float(params[3])
+		resolution = float(params[4])
 
 	if balloon == None:
 		balloon = p.balloon
@@ -67,6 +70,7 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 			print('starting point: ' + next_point)
 		print('interpolate: ' + str(interpolate))
 		print('drift time: ' + str(drift_time) + ' minutes')
+		print('resolution of forecasts: ' + str(resolution) + ' degrees')
 		print('----------')
 		print('\nBalloon/Parachute Parameters')
 		print('----------')
@@ -92,7 +96,8 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 		now = dt.datetime.now()
 		now_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
 		files = [filename for filename in os.listdir(traj_dir) if now_str in filename]
-		folder = now_str + '_' + str(len(files)) + '/'		
+		run = now_str + '_' + str(len(files))
+		folder = run  + '/'		
 
 	kml_dir = traj_dir + folder + 'kml_files/'
 	params_dir = traj_dir + folder
@@ -106,16 +111,17 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 
 	# check if want interpolation
 	if interpolate:
-		files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour)
+		files = test.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour, resolution=resolution)
 	else:
-		files = test.get_closest_gfs_file(datestr=datestr, utc_hour=utc_hour, file_type='GFS')
+		files = test.get_closest_gfs_file(datestr=datestr, utc_hour=utc_hour, resolution=resolution)
 
 	# calculate the trajectory of the balloon
-	trajectories = pyb_traj.run_traj(weather_files=files, loc0=loc0, datestr=datestr, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only, interpolate=interpolate, drift_time=drift_time)
+	trajectories = pyb_traj.run_traj(weather_files=files, loc0=loc0, datestr=datestr, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only, interpolate=interpolate, drift_time=drift_time, resolution=resolution)
 
 	# write out trajectory to file
 	traj_file = traj_dir + 'trajectory_' + files[0][6:14] + '_' + str(utc_hour) + '_' + str(loc0) + '.dat'
-	ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds'], trajectories['temperatures']], traj_file, names=['lats', 'lons', 'alts', 'dists', 'times', 'speeds', 'temps'], overwrite=True)
+	ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds'], trajectories['z_speeds'], trajectories['omegas'], trajectories['temperatures']], \
+	 traj_file, names=['lats', 'lons', 'alts', 'dists', 'times', 'speeds', 'z_speeds', 'omegas', 'temps'], overwrite=True)
 
 	# write parameters of this run to file
 	f = open(params_dir + 'params.txt', 'w+')
@@ -126,6 +132,7 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 		f.write('starting point: ' + str(next_point) + '\n')
 	f.write('interpolate: ' + str(interpolate) + '\n')
 	f.write('drift time: ' + str(drift_time) + ' min\n')
+	f.write('resolution of forecasts: ' + str(resolution) + ' degrees\n')
 	f.write('----------------------\n')
 	f.write('\n')
 	f.write('Balloon/Parachute parameters\n')
@@ -142,8 +149,8 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 	runs = [lines[i][0] for i in range(len(lines)) if i != 0]
 
 	f = open(dir_base + 'Output/runs_info.txt', 'a+')
-	if folder[:-1] not in runs:
-		f.write('\n' + str(folder[:-1]) + ' ' + str(descent_only) + ' ' + str(next_point) + ' ' +  str(interpolate) + ' ' + str(drift_time) + ' ' + str(balloon['Cd_parachute']) + ' ' + str(np.sqrt(balloon['parachute_areas'][0]/np.pi)) + ' ' + \
+	if run not in runs:
+		f.write('\n' + str(folder[:-1]) + ' ' + str(descent_only) + ' ' + str(next_point) + ' ' +  str(interpolate) + ' ' + str(drift_time) + ' ' + str(resolution) + ' ' + str(balloon['Cd_parachute']) + ' ' + str(np.sqrt(balloon['parachute_areas'][0]/np.pi)) + ' ' + \
 		 str(balloon['altitude_step'])  + ' ' + str(balloon['equip_mass']) + ' ' + str(balloon['balloon_mass']) + ' ' +  str(balloon['fill_radius']) + ' ' + str(balloon['radius_empty']) + ' ' + \
 		 str(balloon['burst_radius']) + ' ' + str(balloon['thickness_empty']) + ' ' + str(balloon['Cd_balloon']) + ' ' + str(balloon['simple_ascent_rate']) + ' ' + str(balloon['parachute_change_altitude']))
 
@@ -168,4 +175,4 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 
 if __name__ == "__main__":
 
-	run(datestr=sys.argv[1], utc_hour=sys.argv[2], lat0=sys.argv[3], lon0=sys.argv[4], alt0=sys.argv[5], verbose=True)
+	runner(datestr=sys.argv[1], utc_hour=sys.argv[2], lat0=sys.argv[3], lon0=sys.argv[4], alt0=sys.argv[5], verbose=True)

@@ -1,4 +1,4 @@
-""" File with relevent running parameters """
+""" File with relevant running parameters """
 
 import numpy as np
 
@@ -7,6 +7,7 @@ descent_only = True
 next_point = '1'
 interpolate = False
 drift_time = 0.
+resolution = 0.25
 
 # balloon parameters
 balloon = {}
@@ -21,7 +22,9 @@ balloon['Cd_balloon'] = 0.5
 balloon['simple_ascent_rate'] = 5.0 # m/s
 
 # parachute parameters
-balloon['Cd_parachute'] = 0.5
-radius = 1
-balloon['parachute_areas'] = np.pi * np.array([radius])**2 # m^2
+balloon['Cd_parachute'] = 0.97
+# radius = 0.5
+# balloon['parachute_areas'] = np.pi * np.array([radius])**2 # m^2
+balloon['parachute_areas'] = [1.62]
+# balloon['parachute_areas'] = 2*np.array([radius])**2 # m^2
 balloon['parachute_change_altitude'] = None # meters

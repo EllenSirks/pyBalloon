@@ -1,81 +1,218 @@
-#!/usr/bin/python
-
 from shutil import copyfile
 import datetime as dt
 import numpy as np
 import requests
-import time
-import wget
-import sys
-import os
+import sys, os
 
-def nearest_hr(utc_hour=None):
+# method to find & download latest weather file
+def get_latest_gfs_file(resolution=0.5):
 
-	utc_hour = float(utc_hour)
+	res1 = 'pgrb2.0p' + str(int(resolution*100))
+	res2 = str(int(-4*resolution + 6))
 
-	hrs = [0., 3., 6., 9., 12., 15., 18., 21., 24.]
+	now = dt.datetime.now()
+	now_hour = int(round(now.hour - 1 + now.minute/60.)) ### using UTC time
+	now_date_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
 
-	if utc_hour in hrs:
-		return utc_hour
+	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
+	url_base = 'https://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/'
 
-	diffs_abs = np.array([np.abs(hr - utc_hour) for hr in hrs])
-	diffs = np.array([hr - utc_hour for hr in hrs])
+	req = requests.get(url_base)
+	if req.ok is not True:
+		print("Could not connect!")
+		sys.exit()
 
-	index = int(np.where(diffs_abs == min(diffs_abs))[0][0]) # if hr exactly between two use past hr / hr closest to past model
-	hr = hrs[index]
+	text = req.content.split('</a>')
+	available_folders = [t.split('>')[-1] for t in text if 'gfs.20' in t.split('>')[-1]]
+	available_folders.sort()
+	url_base += available_folders[-1]
 
-	return hr
+	req = requests.get(url_base)
+	text = req.content.split('</a>')
+	available_times = [t.split('>')[-1] for t in text if '/' in t.split('>')[-1]]
+	available_times.sort()
 
-# method to find time & date left & right of time of ascent/descent
-def get_interval(datestr=None, utc_hour=None):
+	req = requests.get(url_base + available_times[-1])
+	text = req.content.split('</a>')
+	available_files = [t.split('>')[-1] for t in text if res1 in t.split('>')[-1] and 'idx' not in t.split('>')[-1] and 'anl' not in t.split('>')[-1]]
 
-	utc_hour = float(utc_hour)
-	hhhh = [0., 6., 12., 18., 24.]
+	hhhh = int(available_times[-1][-3:-1])
 
-	if utc_hour in hhhh:
-		min_hr, min_hhh = utc_hour, 0.
+	if len(available_files) == 0:
 
-	else:
+		req = requests.get(url_base + available_times[-2])
+		text = req.content.split('</a>')
+		available_files = [t.split('>')[-1] for t in text if res1 in t.split('>')[-1] and 'idx' not in t.split('>')[-1] and 'anl' not in t.split('>')[-1]]
 
-		hhh = [3.*i for i in range(0, 129)]
-		for hr in hhhh:
-			if hr < utc_hour:
-				min_hr = hr
+		hhhh = int(available_times[-2][-3:-1])
 
-		diffs = [np.abs(min_hr + h - utc_hour) for h in hhh]
-		min_hhh = hhh[int(np.where(diffs == min(diffs))[0])]
+	diffs = [np.abs(hhhh + int(file[-3:]) - now_hour) for file in available_files]
+	weather_file = available_files[int(np.where(diffs == min(diffs))[0])]
+	weather_files = ['gfs_' + res2 + '_' + str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2) + '_' + weather_file[5:7] + '00_' + weather_file[-3:] + '.grb2']
 
-		if min_hr + min_hhh > utc_hour:
-			min_hhh -= 3.
+	file = get_gfs_files(weather_files=weather_files)
 
-	return int(min_hr), int(min_hhh)
+	return weather_files
+
+# method to find & download weather files needed for interpolation (3)
+def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5):
+
+	print('Getting interpolation files...')
+
+	res = str(int(-4*resolution + 6))
+	left_hr, left_hhh, right_hr, right_hhh = get_interval(utc_hour=utc_hour)
+	weather_files = ['gfs_' + res + '_' + datestr + '_' + str(left_hr*100).zfill(4) + '_' + str(left_hhh).zfill(3) + '.grb2', 'gfs_' + res + '_' + datestr + '_' + str(right_hr*100).zfill(4) + '_' + str(right_hhh).zfill(3) + '.grb2']
+	file = get_gfs_files(weather_files=weather_files)
+
+	return [weather_files[0][:-5]]
+
+# method to find & download weather_file nearest in time to time of ascent/descent
+def get_closest_gfs_file(datestr=None, utc_hour=None, resolution=0.5):
+
+	print('Finding closest gfs file...')
+
+	res = str(int((-4*resolution + 6)))
+
+	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
+	now = dt.datetime.now()
+
+	h1, h2, h3 = get_closest_hr(utc_hour=utc_hour)
+
+	month = datestr[0:6]
+	day = datestr
+
+	hhhh = str(h1*100).zfill(4)
+	hhh = str(h2).zfill(3)
+
+	files = ['gfs_' + res + '_' + datestr + '_' + hhhh + '_' + hhh + '.grb2']
+	file = get_gfs_files(weather_files=files)
+
+	return [files[0][:-5]]
+
+def get_gfs_files(weather_files=None): # files should be formatted like; gfs_x_ .... .grb2
+
+	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
+	now = dt.datetime.now()
+
+	for file in weather_files:
+
+		res1 = '0p' + str(int(100*(int(file[4]) - 6)/-4.))
+		res2 = file[4]
+
+		datestr = file[6:14]
+		year = datestr[:4]
+		month = datestr[:6]
+		hhhh, hhh = file[-13:-9], file[-8:-5]
+
+		if datestr in [str(now.year) + str(now.month).zfill(2) + str(now.day - i).zfill(2) for i in range(0, 10)]:
+
+			url_base = 'https://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/'
+			filename = url_base + 'gfs.' + datestr + '/' + str(int(hhhh)/100).zfill(2) + '/' + 'gfs.t' + str(int(hhhh)/100).zfill(2) +  'z.pgrb2.' + res1 + '.f' + hhh
+
+		else:
+
+			if res2 == '4':
+				url_base = 'https://nomads.ncdc.noaa.gov/data/gfs4/'
+				filename = url_base + month + '/' + datestr + '/' + file
+
+			elif res2 == '5':
+				url_base = 'http://rda.ucar.edu/data/ds084.1/'
+				filename = url_base + year + '/' + datestr + '/gfs.0p25.' + datestr + str(int(int(hhhh)/100)).zfill(2) + '.f' + hhh + '.grib2'
+			
+		second_file = 'gfs_' + res2 + '_' + datestr + '_' + hhhh + '_' + hhh + '.grb2'
+
+		if os.path.isfile(out_dir + second_file) and float(os.stat(out_dir + second_file).st_size) > 40000000.:
+			print(file + ' already downloaded!')
+			continue
+
+		download_file(path_file=filename)
+
+		if file != second_file:
+			copyfile(out_dir + file, out_dir + second_file)
+			os.remove(out_dir + file)
+
+	return [weather_files[0][:-5]]
+
+def download_file(path_file=None):
+
+	file = os.path.basename(path_file)
+	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/'
+
+	if 'gfs' in path_file:
+		out_dir += 'GFS/'
+		if '0p25' in file:
+			values = {'email' : 'ellen.l.sirks@durham.ac.uk', 'passwd' : 'Petten36', 'action' : 'login'}
+			ret = requests.post(url = 'https://rda.ucar.edu/cgi-bin/login',  data = values)
+			cookies = ret.cookies
+		else:
+			cookies = None
+	elif 'gens' in path_file:
+		out_dir += 'GEFS/'
+		cookies = None
+
+	print('Downloading ' + os.path.basename(path_file) + '...')
+
+	req = requests.get(path_file, cookies = cookies, allow_redirects=True, stream=True)
+	filesize = int(req.headers['Content-length'])
+	with open(out_dir + file, 'wb') as outfile:
+		chunk_size = 1048576
+		for chunk in req.iter_content(chunk_size=chunk_size):
+			outfile.write(chunk)
+			if chunk_size < filesize:
+				check_file_status(out_dir + file, filesize)
+	check_file_status(out_dir + file, filesize)
+	print()
+
+# method to check what percentage of a file has been downloaded
+def check_file_status(filepath=None, filesize=None):
+	sys.stdout.write('\r')
+	sys.stdout.flush()
+	size = float(os.stat(filepath).st_size)
+	percent_complete = (size/filesize)*100.
+	sys.stdout.write('%.1f %s ' % (percent_complete, '% Completed'))
+	sys.stdout.flush()
 
 # method to find time & date that is nearest to the time of ascent/descent
 def get_closest_hr(utc_hour=None):
 
-
 	utc_hour = float(utc_hour)
-	hr = nearest_hr(utc_hour)
 
-	hhhh = [0., 6., 12., 18., 24.]
+	hrs_6 = [0., 6., 12., 18., 24.]
 
-	if utc_hour in hhhh:
-		min_hr = int(utc_hour)
-		hhh1 = 0
+	if utc_hour in hrs_6:
+
+		closest_model = int(utc_hour)
+		hhh3 = 0
+		hhh6 = 0
 
 	else:
 
-		for hh in hhhh:
-			if hh < utc_hour:
-				min_hr = int(hh)
+		for hr in hrs_6:
+			if hr < utc_hour:
+				closest_model = int(hr)
 
-		diffs1 = np.array([np.abs(min_hr - utc_hour + 3.*i) for i in range(0, 129)])
-		hhh1 = 3*np.where(diffs1 == min(diffs1))[0][0]
+		diffs = np.array([np.abs(utc_hour - (closest_model + 3.*i)) for i in range(0, 129)])
+		hhh3 = 3*np.where(diffs == min(diffs))[0][0]
 
-	diffs2 = np.array([np.abs(min_hr - utc_hour + 6.*i) for i in range(0, 65)])
-	hhh2 = 6*np.where(diffs2 == min(diffs2))[0][0]
+		diffs = np.array([np.abs(utc_hour - (closest_model + 6.*i)) for i in range(0, 65)])
+		hhh6 = 6*np.where(diffs == min(diffs))[0][0]
 
-	return min_hr, hhh1, hhh2
+	return closest_model, hhh3, hhh6
+
+# method to find time & date left & right of time of ascent/descent
+def get_interval(utc_hour=None):
+
+	left_hr, left_hhh, hhh6 = get_closest_hr(utc_hour=utc_hour)
+
+	if float(left_hr) == float(utc_hour) and left_hhh == 0:
+		left_hr, left_hhh = int(utc_hour), 0
+	else:
+		if left_hr + left_hhh > utc_hour:
+			left_hhh = left_hhh - 3
+
+	right_hr, right_hhh = left_hr, left_hhh + 3
+
+	return left_hr, left_hhh, right_hr, right_hhh
 
 # method to iterate date by 1 day and return new datestr
 def date_check(datestr=None):
@@ -86,232 +223,9 @@ def date_check(datestr=None):
 
 	return new_datestr
 
-# method to download weather file if entire file string is given
-def get_gfs_file(weather_file=None, file_type='GFS', verbose=False):
-
-	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/' + file_type + '/'
-
-	if weather_file == None:
-
-		print('Need a weather file to download!')
-		sys.exit()
-
-	else:
-
-		print('Getting ' + weather_file + '...')
-
-		if os.path.isfile(out_dir + weather_file):
-
-			print(weather_file + ' already downloaded!')
-			return [weather_file[:-5]]
-			
-		else:
-
-			if 'gfs.' in weather_file:
-
-				hr = weather_file[5:7]
-				now = dt.datetime.now()
-				datestr = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
-
-				url_base = 'https://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/'
-				url = url_base + 'gfs.' + datestr + hr + '/' +  weather_file
-
-				print('Downloading ' + url + '...')
-				filename = wget.download(url, out=out_dir)
-
-				second_file = 'gfs_4_' + str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2) + '_' + weather_file[5:7] + '00_' + weather_file[-3:] + '.grb2'
-				copyfile('/home/ellen/Desktop/SuperBIT/Weather_data/GFS/' + weather_file, '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/' + second_file)
-				os.remove(out_dir + weather_file)
-
-				weather_file = second_file
-
-			else:
-
-				url_base = 'https://nomads.ncdc.noaa.gov/data/gfs4/'
-
-				datestr = weather_file[6:14]
-				month = datestr[0:6]
-
-				url = url_base + month
-				req = requests.get(url)
-
-				if req.ok is not True:
-					print("Could not connect! Year or month not available.")
-					sys.exit()
-
-				day = datestr
-
-				url = url_base + month + '/' + day
-				req = requests.get(url)
-
-				if req.ok is not True:
-					print("Could not connect! Day not available.")
-					sys.exit()
-
-				url = url_base + month + '/' + day + '/' + weather_file
-
-				print('Downloading ' + weather_file + '...')
-				filename = wget.download(url, out=out_dir)
-
-	return [weather_file[:-5]]
-
-# method to find & download weather_file nearest in time to time of ascent/descent
-def get_closest_gfs_file(datestr=None, utc_hour=None, verbose=False):
-
-	print('Finding closest gfs file...')
-
-	url_base = 'https://nomads.ncdc.noaa.gov/data/gfs4/'
-	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
-
-	hhhh, hhh, hhh2 = get_closest_hr(utc_hour=utc_hour)
-
-	month = datestr[0:6]
-	day = datestr
-
-	hhhh = str(hhhh*100).zfill(4)
-	hhh = str(hhh).zfill(3)
-
-	weather_file = 'gfs_4_' + datestr + '_' + hhhh + '_' + hhh + '.grb2'
-
-	if os.path.isfile('/home/ellen/Desktop/SuperBIT/Weather_data/GFS/' + weather_file):
-		print(weather_file + ' already downloaded!')
-		return [weather_file[:-5]]
-
-	url = url_base + month 
-	req = requests.get(url)
-
-	if req.ok is not True:
-		print("Could not connect! Year or month not available.")
-		sys.exit()
-
-	url = url_base + month + '/' + day
-	req = requests.get(url)
-
-	if req.ok is not True:
-		print("Could not connect! Day not available.")
-		sys.exit()
-
-	text = req.content.split('</a>')
-	available_files = []
-
-	for t in text:
-		if 'grb2' in t and not 'align' in t:
-			available_files.append(t.split('>')[-1].split('>')[-1])
-
-	if weather_file not in available_files:
-		print("File not available.")
-		sys.exit()
-	else:
-
-		url = url_base + month + '/' + day + '/' + weather_file
-
-		print('Downloading ' + weather_file + '...')
-		filename = wget.download(url, out=out_dir)
-
-		return [weather_file[:-5]]
-
-# method to find & download latest weather file
-def get_latest_gfs_file(verbose=False):
-
-	now = dt.datetime.now()
-	now_hour = int(round(now.hour - 1 + now.minute/60.)) ### using UTC time
-
-	url_base = 'https://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/'
-	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
-
-	req = requests.get(url_base)
-	if req.ok is not True:
-		print("Could not connect!")
-		sys.exit()
-
-	text = req.content.split('</a>')
-	available_folders = []
-
-	for t in text:
-
-		t = t.split('>')[-1]
-		if 'gfs.20' in t:
-			available_folders.append(t)
-
-	available_folders.sort()
-
-	url = url_base + available_folders[-1]
-	hhhh = url[-3:-1]
-
-	req = requests.get(url)
-	if req.ok is not True:
-		print("Could not connect!")
-		sys.exit()
-
-	text = req.content.split('</a>')
-	available_files = []
-
-	for t in text:
-		t = t.split('>')[-1]
-		if 'pgrb2.0p50' in t and 'idx' not in t and 'anl' not in t:
-			available_files.append(t)
-
-	hhhh = int(url[-3:-1])
-	diffs = [np.abs(hhhh + int(file[-3:]) - now_hour)  for file in available_files]
-
-	weather_file = available_files[int(np.where(diffs == min(diffs))[0])]
-		
-	if not os.path.isfile('/home/ellen/Desktop/SuperBIT/Weather_data/GFS/' + weather_file):
-
-		url = url + weather_file
-		print('Downloading ' + url + '...')
-		filename = wget.download(url, out=out_dir)
-
-		second_file = 'gfs_4_' + str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2) + '_' + weather_file[5:7] + '00_' + weather_file[-3:] + '.grb2'
-		copyfile('/home/ellen/Desktop/SuperBIT/Weather_data/GFS/' + weather_file, '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/' + second_file)
-		os.remove(out_dir + weather_file)
-
-	else:
-		print(weather_file + ' already downloaded!')
-
-	return [weather_file]
-
-# method to find & download weather files needed for interpolation (3)
-def get_interpolation_gfs_files(weather_file=None, datestr=None, utc_hour=None):
-
-	time0 = time.time()
-	now = dt.datetime.now()
-
-	print('Getting interpolation files...')
-
-	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
-
-	if weather_file == None:
-		hhhh, hhh = get_interval(datestr=datestr, utc_hour=utc_hour)
-	else:
-		if 'gfs.'in weather_file:
-			datestr, hhhh, hhh = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2), int(weather_file[5:7]), int(weather_file[-3:])
-		else:
-			datestr, hhhh, hhh = weather_file[6:14], int(int(weather_file[15:19])/100.), int(weather_file[20:23])
-
-	files = []
-
-	i = 0
-	while i < 3:
-
-		if datestr == str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2):
-			weather_file = 'gfs.t' + str(hhhh).zfill(2) + 'z.pgrb2.0p50.f' + str(hhh).zfill(3)
-		else: 
-			weather_file = 'gfs_4_' + datestr + '_' + str(hhhh*100).zfill(4) + '_' + str(hhh).zfill(3) + '.grb2'
-
-		file = get_gfs_file(weather_file=weather_file)[0]
-		files.append(file)
-
-		hhh += 3
-		i+=1
-
-	return files
-
 if __name__ == '__main__':
 
-	time0 = time.time()
-
-	res = get_latest_gfs_file()
-	print(res)
-
-	print('Program finished in %.1f s' % (time.time() - time0))
+	# get_gfs_files(weather_files=['gfs_5_20180619_0600_000.grb2'])
+	print(get_latest_gfs_file(resolution=0.5))
+	# get_closest_gfs_file(datestr='20180620', utc_hour = '18', resolution = 0.5)
+	# print(get_interpolation_gfs_files(datestr='20180620', utc_hour='12.5'))

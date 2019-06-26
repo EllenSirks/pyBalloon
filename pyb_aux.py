@@ -8,6 +8,7 @@ import pygrib as pg
 import numpy as np
 import gdal
 import json
+import sys
 import os
 import re
 
@@ -549,7 +550,6 @@ def calc_uv_errs(weather_file=None, loc0=None, current_time=None, descent_only=F
         grib.seek(0)
         u_msgs = grib.select(name='U component of wind')
         v_msgs = grib.select(name='V component of wind')
-        g_msgs = grib.select(name='Geopotential Height')
 
         lats, lons, = u_msgs[0].latlons() # lats: -90 -> 90, lons: 0 -> 360
         lats2, lons2 = u_msgs[0].latlons()
@@ -684,6 +684,7 @@ def calc_uv_errs(weather_file=None, loc0=None, current_time=None, descent_only=F
     else:
 
         u_winds, v_winds, altitudes = {}, {}, {}
+
         for no in range(0, 21):
 
             ens_fname = 'gens_3_' + datestr +  str(closest_hhhh).zfill(2) + '_' + str(no).zfill(2) + '.g2/gens-a_3_' + datestr + '_' + str(closest_hhhh*100).zfill(4) + '_' + str(closest_hhh2).zfill(3) + '_' + str(no).zfill(2) + '.grb2'
@@ -729,6 +730,7 @@ def calc_uv_errs(weather_file=None, loc0=None, current_time=None, descent_only=F
 
         u_winds_std, v_winds_std, altitudes_mean = {}, {}, {}
 
+        # calculate std for winds, mean for altitudes
         for key in list(u_winds[0].keys()):
             u_winds_std[key] = []
             for j in range(len(u_winds[0][key])):
@@ -744,9 +746,9 @@ def calc_uv_errs(weather_file=None, loc0=None, current_time=None, descent_only=F
             for j in range(len(altitudes[0][key])):
                 altitudes_mean[key].append(np.mean([altitudes[i][key][j] for i in range(0, 21)]))
 
-        u_winds_l = []
-        v_winds_l = []
-        altitudes_mean_l = []
+        u_winds = []
+        v_winds = []
+        altitudes = []
 
         pressures = list(u_winds_std.keys())
         pressures.sort()
@@ -757,61 +759,57 @@ def calc_uv_errs(weather_file=None, loc0=None, current_time=None, descent_only=F
             uwnd.append(u_winds_std[key])
             vwnd.append(v_winds_std[key])
 
-            u_winds_l.append(np.hstack(uwnd))
-            v_winds_l.append(np.hstack(vwnd))
+            u_winds.append(np.hstack(uwnd))
+            v_winds.append(np.hstack(vwnd))
 
             if key in list(altitudes_mean.keys()):
-                alt.append(altitude[key])
-                altitudes_mean_l.append(np.hstack(alt))
+                alt.append(altitudes_mean[key])
+                altitudes.append(np.hstack(alt))
 
         data = {}
         data['lats'] = np.array(lats)
         data['lons'] = np.array(lons)
-        data['u_winds'] = np.array(u_winds_l)
-        data['v_winds'] = np.array(v_winds_l)
-        data['altitudes_mean'] = np.array(altitudes_mean_l)
-        all_pressures = []
+        data['u_winds'] = np.array(u_winds)
+        data['v_winds'] = np.array(v_winds)
+        data['altitudes'] = np.array(altitudes)
 
+        all_pressures = []
         for dat in data['lats']:
             all_pressures.append(100*np.array(pressures)) # Convert hPa to Pa
 
         data['pressures'] = np.array(all_pressures).transpose()
 
         main_keys = list(main_data['pressures'][:, 0])
-        keys1 = list(data['pressures'][:, 0])
-        keys2 = list(altitudes_mean.keys())
+        main_keys.sort()
+        main_keys.reverse()
 
-        keys2.sort()
-        keys2.reverse()
-        keys2 = [key*100 for key in keys2]
+        u_keys = list(u_winds_std.keys())
 
         x, y = data['u_winds'].shape
 
         u_errs = {}
         v_errs = {}
-        alt_mean = {}
+        altitudes = {}
 
         for key in main_keys:
-            u_errs[key] = []
-            v_errs[key] = []
-            alt_mean[key] = []
+            if key not in u_keys:
+                u_errs[key] = np.zeros(y)
+                v_errs[key] = np.zeros(y)
+                altitudes[key] = np.zeros(y)
+            else:
+                u_errs[key] = u_winds_std[key]
+                v_errs[key] = v_winds_std[key]
+                altitudes[key] = altitudes_mean[key]
 
-        for i in range(0, y):
+        u_errs = [u_errs[key] for key in main_keys]
+        v_errs = [v_errs[key] for key in main_keys]
+        altitudes = [altitudes[key] for key in main_keys]
 
-            f1 = interpolate.interp1d(keys1, data['u_winds'][:, i], 'cubic', fill_value='extrapolate')
-            f2 = interpolate.interp1d(keys1, data['v_winds'][:, i], 'cubic', fill_value='extrapolate')
-            f3 = interpolate.interp1d(keys2, data['altitudes_mean'][:, i], fill_value='extrapolate')
+        print(u_errs)
 
-            for j in range(len(main_keys)):
-                u_errs[main_keys[j]].append(float(f1(main_keys[j])))
-                v_errs[main_keys[j]].append(float(f2(main_keys[j])))
-                alt_mean[main_keys[j]].append(float(f3(main_keys[j])))
-
-        data['u_winds'] = np.array([u_errs[key] for key in main_keys]) 
-        data['v_winds'] = np.array([v_errs[key] for key in main_keys]) 
-        data['altitudes'] = np.array([alt_mean[key] for key in main_keys]) 
-
-        data.pop('altitudes_mean')
+        data['u_winds'] = np.array(u_errs) 
+        data['v_winds'] = np.array(v_errs) 
+        data['altitudes'] = np.array(altitudes) 
 
         inds1 = [ind for ind in range(len(main_data['lats'])) if main_data['lats'][ind] in data['lats']]
         inds2 = [ind for ind in range(len(main_data['lons'])) if main_data['lons'][ind] in data['lons']]
@@ -842,4 +840,5 @@ if __name__ == '__main__':
     descent_only = True
     loc0 = 30.776012, -5.613083, 25892
 
-    new_data = calc_uv_errs(weather_file=fname2, loc0=loc0, descent_only=descent_only, current_time=0)
+    new_data = calc_uv_errs(weather_file=fname1, loc0=loc0, descent_only=descent_only, current_time=6)
+    # print(new_data)

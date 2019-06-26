@@ -3,6 +3,7 @@
 from shapely.geometry import Point, mapping
 from shapely.ops import transform
 from functools import partial
+from scipy import interpolate
 from astropy.io import ascii
 from glob import glob
 import pygrib as pg
@@ -14,8 +15,16 @@ import csv
 import sys
 import os
 
+import matplotlib.pyplot as plt
+
 import param_file as p
 import pyb_aux
+
+g_0 = 9.80665 # m/s surface acc.
+R0 = 8.3144621 # Ideal gas constant, J/(mol*K)
+R_e = 6371009 # mean Earth radius in meters
+M_air = 0.0289644 # molar mass of air [kg/mol], altitude dependence
+T0 = 288.15 # K
 
 def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
 
@@ -46,11 +55,6 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 		
 	"""
 
-	g_0 = 9.80665 # m/s surface acc.
-	R0 = 8.3144621 # Ideal gas constant, J/(mol*K)
-	M_air = 0.0289644 # molar mass of air [kg/mol], altitude dependence
-	T0 = 288.15 # K
-	
 	if area is not None:
 		tlat, llon, blat, rlon = area
 	else:
@@ -63,6 +67,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 	v_msgs = grib.select(name='V component of wind')
 	g_msgs = grib.select(name='Geopotential Height')
 	t_msgs = grib.select(name='Temperature')
+	omega_msgs = grib.select(name='Vertical velocity')
 
 	lats, lons, = u_msgs[0].latlons() # lats: -90 -> 90, lons: 0 -> 360
 	lats2, lons2 = u_msgs[0].latlons()
@@ -111,33 +116,37 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 		if msg.typeOfLevel == 'isobaricInhPa':
 			altitude[msg.level] = msg.values[row_idx, col_idx]
 
-	# Collect data to correct altitude order. Set "surface" values before real data.
-	if not descent_only: 
-		u_winds = [np.zeros(lats.shape)]
-		v_winds = [np.zeros(lats.shape)]
-	else:
-		u_winds = []
-		v_winds = []
+	omega = {}
+	for msg in omega_msgs:
+		if msg.typeOfLevel == 'isobaricInhPa':
+			omega[msg.level] = msg.values[row_idx, col_idx]
 
+	# Collect data to correct altitude order. Set "surface" values before real data.
 	# Use given surface temperature if available, otherwise use the model value
 	if not descent_only:
+		u_winds = [np.zeros(lats.shape)]
+		v_winds = [np.zeros(lats.shape)]
+		altitudes = [alt0*np.ones(lats.shape)]
+		omegas = [np.zeros(lats.shape)]
+
 		if t_0 is None:
 			temperatures = [t_surface]
 		else:
 			temperatures = [t_0*np.ones(lats.shape)]
+
 	else:
+		u_winds = []
+		v_winds = []
 		temperatures = []
-
-	if not descent_only:
-		altitudes = [alt0*np.ones(lats.shape)]
-	else:
 		altitudes = []
+		omegas = []
 
-	property_array = np.array([u_wind, v_wind, temperature, altitude])
-	key_lengths = np.array([len(u_wind.keys()), len(v_wind.keys()), len(temperature.keys()), len(altitude.keys())])
-	index = np.where(key_lengths == min(key_lengths))[0][0]
+	# property_array = np.array([u_wind, v_wind, temperature, altitude, omega])
+	# key_lengths = np.array([len(u_wind.keys()), len(v_wind.keys()), len(temperature.keys()), len(altitude.keys()), len(omega.keys())])
+	# index = np.where(key_lengths == min(key_lengths))[0][0]
 
-	pressures = list(property_array[index].keys())
+	# pressures = list(property_array[index].keys())
+	pressures = list(u_wind.keys())
 
 	if not descent_only:
 		pressures.append(max(pressures))
@@ -163,11 +172,15 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 	i = 0
 	for key in pressures:
 		if i != ind:
-			uwnd, vwnd, temp, alt = [], [], [], []
+			uwnd, vwnd, temp, alt, omg = [], [], [], [], []
 			uwnd.append(u_wind[key])
 			vwnd.append(v_wind[key])
 			temp.append(temperature[key])
 			alt.append(altitude[key])
+
+			if key in list(omega.keys()):
+				omg.append(omega[key])
+
 
 			# Add extra data to complement the currently read data, ie. 1, 2, 3, 5 and 7 hPa levels from GFS main run to ensembles. 
 			# Data are expected to be in the same format as returned by this function.
@@ -185,6 +198,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 							vwnd.append(extra_data['v_winds'][j, idx])
 							temp.append(extra_data['temperatures'][j, idx])
 							alt.append(extra_data['altitudes'][j, idx])
+							omg.append(extra_data['omegas'][j, idx])
 					j += 1
 
 			u_winds.append(np.hstack(uwnd))
@@ -192,9 +206,30 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 			temperatures.append(np.hstack(temp))
 			altitudes.append(np.hstack(alt))
 
+			if key in list(omega.keys()):
+				omegas.append(np.hstack(omg))
+
 			i+=1
 		else:
 			i+=1
+
+	main_keys = list(u_wind.keys())
+	main_keys.sort()
+	main_keys.reverse()
+	omega_keys = list(omega.keys())
+
+	omegas = np.array(omegas)
+	x, y = omegas.shape
+
+	omega_ext = {}
+
+	for key in main_keys:
+		if key not in omega_keys:
+			omega_ext[key] = np.zeros(y)
+		else:
+			omega_ext[key] = omega[key]
+
+	omegas = [omega_ext[key] for key in main_keys]
 
 	if descent_only:
 
@@ -210,11 +245,15 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 			u_winds.insert(grid_i2, np.mean([u_winds[grid_i2], u_winds[grid_i2 - 1]])*np.ones(lats.shape))
 			v_winds.insert(grid_i2, np.mean([v_winds[grid_i2], v_winds[grid_i2 - 1]])*np.ones(lats.shape))
 			temperatures.insert(grid_i2, np.mean([temperatures[grid_i2], temperatures[grid_i2 - 1]])*np.ones(lats.shape))
+			omegas.insert(grid_i2, np.mean([omegas[grid_i2], omegas[grid_i2 - 1]])*np.ones(lats.shape))
+			index = grid_i2
 		else:
 			altitudes.insert(grid_i2 + 1, alt0*np.ones(lats.shape))
 			u_winds.insert(grid_i2 + 1, np.mean([u_winds[grid_i2 + 1], u_winds[grid_i2]])*np.ones(lats.shape))
 			v_winds.insert(grid_i2 + 1, np.mean([v_winds[grid_i2 + 1], v_winds[grid_i2]])*np.ones(lats.shape))
 			temperatures.insert(grid_i2 + 1, np.mean([temperatures[grid_i2 + 1], temperatures[grid_i2]])*np.ones(lats.shape))
+			omegas.insert(grid_i2 + 1, np.mean([omegas[grid_i2 + 1], omegas[grid_i2]])*np.ones(lats.shape))
+			index = grid_i2 + 1
 
 	# Convert data in lists to Numpy arrays and add them to a dictionary that is returned
 	data = {}
@@ -224,6 +263,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 	data['v_winds'] = np.array(v_winds)
 	data['temperatures'] = np.array(temperatures)
 	data['altitudes'] = np.array(altitudes)
+	data['omegas'] = np.array(omegas)
 	all_pressures = []
 
 	for dat in data['lats']:

@@ -27,8 +27,9 @@ def looper(params=None, balloon=None, run=None, verbose=False):
 			next_point = '0'
 		interpolate = p.interpolate
 		drift_time = p.drift_time
+		resolution = p.resolution
 
-		params = [descent_only, next_point, interpolate, drift_time]
+		params = [descent_only, next_point, interpolate, drift_time, resolution]
 
 	else:
 		descent_only = params[0]
@@ -38,6 +39,7 @@ def looper(params=None, balloon=None, run=None, verbose=False):
 			next_point = '0'
 		interpolate = params[2]
 		drift_time = params[3]
+		resolution = params[4]
 
 	if balloon == None:
 		balloon = p.balloon
@@ -56,6 +58,7 @@ def looper(params=None, balloon=None, run=None, verbose=False):
 			print('starting point: ' + next_point)
 		print('interpolate: ' + str(interpolate))
 		print('drift time: ' + str(drift_time) + ' minutes')
+		print('resolution of forecasts: ' + str(resolution) + ' degrees')
 		print('----------')
 		print('\nBalloon/Parachute Parameters')
 		print('----------')
@@ -72,7 +75,7 @@ def looper(params=None, balloon=None, run=None, verbose=False):
 
 		print('\n----------')
 		print('\nRunning date: ' + lines[i][0])
-		print('Starting point: ' + str(lines[i][2]) + ' lat., ' + str(lines[i][2]) + ' lon., ' + str(lines[i][4]) + ' m')
+		print('Starting point: ' + str(lines[i][2]) + ' lat., ' + str(lines[i][3]) + ' lon., ' + str(lines[i][4]) + ' m')
 
 		try: 
 			runner(datestr=lines[i][0], utc_hour=lines[i][1], lat0=lines[i][2], lon0=lines[i][3], alt0=lines[i][4], params=params, balloon=balloon, run=run)

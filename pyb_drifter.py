@@ -53,6 +53,7 @@ def drifter(run=None, datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=No
 		else:
 			next_point = '0'
 		interpolate = p.interpolate
+		resolution = p.resolution
 
 	else:
 
@@ -62,6 +63,7 @@ def drifter(run=None, datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=No
 		else:
 			next_point = '0'
 		interpolate = bool(params[2])
+		resolution = float(params[3])
 
 	if balloon == None:
 		balloon = p.balloon
@@ -80,6 +82,7 @@ def drifter(run=None, datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=No
 		if descent_only:
 			print('starting point: ' + next_point)
 		print('interpolate: ' + str(interpolate))
+		print('resolution of forecasts: ' + str(resolution) + ' degrees')
 		print('----------')
 		print('\nBalloon/Parachute Parameters')
 		print('----------')
@@ -93,14 +96,12 @@ def drifter(run=None, datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=No
 		print('Starting point: ' + str(lat0) + ' lat., ' + str(lon0) + ' lon., ' + str(alt0) + ' m\n')
 		print('----------\n')
 
-	drift_times = np.arange(0., 60., 30.)
+	drift_times = np.arange(0., 120., 30.)
 
 	for drift_time in drift_times:
 
 		print('Running drift time: ' + str(drift_time) + ' minutes')
-
-		pyb_runner.runner(datestr=datestr, utc_hour=utc_hour, lat0=lat0, lon0=lon0, alt0=alt0, params=[descent_only, next_point, interpolate, drift_time], balloon=balloon)
-
+		pyb_runner.runner(datestr=datestr, utc_hour=utc_hour, lat0=lat0, lon0=lon0, alt0=alt0, params=[descent_only, next_point, interpolate, drift_time, resolution], balloon=balloon)
 		print('\n----------\n')
 
 	folders = inf.seach_info_drift_times(drift_times=drift_times)

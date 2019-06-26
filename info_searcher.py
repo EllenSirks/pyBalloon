@@ -20,6 +20,7 @@ def search_info(run=None, verbose=True):
 			print('starting point: ' + str(data['next_point'][index]))
 		print('interpolate: ' + str(data['interpolate'][index]))
 		print('drift time: ' + str(data['drift_time'][index]) + ' minutes')
+		print('resolution of forecasts: ' + str(data['resolution'][index]) + ' degrees')
 		print('----------')
 		print('\nBalloon/Parachute Parameters')
 		print('----------')
@@ -38,6 +39,7 @@ def seach_info_drift_times(drift_times=None, params=None, balloon=None):
 	descent_only = data['descent_only']
 	next_point = np.array(data['next_point'])
 	interpolate  = data['interpolate']
+	resolution = data['resolution']
 	Cd_parachute = data['Cd_parachute']
 	parachute_radius = data['parachute_radius']
 	altitude_step = data['altitude_step']
@@ -51,6 +53,7 @@ def seach_info_drift_times(drift_times=None, params=None, balloon=None):
 		else:
 			p_next_point = 0
 		p_interpolate = str(p.interpolate)
+		p_resolution = str(p.resolution)
 
 	else:
 
@@ -60,6 +63,7 @@ def seach_info_drift_times(drift_times=None, params=None, balloon=None):
 		else:
 			p_next_point = 0
 		p_interpolate = str(params[2])
+		p_resolution = str(params[3])
 
 	if balloon == None:
 
@@ -79,7 +83,7 @@ def seach_info_drift_times(drift_times=None, params=None, balloon=None):
 
 	for drift_time in drift_times:
 
-		index = np.where((times == drift_time) & (descent_only == p_descent_only) & (next_point == p_next_point) & (interpolate == p_interpolate) & (Cd_parachute == p_Cd_parachute) & (parachute_radius == p_parachute_radius) & \
+		index = np.where((times == drift_time) & (descent_only == p_descent_only) & (next_point == p_next_point) & (interpolate == p_interpolate) & (resolution == p_resolution) & (Cd_parachute == p_Cd_parachute) & (parachute_radius == p_parachute_radius) & \
 		 (altitude_step == p_altitude_step) &  (equip_mass == p_equip_mass))[0][-1]
 
 		folders[drift_time] = runs[index]

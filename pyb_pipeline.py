@@ -29,8 +29,9 @@ def pipeline(params=None, balloon=None):
 			next_point = '0'
 		interpolate = p.interpolate
 		drift_time = p.drift_time
+		resolution = p.resolution
 
-		params = [descent_only, next_point, interpolate, drift_time]
+		params = [descent_only, next_point, interpolate, drift_time, resolution]
 
 	else:
 		descent_only = bool(params[0])
@@ -40,6 +41,7 @@ def pipeline(params=None, balloon=None):
 			next_point = '0'
 		interpolate = bool(params[2])
 		drift_time = float(params[3])
+		resolution = float(params[4])
 
 	if balloon == None:
 		balloon = p.balloon
@@ -51,6 +53,7 @@ def pipeline(params=None, balloon=None):
 		print('starting point: ' + next_point)
 	print('interpolate: ' + str(interpolate))
 	print('drift time: ' + str(drift_time) + ' minutes')
+	print('resolution of forecasts: ' + str(resolution) + ' degrees')
 	print('----------')
 	print('\nBalloon/Parachute Parameters')
 	print('----------')
@@ -61,7 +64,7 @@ def pipeline(params=None, balloon=None):
 	print('----------')
 
 	pyb_looper.looper(params=params, balloon=balloon, run=run)
-	pyb_plotter.plot_rates(params=params, run=run)
+	pyb_plotter.plot_rates(params=params, run=run, all_plots=False)
 	pyb_plotter.plot_results(params=params, run=run)
 
 	print('Program finished. Total time elapsed: %.1f s' % (time.time() - time0))
