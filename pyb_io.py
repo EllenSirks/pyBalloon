@@ -9,11 +9,11 @@ from glob import glob
 import pygrib as pg
 import numpy as np
 import requests
+import sys, os
 import pyproj
+import scipy
 import json
 import csv
-import sys
-import os
 
 import matplotlib.pyplot as plt
 
@@ -77,7 +77,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 			if lons2[i][j] > 180:
 				lons2[i][j] -= 360
 
-	# Find closest pixel location ### FIXXXX
+	# Find closest pixel location
 	locs = pyb_aux.all_and([lats <= tlat, lats >= blat, lons2 <= rlon, lons2 >= llon])
 
 	row_idx, col_idx = np.where(locs)
@@ -91,7 +91,6 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 	u_wind = {}
 	for msg in u_msgs:
 		if msg.typeOfLevel == 'isobaricInhPa':
-			# print(msg.level, np.std(msg.values), msg['standardDeviation'])
 			u_wind[msg.level] = msg.values[row_idx, col_idx]
 	
 	# Collect V component of wind data
@@ -121,6 +120,8 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 		if msg.typeOfLevel == 'isobaricInhPa':
 			omega[msg.level] = msg.values[row_idx, col_idx]
 
+	pressures = list(u_wind.keys())
+
 	# Collect data to correct altitude order. Set "surface" values before real data.
 	# Use given surface temperature if available, otherwise use the model value
 	if not descent_only:
@@ -134,6 +135,10 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 		else:
 			temperatures = [t_0*np.ones(lats.shape)]
 
+		pressures.append(max(pressures))
+
+		ind = 0
+
 	else:
 		u_winds = []
 		v_winds = []
@@ -141,16 +146,6 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 		altitudes = []
 		omegas = []
 
-	# property_array = np.array([u_wind, v_wind, temperature, altitude, omega])
-	# key_lengths = np.array([len(u_wind.keys()), len(v_wind.keys()), len(temperature.keys()), len(altitude.keys()), len(omega.keys())])
-	# index = np.where(key_lengths == min(key_lengths))[0][0]
-
-	# pressures = list(property_array[index].keys())
-	pressures = list(u_wind.keys())
-
-	if not descent_only:
-		pressures.append(max(pressures))
-	else:
 		alts_min = np.array([np.min(alt) for alt in altitude.values()])
 
 		diff = np.abs(alts_min - alt0)
@@ -165,9 +160,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 	pressures.reverse()
 
 	if descent_only:
-		ind = np.where(np.array(pressures) == p_or)[0][0]
-	else:
-		ind = 0
+		ind = np.where(np.array(pressures) == p_or)[0][0]		
 
 	i = 0
 	for key in pressures:
@@ -241,18 +234,44 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 		grid_i2 = grid_i2[0]
 
 		if alts_min[grid_i2] > alt0:
+			
+			deltaA1 = altitudes[grid_i2] - altitudes[grid_i2 - 1]
+			deltaA2 = alt0 - altitudes[grid_i2 - 1]
+
+			f1 = deltaA2/deltaA1
+
+			deltaT = temperatures[grid_i2] - temperatures[grid_i2 - 1]
+			deltaU = u_winds[grid_i2] - u_winds[grid_i2 - 1]
+			deltaV = v_winds[grid_i2] - v_winds[grid_i2 - 1]
+			deltaOmg = omegas[grid_i2] - omegas[grid_i2 - 1]
+
+			# fs = np.array([scipy.interpolate.interp1d(np.array(altitudes)[:, i], np.array(u_winds)[:, i]) for i in range(len(u_winds[0]))])
+
 			altitudes.insert(grid_i2, alt0*np.ones(lats.shape))
-			u_winds.insert(grid_i2, np.mean([u_winds[grid_i2], u_winds[grid_i2 - 1]])*np.ones(lats.shape))
-			v_winds.insert(grid_i2, np.mean([v_winds[grid_i2], v_winds[grid_i2 - 1]])*np.ones(lats.shape))
-			temperatures.insert(grid_i2, np.mean([temperatures[grid_i2], temperatures[grid_i2 - 1]])*np.ones(lats.shape))
-			omegas.insert(grid_i2, np.mean([omegas[grid_i2], omegas[grid_i2 - 1]])*np.ones(lats.shape))
+			u_winds.insert(grid_i2, u_winds[grid_i2 - 1] + deltaU*f1)
+			v_winds.insert(grid_i2, v_winds[grid_i2 - 1] + deltaV*f1)
+			# v_winds.insert(grid_i2, np.array([fs[i](alt0) for i in range(len(fs))])*np.ones(lats.shape))
+			temperatures.insert(grid_i2, temperatures[grid_i2 - 1] + deltaT*f1)
+			omegas.insert(grid_i2, omegas[grid_i2 - 1] + deltaOmg*f1)
 			index = grid_i2
+
 		else:
+
+			deltaA1 = altitudes[grid_i2 + 1] - altitudes[grid_i2]
+			deltaA2 = alt0 - altitudes[grid_i2]
+
+			f1 = deltaA2/deltaA1
+
+			deltaT = temperatures[grid_i2 + 1] - temperatures[grid_i2]
+			deltaU = u_winds[grid_i2 + 1] - u_winds[grid_i2]
+			deltaV = v_winds[grid_i2 + 1] - v_winds[grid_i2]
+			deltaOmg = omegas[grid_i2 + 1] - omegas[grid_i2]
+
 			altitudes.insert(grid_i2 + 1, alt0*np.ones(lats.shape))
-			u_winds.insert(grid_i2 + 1, np.mean([u_winds[grid_i2 + 1], u_winds[grid_i2]])*np.ones(lats.shape))
-			v_winds.insert(grid_i2 + 1, np.mean([v_winds[grid_i2 + 1], v_winds[grid_i2]])*np.ones(lats.shape))
-			temperatures.insert(grid_i2 + 1, np.mean([temperatures[grid_i2 + 1], temperatures[grid_i2]])*np.ones(lats.shape))
-			omegas.insert(grid_i2 + 1, np.mean([omegas[grid_i2 + 1], omegas[grid_i2]])*np.ones(lats.shape))
+			u_winds.insert(grid_i2 + 1, u_winds[grid_i2] + deltaU*f1)
+			v_winds.insert(grid_i2 + 1, v_winds[grid_i2] + deltaV*f1)
+			temperatures.insert(grid_i2 + 1, temperatures[grid_i2] + deltaT*f1)
+			omegas.insert(grid_i2 + 1, omegas[grid_i2] + deltaOmg*f1)
 			index = grid_i2 + 1
 
 	# Convert data in lists to Numpy arrays and add them to a dictionary that is returned
@@ -279,77 +298,77 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 			
 	return data
 
-def read_gfs_set(directory1, directory2, area=None, alt0=0, main='gfs_main.grib2',
-				 ens_main='ens_main.grib2',
-				 ens_member_pattern='ens_??.grib2', descent_only=True,
-				 use_extra=False):
+# def read_gfs_set(directory1, directory2, area=None, alt0=0, main='gfs_main.grib2',
+# 				 ens_main='ens_main.grib2',
+# 				 ens_member_pattern='ens_??.grib2', descent_only=True,
+# 				 use_extra=False):
 
-	"""Read a set of GFS data consisting of 0.5 degree main run, 1
-	degree ensemble main and 1 degree ensemble members. The 1 degree
-	data are extended to 7 - 1 hPa levels with data from the main run.
+# 	"""Read a set of GFS data consisting of 0.5 degree main run, 1
+# 	degree ensemble main and 1 degree ensemble members. The 1 degree
+# 	data are extended to 7 - 1 hPa levels with data from the main run.
 
-	Required arguments:
-		- directory -- Directory containing the data
+# 	Required arguments:
+# 		- directory -- Directory containing the data
 
-	Optional arguments:
-		- area -- tuple of NW and SE limits of the area to be read,
-		eg.  (62., 22., 59., 24.). Default: None (read all data)
-		- alt0 -- Starting altitude of the balloon, meters from the WGS84
-		reference ellipsoid. Default: 0.0.
-		- main -- Filename of the GFS main run. Default: gfs_main.grib2.
-		- ens_main -- Filename of the GFS ensemble main run. Default:
-		ens_main.grib2.
-		- ens_member_pattern -- Filename pattern of the ensemble runs.
-		Default: ens_??.grib2
+# 	Optional arguments:
+# 		- area -- tuple of NW and SE limits of the area to be read,
+# 		eg.  (62., 22., 59., 24.). Default: None (read all data)
+# 		- alt0 -- Starting altitude of the balloon, meters from the WGS84
+# 		reference ellipsoid. Default: 0.0.
+# 		- main -- Filename of the GFS main run. Default: gfs_main.grib2.
+# 		- ens_main -- Filename of the GFS ensemble main run. Default:
+# 		ens_main.grib2.
+# 		- ens_member_pattern -- Filename pattern of the ensemble runs.
+# 		Default: ens_??.grib2
 
-	Return:
-		- List of dictionaries containing u_winds, v_winds, temperatures,
-		pressures and altitudes.
-	"""
+# 	Return:
+# 		- List of dictionaries containing u_winds, v_winds, temperatures,
+# 		pressures and altitudes.
+# 	"""
 
-	all_data = []
+# 	all_data = []
 
-	fname = os.path.join(directory1, main)
-	print( "Reading GFS operational run from", fname)
-	main_run_data = read_gfs_file(fname, area=area, alt0=alt0, descent_only=descent_only)
-	all_data.append(main_run_data)
+# 	fname = os.path.join(directory1, main)
+# 	print( "Reading GFS operational run from", fname)
+# 	main_run_data = read_gfs_file(fname, area=area, alt0=alt0, descent_only=descent_only)
+# 	all_data.append(main_run_data)
 
-	if ens_main is not None:
-		fname = os.path.join(directory2, ens_main)
-		print( "Reading GFS ensemble main run from", fname)
-		if use_extra:
-			ens_main_data = read_gfs_file(fname, 
-										  area=area,
-										  alt0=alt0, 
-										  extra_data=main_run_data, descent_only=descent_only)
-		else:
-			ens_main_data = read_gfs_file(fname, 
-										  area=area,
-										  alt0=alt0, 
-										  extra_data=None, descent_only=descent_only)
-		all_data.append(ens_main_data)
+# 	if ens_main is not None:
+# 		fname = os.path.join(directory2, ens_main)
+# 		print( "Reading GFS ensemble main run from", fname)
+# 		if use_extra:
+# 			ens_main_data = read_gfs_file(fname, 
+# 										  area=area,
+# 										  alt0=alt0, 
+# 										  extra_data=main_run_data, descent_only=descent_only)
+# 		else:
+# 			ens_main_data = read_gfs_file(fname, 
+# 										  area=area,
+# 										  alt0=alt0, 
+# 										  extra_data=None, descent_only=descent_only)
+# 		all_data.append(ens_main_data)
 
-	if ens_member_pattern is not None:
-		ens_files = glob(os.path.join(directory2, ens_member_pattern))
-		ens_files.sort()
+# 	if ens_member_pattern is not None:
+# 		ens_files = glob(os.path.join(directory2, ens_member_pattern))
+# 		ens_files.sort()
 	
-		for fname in ens_files:
+# 		for fname in ens_files:
 
-			if '_00.' not in fname:
-				print( "Reading GFS ensemble member from", fname)
+# 			if '_00.' not in fname:
+# 				print( "Reading GFS ensemble member from", fname)
 
-				if use_extra:
-					all_data.append(read_gfs_file(fname, 
-												  area=area, 
-												  alt0=alt0, 
-												  extra_data=main_run_data, descent_only=descent_only))
-				else:
-					all_data.append(read_gfs_file(fname, 
-												  area=area, 
-												  alt0=alt0, 
-												  extra_data=None, descent_only=descent_only))
+# 				if use_extra:
+# 					all_data.append(read_gfs_file(fname, 
+# 												  area=area, 
+# 												  alt0=alt0, 
+# 												  extra_data=main_run_data, descent_only=descent_only))
+# 				else:
+# 					all_data.append(read_gfs_file(fname, 
+# 												  area=area, 
+# 												  alt0=alt0, 
+# 												  extra_data=None, descent_only=descent_only))
 
-	return all_data
+# 	return all_data
 
 
 def read_gfs_single(directory=None, area=None, alt0=0, descent_only=False, step=100.):
@@ -380,6 +399,93 @@ def read_gfs_single(directory=None, area=None, alt0=0, descent_only=False, step=
 
 	return all_data
 
+def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
+
+	if area is not None:
+		tlat, llon, blat, rlon = area
+	else:
+		print('Do you really wish to search the entire planet?')
+		tlat, llon, blat, rlon = 90., 0., -90., 360.
+
+	grib = pg.open(fname)
+	grib.seek(0)
+	u_msgs = grib.select(name='U component of wind')
+	v_msgs = grib.select(name='V component of wind')
+	g_msgs = grib.select(name='Geopotential Height')
+
+	lats, lons, = u_msgs[0].latlons() # lats: -90 -> 90, lons: 0 -> 360
+	lats2, lons2 = u_msgs[0].latlons()
+
+	for i in range(len(lons2)):
+		for j in range(len(lons2[i])):
+			if lons2[i][j] > 180:
+				lons2[i][j] -= 360
+
+	locs = pyb_aux.all_and([lats <= tlat, lats >= blat, lons2 <= rlon, lons2 >= llon])
+
+	row_idx, col_idx = np.where(locs)
+	lats = lats[row_idx, col_idx]
+	lons = lons[row_idx, col_idx]
+
+	if len(lats) == 0: print( 'Warning! lats is empty!')
+	if len(lons) == 0: print( 'Warning! lons is empty!')
+
+	u_wind, v_wind, altitude = {}, {}, {}
+	for msg in u_msgs:
+		if msg.typeOfLevel == 'isobaricInhPa':
+			u_wind[msg.level] = msg.values[row_idx, col_idx]
+	
+	for msg in v_msgs:
+		if msg.typeOfLevel == 'isobaricInhPa':
+			v_wind[msg.level] = msg.values[row_idx, col_idx]
+
+	for msg in g_msgs:
+		if msg.typeOfLevel == 'isobaricInhPa':
+			altitude[msg.level] = msg.values[row_idx, col_idx]
+
+	pressures = list(u_wind.keys())
+	pressures.sort()
+	pressures.reverse()
+
+	alt_keys, u_winds, v_winds, altitudes, alt_interp = [], [], [], [], []
+
+	for key in pressures:
+		uwnd, vwnd, alt = [], [], []
+		uwnd.append(u_wind[key])
+		vwnd.append(v_wind[key])
+
+		u_winds.append(np.hstack(uwnd))
+		v_winds.append(np.hstack(vwnd))
+
+		if key in altitude.keys():
+
+			alt_keys.append(key)
+			alt.append(altitude[key])
+			altitudes.append(np.hstack(alt))
+
+	p_interp_val = list(set(pressures).symmetric_difference(set(alt_keys)))[0]
+	
+	for i in range(len(lats)):
+		f = interpolate.interp1d(alt_keys, np.array(altitudes)[:, i])
+		val = float(f(p_interp_val))
+		alt_interp.append(val)
+
+	altitudes.insert(np.where(np.array(pressures) == p_interp_val)[0][0], np.array(alt_interp))
+
+	data = {}
+	data['lats'] = np.array(lats)
+	data['lons'] = np.array(lons)
+	data['u_winds'] = np.array(u_winds)
+	data['v_winds'] = np.array(v_winds)
+	data['altitudes'] = np.array(altitudes)
+	all_pressures = []
+
+	for dat in data['lats']:
+		all_pressures.append(100*np.array(pressures)) # Convert hPa to Pa
+
+	data['pressures'] = np.array(all_pressures).transpose()
+
+	return data
 
 def get_sounding(station_id, date, utc_hour):
 	"""Get sounding data using station ID, date and time.
@@ -524,7 +630,7 @@ def read_live_data(fname, delimiter=',', temp_conv=(1, 0),
 	return live_data
 
 # method to save given trajectories as KML files.
-def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, params=None, radius=5000):
+def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, params=None, radius=5):
 
 	# Required arguments:
 	# 	- fname -- File to save the KML data to
@@ -642,25 +748,22 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 	fid.write(kml_str)
 	fid.close()
 
-def create_circle(lon=None, lat=None, radius=5000):
+def geodesic_point_buffer(lat, lon, km):
 
-	point = Point(lon, lat)
+	proj_wgs84 = pyproj.Proj(init='epsg:4326')
 
-	local_azimuthal_projection = '+proj=aeqd +R=6371000 +units=m +lat_0={point.y} +lon_0={point.x}'
+	# Azimuthal equidistant projection
+	aeqd_proj = '+proj=aeqd +lat_0={lat} +lon_0={lon} +x_0=0 +y_0=0'
+	project = partial(
+		pyproj.transform,
+		pyproj.Proj(aeqd_proj.format(lat=lat, lon=lon)),
+		proj_wgs84)
+	buf = Point(0, 0).buffer(km * 1000)  # distance in metres
+	return transform(project, buf).exterior.coords[:]
 
-	wgs84_to_aeqd = partial(pyproj.transform, pyproj.Proj('+proj=longlat +datum=WGS84 +no_defs'), pyproj.Proj(local_azimuthal_projection), )
-	aeqd_to_wgs84 = partial(pyproj.transform, pyproj.Proj(local_azimuthal_projection), pyproj.Proj('+proj=longlat +datum=WGS84 +no_defs'), )
+def create_circle(lon=None, lat=None, radius=5):
 
-	point_transformed = transform(wgs84_to_aeqd, point)
-
-	buffer = point_transformed.buffer(radius)
-
-	buffer_wgs84 = transform(aeqd_to_wgs84, buffer)
-	coords = json.dumps(mapping(buffer_wgs84))
-
-	from io import StringIO
-	io = StringIO(unicode(coords))
-	coords = json.load(io)['coordinates'][0]
+	coords = np.array(geodesic_point_buffer(lat, lon, radius))
 
 	kml_str = '<name>error circle</name>'
 	kml_str += '<description>error circle</description>'
@@ -694,7 +797,7 @@ def create_circle(lon=None, lat=None, radius=5000):
 
 	return kml_str
 
-def merge_kml(datestr=None, folders=None, params=None, balloon=None, drift_times=None):
+def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=None):
 
 	if params == None:
 		descent_only = p.descent_only
@@ -711,40 +814,30 @@ def merge_kml(datestr=None, folders=None, params=None, balloon=None, drift_times
 		interpolate = bool(params[-2])
 		drift_time = float(params[-1])
 
-	# if datestr == '20180406_1':
-	# 	ext_str = '_8.'
-	# elif datestr == '20180406_2':
-	# 	ext_str = '_18.'
-
-	dir_base = '/home/ellen/Desktop/SuperBIT/Output/'
-
-	fkeys = list(folders.keys())
-	fs =  list(folders.values())
+	dir_base = '/home/ellen/Desktop/SuperBIT/Output/' + str(run)
 
 	kml_str1 = '<?xml version="1.0" encoding="UTF-8"?>\n'
 	kml_str1 += '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">\n'
 	kml_str1 += '<Document id="feat_2">\n'
 
-	key0 = fkeys[0]
+	dir1 = dir_base + '/Kml_files/'
+	dir2 = dir_base + '/Trajectories/'
 
 	endpoints = {}
 
-	for fkey in fkeys:
+	fnames1 = [f for f in os.listdir(dir1) if datestr in f]
+	fnames2 = [f for f in os.listdir(dir2) if datestr in f]
 
-		dir1 = dir_base + str(folders[fkey]) + '/kml_files/'
-		dir2 = dir_base + str(folders[fkey]) + '/trajectories/'
+	for f in range(len(fnames1)):
 
-		fname = [f for f in os.listdir(dir1) if datestr in f][0]
-		info =  [line.rstrip('\n').split(' ') for line in open(dir1 + fname)]
-
-		fname = [f for f in os.listdir(dir2) if datestr in f][0]
-		data_pred = ascii.read(dir2 + fname)
+		info = [line.rstrip('\n').split(' ') for line in open(dir1 + fnames1[f])]
+		data_pred = ascii.read(dir2 + fnames2[f])
 
 		end_lat_pred = data_pred['lats'][-1]
 		end_lon_pred = data_pred['lons'][-1]
 		end_alt_pred = data_pred['alts'][-1]
 
-		endpoints[fkey] = [end_lat_pred, end_lon_pred, end_alt_pred]
+		endpoints[f] = [end_lat_pred, end_lon_pred, end_alt_pred]
 
 		for i in range(len(info)):
 
@@ -758,7 +851,7 @@ def merge_kml(datestr=None, folders=None, params=None, balloon=None, drift_times
 
 		for i in range(len(info)):
 			if i >= ind1 and i <= ind2:
-				if fkey != key0:
+				if f != 0:
 					if i < ind3 or i > ind4:
 						for j in range(len(info[i])):
 							if j == len(info[i]) - 1:
@@ -766,22 +859,18 @@ def merge_kml(datestr=None, folders=None, params=None, balloon=None, drift_times
 							else:
 								kml_str1 += str(info[i][j]) + ' '
 				else:
-						for j in range(len(info[i])):
-							if j == len(info[i]) - 1:
-								kml_str1 += str(info[i][j]) + '\n'
-							else:
-								kml_str1 += str(info[i][j]) + ' '
+					for j in range(len(info[i])):
+						if j == len(info[i]) - 1:
+							kml_str1 += str(info[i][j]) + '\n'
+						else:
+							kml_str1 += str(info[i][j]) + ' '
 									
 	kml_str1 += '</Document>\n'
 	kml_str1 += '</kml>\n'
 
 	kml_fname1 = 'merged_' + datestr + '.kml'
 
-	files = [filename for filename in os.listdir(dir_base + 'drift_output/')]
-	file = str(len(files))
-
-	output_dir = dir_base + 'drift_output/' + file + '/'
-	os.mkdir(output_dir)
+	output_dir = dir1
 
 	fid = open(output_dir + kml_fname1, 'w')
 	fid.write(kml_str1)
@@ -814,8 +903,8 @@ def merge_kml(datestr=None, folders=None, params=None, balloon=None, drift_times
 	keys = list(endpoints.keys())
 	keys.sort()
 
-	for fkey in fkeys:
-		kml_str2 += str(endpoints[fkey][1]) + ',' + str(endpoints[fkey][0])  + ',' + str(endpoints[fkey][2]) + '\n'
+	for f in range(len(fnames1)):
+		kml_str2 += str(endpoints[f][1]) + ',' + str(endpoints[f][0])  + ',' + str(endpoints[f][2]) + '\n'
 
 	kml_str2 += '</coordinates>\n'
 	kml_str2 += '<extrude>1</extrude>\n'
@@ -824,15 +913,15 @@ def merge_kml(datestr=None, folders=None, params=None, balloon=None, drift_times
 	kml_str2 += '</LineString>\n'
 	kml_str2 += '</Placemark>\n'
 
-	for fkey in fkeys:
+	for f in range(len(fnames1)):
 		kml_str2 += '<Placemark>\n'
-		kml_str2 += '<name>End, drift = '+ str(fkey) + ' min.</name>\n'
+		kml_str2 += '<name>End, drift = '+ str(drift_times[f]) + ' min.</name>\n'
 		kml_str2 += '<Point>\n'
-		kml_str2 += '<coordinates>' + str(endpoints[fkey][1]) + ',' + str(endpoints[fkey][0]) + '</coordinates>' + '\n'
+		kml_str2 += '<coordinates>' + str(endpoints[f][1]) + ',' + str(endpoints[f][0]) + '</coordinates>' + '\n'
 		kml_str2 += '</Point>\n'
 		kml_str2 += '</Placemark>\n'
 
-		kml_str_add = create_circle(lon = endpoints[fkey][1], lat = endpoints[fkey][0])
+		kml_str_add = create_circle(lon = endpoints[f][1], lat = endpoints[f][0])
 		kml_str2 += kml_str_add
 
 	kml_str2 += '</Document>\n'
@@ -841,30 +930,6 @@ def merge_kml(datestr=None, folders=None, params=None, balloon=None, drift_times
 	fid = open(output_dir + kml_fname2, 'w')
 	fid.write(kml_str2)
 	fid.close()
-
-	# write parameters of this run to file
-	f = open(output_dir + 'params.txt', 'w+')
-
-	f.write('drift times: ' + str(drift_times) + ' min\n')
-	f.write('runs used:' + str(fs) + '\n')
-	f.write('----------------------\n')
-	f.write('\n')
-	f.write('General parameters\n')
-	f.write('----------------------\n')
-	f.write('descent_only: ' + str(descent_only) + '\n')
-	if descent_only:
-		f.write('starting point: ' + str(next_point) + '\n')
-	f.write('interpolate: ' + str(interpolate) + '\n')
-	f.write('----------------------\n')
-	f.write('\n')
-	f.write('Balloon/Parachute parameters\n')
-	f.write('----------------------\n')
-	f.write('altitude step: ' + str(balloon['altitude_step']) + ' m\n')
-	f.write('equipment mass: ' + str(balloon['equip_mass']) + ' kg\n')
-	f.write('parachute Cd: ' + str(balloon['Cd_parachute']) + '\n')
-	f.write('parachute radius: ' + str(round(np.sqrt(balloon['parachute_areas'][0]/np.pi), 2)) + ' m\n')
-	f.write('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2\n')
-	f.close()
 
 # method to match prediction to gps file
 def match_pred2gps(date):
@@ -903,3 +968,52 @@ def match_gps2pred(date):
 		day =  date[i2+1:]
 
 	return '20' + date[:2] + month + day
+
+def print_verbose(datestr, utc_hour, lat0, lon0, alt0, descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, balloon):
+
+	print('General Parameters')
+	print('----------')
+	print('descent_only: ' + str(descent_only))
+	if descent_only:
+		print('starting point: ' + next_point)
+	print('interpolate: ' + str(interpolate))
+	if drift_time is not None:
+		print('drift time: ' + str(drift_time) + ' minutes')
+	print('resolution of forecasts: ' + str(resolution) + ' degrees')
+	print('correct for vertical winds: ' + str(vz_correct))
+	if hr_diff is not None:
+		print('difference in hrs for forecasts: ' + str(hr_diff) + ' hours')
+	print('\nBalloon/Parachute Parameters')
+	print('----------')
+	print('altitude step: ' + str(balloon['altitude_step']) + ' m')
+	print('equipment mass: ' + str(balloon['equip_mass']) + ' kg')
+	print('parachute Cd: ' + str(balloon['Cd_parachute']))
+	print('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2')
+	print('----------\n')
+
+	print('Running date/time: ' + datestr + ', ' + str(utc_hour) + ' hr')
+	print('Starting point: ' + str(lat0) + ' lat., ' + str(lon0) + ' lon., ' + str(alt0) + ' m\n')
+
+# write parameters of run to file
+def write_verbose(params_dir, datestr, utc_hour, lat0, lon0, alt0, descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, balloon):
+
+	f = open(params_dir + 'params.txt', 'w+')
+	f.write('General parameters\n')
+	f.write('----------------------\n')
+	f.write('descent_only: ' + str(descent_only) + '\n')
+	if descent_only:
+		f.write('starting point: ' + str(next_point) + '\n')
+	f.write('interpolate: ' + str(interpolate) + '\n')
+	f.write('drift time: ' + str(drift_time) + ' min\n')
+	f.write('resolution of forecasts: ' + str(resolution) + ' degrees\n')
+	f.write('correct for vertical winds: ' + str(vz_correct) + '\n')
+	f.write('difference in hrs for forecasts: ' + str(hr_diff) + ' hours\n')
+	f.write('----------------------\n')
+	f.write('\n')
+	f.write('Balloon/Parachute parameters\n')
+	f.write('----------------------\n')
+	f.write('altitude step: ' + str(balloon['altitude_step']) + ' m\n')
+	f.write('equipment mass: ' + str(balloon['equip_mass']) + ' kg\n')
+	f.write('parachute Cd: ' + str(balloon['Cd_parachute']) + '\n')
+	f.write('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2\n')
+	f.close()

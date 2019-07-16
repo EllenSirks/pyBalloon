@@ -7,7 +7,9 @@ descent_only = True
 next_point = '1'
 interpolate = False
 drift_time = 0.
-resolution = 0.25
+resolution = 0.5
+vz_correct = False
+hr_diff = 0
 
 # balloon parameters
 balloon = {}

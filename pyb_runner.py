@@ -30,7 +30,7 @@ warnings.filterwarnings("ignore")
 # requires the starting location & starting point (0 for highest), whether or not its descent only, and
 # either the date & time of the starting point OR the relevent weather file
 
-def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon=None, params=None, run=None, make_folder=True, verbose=False):
+def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon=None, params=None, run=None, print_verbose=False, write_verbose=False, add_run_info=True):
 
 	print('')
 	time0 = time.time()
@@ -49,6 +49,9 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 		interpolate = p.interpolate
 		drift_time = float(p.drift_time)
 		resolution = float(p.resolution)
+		vz_correct = bool(p.vz_correct)
+		hr_diff = int(p.hr_diff)
+		
 	else:
 		descent_only = bool(params[0])
 		if descent_only:
@@ -58,37 +61,22 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 		interpolate = bool(params[2])
 		drift_time = float(params[3])
 		resolution = float(params[4])
+		vz_correct = bool(params[5])
+		hr_diff = int(params[6])
 
 	if balloon == None:
 		balloon = p.balloon
 
-	if verbose:
-		print('General Parameters')
-		print('----------')
-		print('descent_only: ' + str(descent_only))
-		if descent_only:
-			print('starting point: ' + next_point)
-		print('interpolate: ' + str(interpolate))
-		print('drift time: ' + str(drift_time) + ' minutes')
-		print('resolution of forecasts: ' + str(resolution) + ' degrees')
-		print('----------')
-		print('\nBalloon/Parachute Parameters')
-		print('----------')
-		print('altitude step: ' + str(balloon['altitude_step']) + ' m')
-		print('equipment mass: ' + str(balloon['equip_mass']) + ' kg')
-		print('parachute Cd: ' + str(balloon['Cd_parachute']))
-		print('parachute radius: ' + str(round(np.sqrt(balloon['parachute_areas'][0]/np.pi), 2)) + ' m')
-		print('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2')
-		print('----------\n')
-
-		print('Running date/time: ' + datestr + ', ' + utc_hour + ' hr')
-		print('Starting point: ' + str(lat0) + ' lat., ' + str(lon0) + ' lon., ' + str(alt0) + ' m\n')
+	if print_verbose:
+		pyb_io.print_verbose(datestr=datestr, utc_hour=utc_hour, lat0=lat0, lon0=lon0, alt0=alt0, descent_only=descent_only, next_point=next_point, interpolate=interpolate,\
+		 drift_time=drift_time, resolution=resolution, vz_correct=vz_correct, hr_diff=hr_diff, balloon=balloon)
 
 	# create relevant paths/folders
 	dir_base = '/home/ellen/Desktop/SuperBIT/'
 
 	in_dir = dir_base + '/Weather_data/GFS/'
 	traj_dir = dir_base + 'Output/'
+	fig_dir = dir_base + 'Output/'
 
 	if run != None:
 		folder = run + '/'
@@ -99,62 +87,64 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 		run = now_str + '_' + str(len(files))
 		folder = run  + '/'		
 
-	kml_dir = traj_dir + folder + 'kml_files/'
+	kml_dir = traj_dir + folder + 'Kml_files/'
 	params_dir = traj_dir + folder
-	traj_dir += folder + 'trajectories/'
+	traj_dir += folder + 'Trajectories/'
+	fig_dir += folder + 'Figs/Checks/'
 
 	# check if the paths exist/make them
 	if not os.path.exists(kml_dir):
 		os.makedirs(kml_dir)
 	if not os.path.exists(traj_dir):
 		os.makedirs(traj_dir)
+	if not os.path.exists(fig_dir):
+		os.makedirs(fig_dir)
 
 	# check if want interpolation
 	if interpolate:
-		files = test.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour, resolution=resolution)
+		files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour, resolution=resolution)
 	else:
-		files = test.get_closest_gfs_file(datestr=datestr, utc_hour=utc_hour, resolution=resolution)
+		files = get_gfs.get_closest_gfs_file(datestr=datestr, utc_hour=utc_hour, resolution=resolution, hr_diff=hr_diff)
 
 	# calculate the trajectory of the balloon
-	trajectories = pyb_traj.run_traj(weather_files=files, loc0=loc0, datestr=datestr, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only, interpolate=interpolate, drift_time=drift_time, resolution=resolution)
+	trajectories, fig_dicts = pyb_traj.run_traj(weather_files=files, loc0=loc0, datestr=datestr, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only, interpolate=interpolate, drift_time=drift_time, \
+	 resolution=resolution, vz_correct=vz_correct, hr_diff=hr_diff)
 
 	# write out trajectory to file
-	traj_file = traj_dir + 'trajectory_' + files[0][6:14] + '_' + str(utc_hour) + '_' + str(loc0) + '.dat'
-	ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds'], trajectories['z_speeds'], trajectories['omegas'], trajectories['temperatures']], \
-	 traj_file, names=['lats', 'lons', 'alts', 'dists', 'times', 'speeds', 'z_speeds', 'omegas', 'temps'], overwrite=True)
+	traj_file = traj_dir + 'trajectory_' + datestr + '_' + str(utc_hour) + '_' + str(loc0)
+	count = 2
+	while True:
+		if not os.path.isfile(traj_file + '.dat'):
+			traj_file += '.dat'
+			break
+		else:
+			if count == 2:
+				traj_file += '_' + str(count)
+			else:
+				ind = [pos for pos, char in enumerate(traj_file) if char == '_'][-1]
+				traj_file = traj_file[:ind+1] + str(count)
+			count += 1
+
+	ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds'], trajectories['z_speeds'], trajectories['omegas'],\
+	 trajectories['temperatures']], traj_file, names=['lats', 'lons', 'alts', 'dists', 'times', 'speeds', 'z_speeds', 'omegas', 'temps'], overwrite=True)
 
 	# write parameters of this run to file
-	f = open(params_dir + 'params.txt', 'w+')
-	f.write('General parameters\n')
-	f.write('----------------------\n')
-	f.write('descent_only: ' + str(descent_only) + '\n')
-	if descent_only:
-		f.write('starting point: ' + str(next_point) + '\n')
-	f.write('interpolate: ' + str(interpolate) + '\n')
-	f.write('drift time: ' + str(drift_time) + ' min\n')
-	f.write('resolution of forecasts: ' + str(resolution) + ' degrees\n')
-	f.write('----------------------\n')
-	f.write('\n')
-	f.write('Balloon/Parachute parameters\n')
-	f.write('----------------------\n')
-	f.write('altitude step: ' + str(balloon['altitude_step']) + ' m\n')
-	f.write('equipment mass: ' + str(balloon['equip_mass']) + ' kg\n')
-	f.write('parachute Cd: ' + str(balloon['Cd_parachute']) + '\n')
-	f.write('parachute radius: ' + str(round(np.sqrt(balloon['parachute_areas'][0]/np.pi), 2)) + ' m\n')
-	f.write('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2\n')
-	f.close()
+	if write_verbose:
+		pyb_io.write_verbose(params_dir=params_dir, datestr=datestr, utc_hour=utc_hour, lat0=lat0, lon0=lon0, alt0=alt0, descent_only=descent_only, next_point=next_point, interpolate=interpolate,\
+			drift_time=drift_time, resolution=resolution, vz_correct=vz_correct, hr_diff=hr_diff, balloon=balloon)
 
 	# add info to run information file
 	lines = [line.rstrip('\n').split(' ') for line in open(dir_base + 'Output/runs_info.txt')]
 	runs = [lines[i][0] for i in range(len(lines)) if i != 0]
 
-	f = open(dir_base + 'Output/runs_info.txt', 'a+')
-	if run not in runs:
-		f.write('\n' + str(folder[:-1]) + ' ' + str(descent_only) + ' ' + str(next_point) + ' ' +  str(interpolate) + ' ' + str(drift_time) + ' ' + str(resolution) + ' ' + str(balloon['Cd_parachute']) + ' ' + str(np.sqrt(balloon['parachute_areas'][0]/np.pi)) + ' ' + \
-		 str(balloon['altitude_step'])  + ' ' + str(balloon['equip_mass']) + ' ' + str(balloon['balloon_mass']) + ' ' +  str(balloon['fill_radius']) + ' ' + str(balloon['radius_empty']) + ' ' + \
-		 str(balloon['burst_radius']) + ' ' + str(balloon['thickness_empty']) + ' ' + str(balloon['Cd_balloon']) + ' ' + str(balloon['simple_ascent_rate']) + ' ' + str(balloon['parachute_change_altitude']))
-
-	f.close()
+	if add_run_info:
+		f = open(dir_base + 'Output/runs_info.txt', 'a+')
+		if run not in runs:
+			f.write('\n' + str(folder[:-1]) + ' ' + str(descent_only) + ' ' + str(next_point) + ' ' +  str(interpolate) + ' ' + str(drift_time) + ' ' + str(resolution) + ' '  + str(vz_correct) + ' ' + str(hr_diff)  + ' ' + str(balloon['Cd_parachute']) \
+				+ ' ' + str(balloon['parachute_areas'][0]) + ' ' + str(balloon['altitude_step'])  + ' ' + str(balloon['equip_mass']) + ' ' + str(balloon['balloon_mass']) + ' ' + \
+				 str(balloon['fill_radius']) + ' ' + str(balloon['radius_empty']) + ' ' + str(balloon['burst_radius']) + ' ' + str(balloon['thickness_empty']) + ' ' + str(balloon['Cd_balloon']) \
+				 + ' ' + str(balloon['simple_ascent_rate']) + ' ' + str(balloon['parachute_change_altitude']))
+		f.close()
 
 	# highest point in main-run trajectory (bit obsolete for descent only)
 	idx, = np.where(trajectories['alts'] == np.max(trajectories['alts']))
@@ -168,10 +158,27 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
 
 	# write out file for google-earth
-	kml_fname = kml_dir + files[0][6:14] + '_' + str(utc_hour) + '_' + str(loc0) + '.kml'
+	kml_fname = kml_dir + datestr + '_' + str(utc_hour) + '_' + str(loc0)
+	count = 2
+	while True:
+		if not os.path.isfile(kml_fname + '.kml'):
+			kml_fname += '.kml'
+			break
+		else:
+			if count == 2:
+				kml_fname += '_' + str(count)
+			else:
+				ind = [pos for pos, char in enumerate(kml_fname) if char == '_'][-1]
+				kml_fname = kml_fname[:ind+1] + str(count)
+			count += 1
+
 	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params)
 
 	print('\nProgram finished in %.1f s' % (time.time() - time0))
+
+	for i in range(len(fig_dicts)):
+		for key in fig_dicts[i].keys():
+			fig_dicts[i][key].savefig(fig_dir + datestr + '_' + key + '_check' + str(i) + '.png')
 
 if __name__ == "__main__":
 

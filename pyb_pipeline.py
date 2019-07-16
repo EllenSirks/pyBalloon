@@ -8,8 +8,9 @@ import pyb_plotter
 import pyb_looper
 
 import param_file as p
+import pyb_io
 
-def pipeline(params=None, balloon=None):
+def pipeline(params=None, balloon=None, print_verbose=False):
 
 	time0 = time.time()
 
@@ -30,8 +31,10 @@ def pipeline(params=None, balloon=None):
 		interpolate = p.interpolate
 		drift_time = p.drift_time
 		resolution = p.resolution
+		vz_correct = p.vz_correct
+		hr_diff = p.hr_diff
 
-		params = [descent_only, next_point, interpolate, drift_time, resolution]
+		params = [descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff]
 
 	else:
 		descent_only = bool(params[0])
@@ -42,26 +45,31 @@ def pipeline(params=None, balloon=None):
 		interpolate = bool(params[2])
 		drift_time = float(params[3])
 		resolution = float(params[4])
+		vz_correct = bool(params[5])
+		hr_diff = int(params[6])
 
 	if balloon == None:
 		balloon = p.balloon
 
-	print('\nGeneral Parameters')
-	print('----------')
-	print('descent_only: ' + str(descent_only))
-	if descent_only:
-		print('starting point: ' + next_point)
-	print('interpolate: ' + str(interpolate))
-	print('drift time: ' + str(drift_time) + ' minutes')
-	print('resolution of forecasts: ' + str(resolution) + ' degrees')
-	print('----------')
-	print('\nBalloon/Parachute Parameters')
-	print('----------')
-	print('altitude step: ' + str(balloon['altitude_step']) + ' m')
-	print('equipment mass: ' + str(balloon['equip_mass']) + ' kg')
-	print('parachute Cd: ' + str(balloon['Cd_parachute']))
-	print('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2')
-	print('----------')
+	if print_verbose:
+		print('\nGeneral Parameters')
+		print('----------')
+		print('descent_only: ' + str(descent_only))
+		if descent_only:
+			print('starting point: ' + next_point)
+		print('interpolate: ' + str(interpolate))
+		print('drift time: ' + str(drift_time) + ' minutes')
+		print('resolution of forecasts: ' + str(resolution) + ' degrees')
+		print('correct for vertical winds: ' + str(vz_correct))
+		print('difference in hrs for forecasts: ' + str(hr_diff) + ' hours')
+		print('----------')
+		print('\nBalloon/Parachute Parameters')
+		print('----------')
+		print('altitude step: ' + str(balloon['altitude_step']) + ' m')
+		print('equipment mass: ' + str(balloon['equip_mass']) + ' kg')
+		print('parachute Cd: ' + str(balloon['Cd_parachute']))
+		print('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2')
+		print('----------')
 
 	pyb_looper.looper(params=params, balloon=balloon, run=run)
 	pyb_plotter.plot_rates(params=params, run=run, all_plots=False)
@@ -71,4 +79,4 @@ def pipeline(params=None, balloon=None):
 
 if __name__ == '__main__':
 
-	pipeline()
+	pipeline(print_verbose=True)

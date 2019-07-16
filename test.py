@@ -1,373 +1,228 @@
-#!/usr/bin/python
-
-from shutil import copyfile
+from scipy import interpolate
 import datetime as dt
+import pygrib as pg
 import numpy as np
-import requests
-import time
-import wget
+
 import sys
 import os
+ 
+import matplotlib.pyplot as plt
 
+import param_file as p
 import get_gfs
+import pyb_aux
+import pyb_io
 
-# method to download weather file if entire file string is given
-def get_gfs_file(weather_files=None, file_type='GFS', verbose=False):
+g_0 = 9.80665 # m/s surface acc.
+R0 = 8.3144621 # Ideal gas constant, J/(mol*K)
+R_e = 6371009 # mean Earth radius in meters
+M_air = 0.0289644 # molar mass of air [kg/mol], altitude dependence
+T0 = 288.15 # K
 
-	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/' + file_type + '/'
+def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
 
-	now = dt.datetime.now()
+    indir = '/home/ellen/Desktop/SuperBIT/Weather_data/GEFS/'
 
-	if weather_files == None:
-		print('Need weather files to download!')
-		sys.exit()
+    if area is not None:
+        tlat, llon, blat, rlon = area
+    else:
+        print('Do you really wish to search the entire planet?')
+        tlat, llon, blat, rlon = 90., 0., -90., 360.
 
-	if file_type == 'GFS':
+    grib = pg.open(indir + fname)
+    grib.seek(0)
+    u_msgs = grib.select(name='U component of wind')
+    v_msgs = grib.select(name='V component of wind')
+    g_msgs = grib.select(name='Geopotential Height')
 
-		datestr = weather_files[0][6:14]
-		month = datestr[0:6]
-		day = datestr
-		hhhh, hhh = weather_files[0][-13:-9], weather_files[0][-8:-5]
+    lats, lons, = u_msgs[0].latlons() # lats: -90 -> 90, lons: 0 -> 360
+    lats2, lons2 = u_msgs[0].latlons()
 
-		if datestr in [str(now.year) + str(now.month).zfill(2) + str(now.day - i).zfill(2) for i in range(0, 10)]:
-			url_base = 'https://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/'
-			url = url_base + 'gfs.' + datestr + hr + '/'
-			weather_files_names = ['gfs.t' + str(int(hhhh)/100).zfill(2) +  'z.pgrb2.0p50.f' + hhh]
-		else:
-			url_base = 'https://nomads.ncdc.noaa.gov/data/gfs4/'
-			url = url_base + month + '/' + day + '/'
-			weather_files_names = weather_files
+    for i in range(len(lons2)):
+        for j in range(len(lons2[i])):
+            if lons2[i][j] > 180:
+                lons2[i][j] -= 360
 
-	elif file_type == 'GEFS':
+    locs = pyb_aux.all_and([lats <= tlat, lats >= blat, lons2 <= rlon, lons2 >= llon])
 
-		datestr = weather_files[0][11:19]
-		hhhh, hhh = weather_files[0][-13:-9], weather_files[0][-8:-5]
+    row_idx, col_idx = np.where(locs)
+    lats = lats[row_idx, col_idx]
+    lons = lons[row_idx, col_idx]
 
-		out_dir += datestr + '/'
+    if len(lats) == 0: print( 'Warning! lats is empty!')
+    if len(lons) == 0: print( 'Warning! lons is empty!')
 
-		if datestr in [str(now.year) + str(now.month).zfill(2) + str(now.day - i).zfill(2) for i in range(0, 7)]:
-			url_base = 'https://www.ftp.ncep.noaa.gov/data/nccf/com/gens/prod/'
-			url = url_base + 'gefs.' + datestr + '/' + str(int(hhhh)/100).zfill(2) + '/pgrb2ap5/'
-			weather_files_names = ['geavg.t' + str(int(hhhh)/100).zfill(2) +  'z.pgrb2a.0p50.f' + hhh, 'gespr.t' + str(int(hhhh)/100).zfill(2) +  'z.pgrb2a.0p50.f' + hhh]
-		else:
-			print('Cannot download these GEFS files via ftp!')
-			sys.exit()
+    u_wind, v_wind, altitude = {}, {}, {}
+    for msg in u_msgs:
+        if msg.typeOfLevel == 'isobaricInhPa':
+            u_wind[msg.level] = msg.values[row_idx, col_idx]
+    
+    for msg in v_msgs:
+        if msg.typeOfLevel == 'isobaricInhPa':
+            v_wind[msg.level] = msg.values[row_idx, col_idx]
 
-	for i in range(len(weather_files)):
+    for msg in g_msgs:
+        if msg.typeOfLevel == 'isobaricInhPa':
+            altitude[msg.level] = msg.values[row_idx, col_idx]
 
-		print('Getting ' + weather_files[i] + '...')
+    pressures = list(u_wind.keys())
+    pressures.sort()
+    pressures.reverse()
 
-		if os.path.isfile(out_dir + weather_files[i]):
+    alt_keys, u_winds, v_winds, altitudes, alt_interp = [], [], [], [], []
 
-			print(weather_files[i] + ' already downloaded!')
-			return [weather_files[i][:-5]]
-				
-		else:
+    for key in pressures:
+        uwnd, vwnd, alt = [], [], []
+        uwnd.append(u_wind[key])
+        vwnd.append(v_wind[key])
 
-			print('Downloading ' + url + weather_files[i] + '...')
-			filename = wget.download(url + weather_files_names[i], out=out_dir)
+        u_winds.append(np.hstack(uwnd))
+        v_winds.append(np.hstack(vwnd))
 
-			second_file = weather_files[i]
-			copyfile(out_dir + weather_files_names[i], out_dir + second_file)
-			os.remove(out_dir + weather_files_names[i])
+        if key in altitude.keys():
 
-	return [weather_files[0][:-5]]
+            alt_keys.append(key)
+            alt.append(altitude[key])
+            altitudes.append(np.hstack(alt))
 
-# method to find & download weather_file nearest in time to time of ascent/descent
-def get_closest_gfs_file(datestr=None, utc_hour=None, file_type='GFS', verbose=False):
+    p_interp_val = list(set(pressures).symmetric_difference(set(alt_keys)))[0]
+    
+    for i in range(len(lats)):
+        f = interpolate.interp1d(alt_keys, np.array(altitudes)[:, i])
+        val = float(f(p_interp_val))
+        alt_interp.append(val)
 
-	print('Finding closest ' + file_type.lower() + ' file...')
+    altitudes.insert(np.where(np.array(pressures) == p_interp_val)[0][0], np.array(alt_interp))
 
-	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/' + file_type + '/'
-	now = dt.datetime.now()
+    data = {}
+    data['lats'] = np.array(lats)
+    data['lons'] = np.array(lons)
+    data['u_winds'] = np.array(u_winds)
+    data['v_winds'] = np.array(v_winds)
+    data['altitudes'] = np.array(altitudes)
+    all_pressures = []
 
-	h1, h2, h3 = get_gfs.get_closest_hr(utc_hour=utc_hour)
+    for dat in data['lats']:
+        all_pressures.append(100*np.array(pressures)) # Convert hPa to Pa
 
-	month = datestr[0:6]
-	day = datestr
+    data['pressures'] = np.array(all_pressures).transpose()
 
-	hhhh = str(h1*100).zfill(4)
-	hhh1 = str(h2).zfill(3)
-	hhh2 = str(h3).zfill(3)
+    return data
 
-	time_str1 = '_' + datestr + '_' + hhhh + '_' + hhh1 + '.grb2'
-	time_str2 = '_' + datestr + '_' + hhhh + '_' + hhh2 + '.grb2'
+def calc_gefs_std(weather_file=None, current_time=None, loc0=None, descent_only=False):
 
-	if file_type == 'GEFS' or file_type == 'gefs': 
-		out_dir += datestr + '/'
-		if not os.path.exists(out_dir):
-			os.makedirs(out_dir)
-		ind = 7
-	elif file_type == 'GFS' or file_type == 'gfs':
-		ind = 10
+    indir = '/home/ellen/Desktop/SuperBIT/Weather_data/GEFS/'
 
-	if datestr in [str(now.year) + str(now.month).zfill(2) + str(now.day - i).zfill(2) for i in range(0, ind+1)]:
+    tile_size = 10.
+    lat0, lon0, alt0 = loc0
+    area = lat0 + tile_size/2, lon0 - tile_size/2, lat0 - tile_size/2, lon0 + tile_size/2
+    tlat, llon, blat, rlon = area
 
-		url_base = 'https://www.ftp.ncep.noaa.gov/data/nccf/com/'
+    datestr = weather_file[6:14]
+    hhhh, hhh = int(int(weather_file[15:19])/100), int(weather_file[20:23])
+    hour = hhhh + hhh
+    closest_hhhh, closest_hhh1, closest_hhh2 = get_gfs.get_closest_hr(utc_hour=hour)
 
-		if file_type == 'GFS':
-			url_base += 'gfs/prod/'
-			weather_files1 = 'gfs_4' + time_str1
+    files = [filename for filename in os.listdir(indir)]
 
-		elif file_type == 'GEFS': 
-			url_base += 'gens/prod/'
-			weather_files1 = ['geavg_0p50' + time_str2,  'gespr_0p50' + time_str2]
+    count = 0
 
-		if os.path.isfile(out_dir + weather_files1[0]):
-			print(weather_files1[0] + ' already downloaded!')
-			return [weather_files1[0][:-5]]
+    while count < 2:
 
-		url1 = url_base + file_type.lower() + '.' + datestr 
+        files = [filename for filename in os.listdir(indir)]
 
-		if file_type == 'GFS':
-			url1 += str(h1).zfill(2) + '/' 
-			weather_files = ['gfs.t' + str(h1).zfill(2) + 'z.pgrb2.0p50.f' + hhh1]
-		elif file_type == 'GEFS':
-			url1 += '/' + str(h1).zfill(2) + '/pgrb2ap5/'
-			weather_files = ['geavg.t' + str(h1).zfill(2) + 'z.pgrb2a.0p50.f' + hhh2, 'gespr.t' + str(int(hhhh)/100).zfill(2) +  'z.pgrb2a.0p50.f' + hhh2]
+        if 'gespr_4_' + datestr + '_' + str(hhhh*100).zfill(4) + '_' + str(hhh).zfill(3) + '.grb2' in files \
+        and 'geavg_4_' + datestr + '_' + str(hhhh*100).zfill(4) + '_' + str(hhh).zfill(3) + '.grb2' in files:
 
-		req = requests.get(url1)
-		if req.ok is not True:
-			print("Could not connect! Month/day/hour not available.")
-			sys.exit()
+            data1 = read_gefs_file(fname='gespr_4_' + datestr + '_' + str(hhhh*100).zfill(4) + '_' + str(hhh).zfill(3) + '.grb2', area=area, alt0=alt0, descent_only=descent_only)
+            data2 = read_gefs_file(fname='geavg_4_' + datestr + '_' + str(hhhh*100).zfill(4) + '_' + str(hhh).zfill(3) + '.grb2', area=area, alt0=alt0, descent_only=descent_only)
 
-		text = req.content.split('</a>')
-		available_files = []
+            data = {}
+            data['lats'] = data1['lats']
+            data['lons'] = data1['lons']
+            data['u_winds'] = data1['u_winds']
+            data['v_winds'] = data1['v_winds']
+            data['altitudes'] = data2['altitudes']
+            data['pressures'] = data1['pressures']
 
-		for t in text:
-			t = t.split('>')[-1]
-			if '.0p50' in t and 'pgrb2' in t and 'idx' not in t and 'anl' not in t:
-				available_files.append(t)
+            data = pyb_aux.data_interpolation(data=data, alt0=alt0, step=100, descent_only=descent_only, output_figs=False)
 
-		for i in range(len(weather_files)):
-			if weather_files[i] not in available_files:
-				print("File not available.")
-				sys.exit()
-			else:
-				url2 = url1 + weather_files[i]
-				print('Downloading ' + url1 + weather_files[i] + '...')
-				filename = wget.download(url2, out=out_dir)
+            return data
 
-				second_file = weather_files1[i]
-				copyfile(out_dir + weather_files[i], out_dir + second_file)
-				os.remove(out_dir + weather_files[i])
+        elif 'gens-a_3_' + datestr + '_' + str(hhhh*100).zfill(4) + '_' + str(closest_hhh2).zfill(3) + '_00.grb2' in files:
 
-		return [weather_files1[0]][:-5]
+            u_winds, v_winds, altitudes = {}, {}, {}
 
-	else:
+            for no in range(0, 21):
 
-		if file_type == 'GFS':
+                ens_fname = 'gens-a_3_' + datestr + '_' + str(hhhh*100).zfill(4) + '_' + str(closest_hhh2).zfill(3) + '_' + str(no).zfill(2) + '.grb2'
+                data = read_gefs_file(fname=ens_fname, area=area, alt0=alt0, descent_only=descent_only)
+                u_winds[no], v_winds[no], altitudes[no] = data['u_winds'], data['v_winds'], data['altitudes']
 
-			url_base = 'https://nomads.ncdc.noaa.gov/data/gfs4/'
-			weather_file = 'gfs_4_' + datestr + '_' + hhhh + '_' + hhh1 + '.grb2'
+            u_winds_std, v_winds_std, altitudes_mean = {}, {}, {}
 
-			if os.path.isfile(out_dir + weather_file):
-				print(weather_file + ' already downloaded!')
-				return [weather_file[:-5]]
+            lats, lons, pressures = data['lats'], data['lons'], data['pressures']
 
-			url = url_base + month + '/' + day
-			req = requests.get(url)
+            for p in range(len((pressures))):
+                key = pressures[p][0]
+                u_winds_std[key] = []
+                v_winds_std[key] = []
+                altitudes_mean[key] = []
+                for j in range(len(u_winds[0][p])):
+                    u_winds_std[key].append(np.std([u_winds[i][p][j] for i in range(0, 21)]))
+                    v_winds_std[key].append(np.std([v_winds[i][p][j] for i in range(0, 21)]))
+                    altitudes_mean[key].append(np.mean([altitudes[i][p][j] for i in range(0, 21)]))
 
-			if req.ok is not True:
-				print("Could not connect! Date not available.")
-				sys.exit()
+            u_winds, v_winds, altitudes = [], [], []
 
-			text = req.content.split('</a>')
-			available_files = []
+            for key in pressures[:, 0]:
+                uwnd, vwnd, alt = [], [], []
+                uwnd.append(u_winds_std[key])
+                vwnd.append(v_winds_std[key])
+                alt.append(altitudes_mean[key])
 
-			for t in text:
-				if 'grb2' in t and not 'align' in t:
-					available_files.append(t.split('>')[-1].split('>')[-1])
+                u_winds.append(np.hstack(uwnd))
+                v_winds.append(np.hstack(vwnd))
+                altitudes.append(np.hstack(alt))
 
-			if weather_file not in available_files:
-				print("File not available.")
-				sys.exit()
-			else:
+            data = {}
+            data['lats'] = lats
+            data['lons'] = lons
+            data['u_winds'] = np.array(u_winds)
+            data['v_winds'] = np.array(v_winds)
+            data['altitudes'] = np.array(altitudes)
+            data['pressures'] = pressures
 
-				url = url_base + month + '/' + day + '/' + weather_file
+            data = pyb_aux.data_interpolation(data=data, alt0=alt0, step=100, descent_only=descent_only, output_figs=False)
 
-				print('Downloading ' + weather_file + '...')
-				filename = wget.download(url, out=out_dir)
+            return data
 
-				return [weather_file[:-5]]
+        else:
 
-		elif file_type == 'GEFS':
-			print('Cannot download these GEFS files like this!')
-			sys.exit()
+            get_gfs.get_gefs_files(datestr=datestr, utc_hour=current_time)
 
-# method to find & download latest weather file
-def get_latest_gfs_file(file_type='GFS', verbose=False):
+        count += 1
 
-	now = dt.datetime.now()
-	now_hour = int(round(now.hour - 1 + now.minute/60.)) ### using UTC time
-	now_date_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
+def add_uv_errs(main_data=None, err_data=None):
 
-	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/' + file_type + '/'
-	url_base = 'https://www.ftp.ncep.noaa.gov/data/nccf/com/'
+    print('Adding u/v wind errors...\n')
 
-	if file_type == 'GFS':
+    main_data['u_wind_errs'] = err_data['u_winds']
+    main_data['v_wind_errs'] = err_data['u_winds']
+    main_data['lats_err'] = err_data['lats']
+    main_data['lons_err'] = err_data['lons']
 
-		url_base += 'gfs/prod/'
-		req = requests.get(url_base)
-		if req.ok is not True:
-			print("Could not connect!")
-			sys.exit()
-
-		text = req.content.split('</a>')
-		available_folders = []
-
-		for t in text:
-
-			t = t.split('>')[-1]
-			if 'gfs.20' in t and now_date_str in t:
-				available_folders.append(t)
-
-		folder_lengths = [len(folder) for folder in available_folders]
-
-		if len(set(folder_lengths)) == len(folder_lengths):
-
-			available_folders.sort()
-
-			url_base += available_folders[-1]
-
-			if len(available_folders[-1]) == 13:
-
-				req = requests.get(url_base)
-				if req.ok is not True:
-					print("Could not connect!")
-					sys.exit()
-
-				text = req.content.split('</a>')
-				available_times = []
-
-				for t in text:
-					t = t.split('>')[-1]
-					if '/' in t:
-						available_times.append(t)
-
-				available_times.sort()
-				url_base += available_times[-1]
-
-			hhhh = int(url_base[-3:-1])
-
-		else:
-
-			times = {}
-
-			for folder in available_folders:
-
-				times[folder] = []
-
-				if len(folder) == 13:
-
-					req = requests.get(url_base + folder)
-
-					text = req.content.split('</a>')
-					available_times = []
-
-					for t in text:
-						t = t.split('>')[-1]
-						if '/' in t:
-							times[folder].append(int(t))
-
-				else:
-
-					times[folder].append(int(folder[-3:-1]))
-
-			time_list = list(times.values())
-			keys = list(times.keys())
-
-			folder = keys[np.where(time_list == max(time_list))[0][0]]
-
-			if len(folder) == 13:
-				url_base += folder + str(max(time_list)) + '/'
-				hhhh = max(time_list)
-			else:
-				url_base += folder
-				hhhh = int(url_base[-3:-1])
-
-		req = requests.get(url_base)
-		if req.ok is not True:
-			print("Could not connect!")
-			sys.exit()
-
-		text = req.content.split('</a>')
-		available_files = []
-
-		for t in text:
-			t = t.split('>')[-1]
-			if 'pgrb2.0p50' in t and 'idx' not in t and 'anl' not in t:
-				available_files.append(t)
-
-		diffs = [np.abs(hhhh + int(file[-3:]) - now_hour) for file in available_files]
-
-		weather_files = [available_files[int(np.where(diffs == min(diffs))[0])]]
-
-	else:
-
-		out_dir += now_date_str + '/'
-
-		if not os.path.exists(out_dir):
-			os.makedirs(out_dir)
-
-		url_base += 'gens/prod/gefs.' + now_date_str + '/'
-
-		req = requests.get(url_base)
-		if req.ok is not True:
-			print("Could not connect!")
-			sys.exit()
-
-		text = req.content.split('</a>')
-		available_times = []
-
-		for t in text:
-			t = t.split('>')[-1]
-			if '/' in t:
-				available_times.append(int(t[:-1]))
-
-		available_times.sort()
-
-		hhhh = available_times[-1]
-
-		url_base += str(hhhh).zfill(2) + '/pgrb2ap5/'
-
-		req = requests.get(url_base)
-		if req.ok is not True:
-			print("Could not connect!")
-			sys.exit()
-
-		text = req.content.split('</a>')
-		available_files = []
-
-		for t in text:
-			t = t.split('>')[-1]
-			if 'pgrb2a.0p50' in t and 'idx' not in t and 'anl' not in t and ('geavg' in t or 'gespr' in t):
-				available_files.append(t)
-
-		diffs = [np.abs(hhhh + int(file[-3:]) - now_hour) for file in available_files]
-		weather_files = [available_files[int(np.where(diffs == min(diffs))[0][0])], available_files[int(np.where(diffs == min(diffs))[0][1])]]
-
-	for weather_file in weather_files:
-
-		if file_type == 'GFS':
-			second_file = 'gfs_4_' + str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2) + '_' + weather_file[5:7] + '00_' + weather_file[-3:] + '.grb2'
-		elif file_type == 'GEFS':
-			second_file = weather_file[:5] + '_0p50_' + str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2) + '_' + weather_file[7:9] + '00_' + weather_file[-3:] + '.grb2'
-
-		if not os.path.isfile(out_dir + second_file):
-
-			url = url_base + weather_file
-			print('Downloading ' + url + '...')
-			filename = wget.download(url, out=out_dir)
-
-			copyfile(out_dir + weather_file, out_dir + second_file)
-			os.remove(out_dir + weather_file)
-
-		else:
-			print(second_file + ' already downloaded!')
-
-	return weather_files
+    return main_data
 
 if __name__ == '__main__':
 
-	get_latest_gfs_file('GFS')
+    loc0 = 30.776012, -5.613083, 25892
+
+    tile_size = 10.
+    lat0, lon0, alt0 = loc0
+    area = lat0 + tile_size/2, lon0 - tile_size/2, lat0 - tile_size/2, lon0 + tile_size/2
+    tlat, llon, blat, rlon = area
+
+    # err_data = read_gefs_file(fname='gespr_4_20190624_1200_003.grb2', area=area, alt0=alt0, descent_only=True, step=100)
+
+    data = calc_gefs_std(weather_file='gfs_4_20190514_1200_003.grb2', loc0=loc0,  current_time=15, descent_only=True)

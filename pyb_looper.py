@@ -5,7 +5,7 @@ import time
 from pyb_runner import runner
 import param_file as p
 
-def looper(params=None, balloon=None, run=None, verbose=False):
+def looper(params=None, balloon=None, run=None, print_verbose=False):
 
 	time0 = time.time()
 
@@ -28,8 +28,10 @@ def looper(params=None, balloon=None, run=None, verbose=False):
 		interpolate = p.interpolate
 		drift_time = p.drift_time
 		resolution = p.resolution
+		vz_correct = p.vz_correct
+		hr_diff = p.hr_diff
 
-		params = [descent_only, next_point, interpolate, drift_time, resolution]
+		params = [descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff]
 
 	else:
 		descent_only = params[0]
@@ -40,6 +42,8 @@ def looper(params=None, balloon=None, run=None, verbose=False):
 		interpolate = params[2]
 		drift_time = params[3]
 		resolution = params[4]
+		vz_correct = params[5]
+		hr_diff = params[6]
 
 	if balloon == None:
 		balloon = p.balloon
@@ -49,24 +53,9 @@ def looper(params=None, balloon=None, run=None, verbose=False):
 	else:
 		print('No file with specified flight data!')
 
-	if verbose:
-
-		print('\nGeneral Parameters')
-		print('----------')
-		print('descent_only: ' + str(descent_only))
-		if descent_only:
-			print('starting point: ' + next_point)
-		print('interpolate: ' + str(interpolate))
-		print('drift time: ' + str(drift_time) + ' minutes')
-		print('resolution of forecasts: ' + str(resolution) + ' degrees')
-		print('----------')
-		print('\nBalloon/Parachute Parameters')
-		print('----------')
-		print('altitude step: ' + str(balloon['altitude_step']) + ' m')
-		print('equipment mass: ' + str(balloon['equip_mass']) + ' kg')
-		print('parachute Cd: ' + str(balloon['Cd_parachute']))
-		print('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2')
-		print('----------')
+	if print_verbose:
+		pyb_io.print_verbose(datestr=datestr, utc_hour=utc_hour, lat0=lat0, lon0=lon0, alt0=alt0, descent_only=descent_only, next_point=next_point, interpolate=interpolate,\
+		 drift_time=drift_time, resolution=resolution, vz_correct=vz_correct, hr_diff=hr_diff, balloon=balloon)
 
 	print('\nRunning file: ' + fname)
 
@@ -78,7 +67,7 @@ def looper(params=None, balloon=None, run=None, verbose=False):
 		print('Starting point: ' + str(lines[i][2]) + ' lat., ' + str(lines[i][3]) + ' lon., ' + str(lines[i][4]) + ' m')
 
 		try: 
-			runner(datestr=lines[i][0], utc_hour=lines[i][1], lat0=lines[i][2], lon0=lines[i][3], alt0=lines[i][4], params=params, balloon=balloon, run=run)
+			runner(datestr=lines[i][0], utc_hour=lines[i][1], lat0=lines[i][2], lon0=lines[i][3], alt0=lines[i][4], params=params, balloon=balloon, run=run, write_verbose=True)
 		except Exception as e: 
 			print(e)
 			continue
@@ -87,4 +76,4 @@ def looper(params=None, balloon=None, run=None, verbose=False):
 
 if __name__ == '__main__':
 
-	looper(verbose=True)
+	looper(print_verbose=True)

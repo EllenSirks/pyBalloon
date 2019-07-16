@@ -16,8 +16,13 @@ import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
+plt.rcParams["font.family"] = "serif"
+
 import param_file as p
 import pyb_io
+
+def func(x, m, c):
+	return m*x + c
 
 def get_rates(params=None, run=None):
 
@@ -64,7 +69,7 @@ def get_rates(params=None, run=None):
 	else:
 		folder = run + '/'
 
-	dir_pred += folder + 'trajectories/'
+	dir_pred += folder + 'Trajectories/'
 	dir_gps = '/home/ellen/Desktop/SuperBIT/Flight_data/'
 
 	add = int(next_point)
@@ -121,12 +126,12 @@ def plot_rates(data=None, params=None, dir_pred=None, all_plots=True, run=None):
 
 	time0 = time.time()
 
-	print('Plotting descent speeds...')
+	print('Plotting properties...')
 
 	if data == None or dir_pred == None:
 		(descent_rates_gps, descent_rates_pred, z_rates_pred, omegas_pred, alts_gps, alts_pred), dir_pred = get_rates(params=params, run=run)
 
-	fig_dir = dir_pred + '../figs/DescentRates/'
+	fig_dir = dir_pred + '../Figs/Properties/'
 
 	if not os.path.exists(fig_dir):
 		os.makedirs(fig_dir)
@@ -279,9 +284,6 @@ def plot_rates(data=None, params=None, dir_pred=None, all_plots=True, run=None):
 
 	plt.clf()
 
-	def func(x, m, c):
-		return m*x + c
-
 	popt, pcov = curve_fit(func, descent_rates_gps_vals_flattened, descent_rates_interp_pred_flattened)
 	testy = func(np.array(descent_rates_gps_vals_flattened), popt[0], popt[1])
 	testy_2 = func(np.array(testx), popt[0], popt[1])
@@ -384,8 +386,8 @@ def plot_results(run=None, params=None):
 	else:
 		folder = run + '/'
 
-	fig_dir = dir_pred + folder + 'figs/Results/'
-	dir_pred += folder + 'trajectories/'
+	fig_dir = dir_pred + folder + 'Figs/Results/'
+	dir_pred += folder + 'Trajectories/'
 
 	# check if the paths exist/make them
 	if not os.path.exists(fig_dir):
@@ -509,10 +511,14 @@ def plot_results(run=None, params=None):
 
 	plt.clf()
 
+	popt, pcov = curve_fit(func, dists, ds)
+	model_y = func(np.array(dists), popt[0], popt[1])
+
 	plt.axhline(mean, linestyle='--', color='black', linewidth=1, label='Avg. error: ' + str(round(mean, 1)) + ' km')
 	plt.axvline(np.mean(dists), linestyle='--', color='blue', linewidth=0.5, label='Avg. distance: ' + str(round(np.mean(dists), 1)) + ' km')
 	plt.axhline(5, linestyle='--', color='red', linewidth=1, label='5 km')
 
+	plt.plot(dists, model_y, 'g-', linewidth=1, label='Best Fit: [' + str(round(popt[0], 2)) + ', ' + str(round(popt[1], 2)) + ']')
 	plt.plot(dists, ds, 'ro')
 
 	plt.xlabel('Total Distance Travelled [km]', fontsize=15)
@@ -582,5 +588,5 @@ if __name__ == '__main__':
 	else:
 		run = None
 
-	plot_rates(all_plots=False, run=run)
-	# plot_results()
+	# plot_rates(all_plots=False, run=run)
+	plot_results()

@@ -70,15 +70,15 @@ def air_density(data):
     return rho # kg m-3
 
 # method to interpolate data to altitude steps
-def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
+def data_interpolation(data, alt0, step, mode='spline', descent_only=False, output_figs=True):
 
     altitudes = data['altitudes']
 
     new_data = {}
 
     if descent_only:
-        new_data['altitudes'] = np.arange(alt0 % step,  altitudes.max(), step)
-        # new_data['altitudes'] = np.arange(alt0 % step,  alt0 + step, step)
+        # new_data['altitudes'] = np.arange(alt0 % step,  altitudes.max(), step)
+        new_data['altitudes'] = np.arange(alt0 % step,  alt0 + step, step)
     else:
         new_data['altitudes'] = np.arange(alt0, altitudes.max(), step)
 
@@ -116,6 +116,8 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
                     if x > 0:
                         for i in range(0, y):
                             ok_idxs = altitudes[:, i] <= alt0
+                            # ok_idxs = altitudes[:, i] <= alt0 + 500
+                            # ok_idxs = altitudes[:, i] <= 60000
                             tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
                             arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
                     else:
@@ -130,8 +132,35 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False):
                         arr.append(tck(new_data['altitudes']))
             new_data[key] = np.array(arr)
 
-    # print(len(new_data['pressures']), len(new_data['altitudes']))
-    return new_data
+    if output_figs:
+
+        figs = {}
+
+        ind1 = np.where(altitudes[:, 0] == alt0)[0][0]
+        ind2 = np.where(new_data['altitudes'] == alt0)[0][0]
+
+        for key in data.keys():
+            if key not in checks:
+
+                fig = plt.figure()
+
+                plt.axvline(alt0, linewidth=1, linestyle='--', label='Initial alt.')
+                plt.plot(altitudes[:, 0], data[key][:, 0], 'ro--', label='Before interp.', markersize=3.5)
+                plt.plot(altitudes[:, 0][ind1], data[key][:, 0][ind1], 'go', markersize=5, label='Inserted at alt. 0')
+                plt.plot(new_data['altitudes'][:ind2+1], new_data[key][0][:ind2+1], 'bo', markersize=0.5, label='After interp.')
+                plt.ylabel(key.capitalize().replace('_', ' '), fontsize=15)
+                plt.xlabel('Altitude [m]', fontsize=15)
+                plt.legend(loc='best')
+                plt.grid(True)
+                plt.tight_layout()
+
+                figs[key] = fig
+
+        return new_data, figs
+
+    else:
+
+        return new_data
 
 def lift(data, mass):
     """Calculate effective lift (force, in Newtons) caused by the balloon.
@@ -509,13 +538,11 @@ def calc_uv_errs(weather_file=None, loc0=None, current_time=None, descent_only=F
     area = lat0 + tile_size/2, lon0 - tile_size/2, lat0 - tile_size/2, lon0 + tile_size/2
     tlat, llon, blat, rlon = area
 
-    closest_hhhh, closest_hhh1, closest_hhh2 = get_gfs.get_closest_hr(utc_hour=current_time)
+    hrs = get_gfs.get_closest_hr(utc_hour=current_time)
+    closest_hhhh, closest_hhh1, closest_hhh2 = hrs[0], hrs[1], hrs[2]
 
     GFS_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
-    GEFS_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GEFS/' + datestr + '/'
-
-    if not os.path.exists(GEFS_dir):
-        os.makedirs(GEFS_dir)
+    GEFS_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GEFS/'
 
     if main_data == None:
         main_data = pyb_io.read_gfs_file(fname=GFS_dir + weather_file, area=area, alt0=alt0, descent_only=descent_only)
@@ -528,7 +555,7 @@ def calc_uv_errs(weather_file=None, loc0=None, current_time=None, descent_only=F
         if datestr in [str(now.year) + str(now.month).zfill(2) + str(now.day - i).zfill(2) for i in range(0, 8)]:
 
             fnames = ['gespr_0p50_' + datestr + '_' + str(closest_hhhh*100).zfill(4) + '_' + str(closest_hhh2).zfill(3) + '.grb2', 'geavg_0p50_' + datestr + '_' + str(closest_hhhh*100).zfill(4) + '_' + str(closest_hhh2).zfill(3) + '.grb2']
-            test.get_gfs_file(weather_files=fnames, file_type='GEFS')
+            get_gfs.get_gfs_file(weather_files=fnames, file_type='GEFS')
 
         else:
 
