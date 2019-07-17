@@ -1,4 +1,4 @@
-""" pipeline for performing all analysis in one go """
+"""Pipeline for performing all analysis in one go"""
 
 import datetime as dt
 import time
@@ -7,8 +7,9 @@ import os
 import pyb_plotter
 import pyb_looper
 
-import param_file as p
 import pyb_io
+
+import param_file as p
 
 def pipeline(params=None, balloon=None, print_verbose=False):
 

@@ -1,8 +1,11 @@
+"""Function for looping over several dates/locations and calculating their trajectories"""
+
 from astropy.io import ascii
 import datetime as dt
 import time
 
-from pyb_runner import runner
+import pyb_runner
+
 import param_file as p
 
 def looper(params=None, balloon=None, run=None, print_verbose=False):
@@ -67,7 +70,7 @@ def looper(params=None, balloon=None, run=None, print_verbose=False):
 		print('Starting point: ' + str(lines[i][2]) + ' lat., ' + str(lines[i][3]) + ' lon., ' + str(lines[i][4]) + ' m')
 
 		try: 
-			runner(datestr=lines[i][0], utc_hour=lines[i][1], lat0=lines[i][2], lon0=lines[i][3], alt0=lines[i][4], params=params, balloon=balloon, run=run, write_verbose=True)
+			pyb_runner.runner(datestr=lines[i][0], utc_hour=lines[i][1], lat0=lines[i][2], lon0=lines[i][3], alt0=lines[i][4], params=params, balloon=balloon, run=run, write_verbose=True)
 		except Exception as e: 
 			print(e)
 			continue

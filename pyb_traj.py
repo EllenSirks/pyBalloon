@@ -1,3 +1,5 @@
+"""Functions used by pyBalloon to calculate balloon trajectories"""
+
 import numpy as np
 import time
 

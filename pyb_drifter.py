@@ -1,16 +1,16 @@
-""" method to determine trajectories for one starting position with different times """
+"""Method to determine trajectories for one starting position with different times"""
 
 from astropy.io import ascii
 import datetime as dt
 import numpy as np
+import sys, os
 import time
-import sys
-import os
 
 import pyb_info_searcher as inf
-import param_file as p
 import pyb_runner
 import pyb_io
+
+import param_file as p
 
 def drifter(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, params=None, run=None, balloon=None, print_verbose=False, write_verbose=True):
 

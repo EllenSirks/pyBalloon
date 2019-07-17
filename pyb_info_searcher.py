@@ -1,3 +1,5 @@
+"""Functions for getting information/parameters from specific run or date"""
+
 from astropy.io import ascii
 import numpy as np
 import sys

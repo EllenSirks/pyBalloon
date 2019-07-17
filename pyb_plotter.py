@@ -6,10 +6,9 @@ from scipy.optimize import curve_fit
 from astropy.io import ascii
 import datetime as dt
 import numpy as np
+import sys, os
 import time
 import csv
-import sys
-import os
 
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
@@ -18,8 +17,10 @@ import matplotlib as mpl
 
 plt.rcParams["font.family"] = "serif"
 
-import param_file as p
 import pyb_io
+
+import param_file as p
+
 
 def func(x, m, c):
 	return m*x + c
@@ -97,7 +98,7 @@ def get_rates(params=None, run=None):
 		omegas_pred[datestr_pred] = omegas
 		alts_pred[datestr_pred] = np.array(alts)
 
-		datestr_gps = pyb_io.match_pred2gps(datestr_pred)
+		datestr_gps = match_pred2gps(datestr_pred)
 		gps_file = datestr_gps + '.csv'
 
 		with open(dir_gps + gps_file) as csvfile:
@@ -423,7 +424,7 @@ def plot_results(run=None, params=None):
 		ini_lats[datestr_pred] = data_pred['lats'][0]
 		ini_lons[datestr_pred] = data_pred['lons'][0]
 
-		datestr_gps = pyb_io.match_pred2gps(datestr_pred)
+		datestr_gps = match_pred2gps(datestr_pred)
 		gps_file = datestr_gps + '.csv'
 
 		with open(dir_gps + gps_file) as csvfile:
@@ -581,6 +582,44 @@ def plot_results(run=None, params=None):
 
 	print('Total time elapsed: %.1f s' % (time.time() - time0))
 
+# method to match prediction to gps file
+def match_pred2gps(date):
+
+	datestr = date[2:4] + '-' + date[4:6] + '-' + date[6:]
+
+	if datestr[3] == '0':
+		datestr = datestr[:3] + datestr[4:]
+		if datestr[5] == '0':
+			datestr = datestr[:5] + datestr[6:]
+	else:
+		if datestr[6] == '0':
+			datestr = datestr[:6] + datestr[7:]
+
+	return datestr
+
+# method to match gps to prediction file
+def match_gps2pred(date):
+
+	if '_' in date:
+		i0 = [m.start() for m in re.finditer('_', date)][0]
+	else:
+		i0 = len(date)
+
+	inds = [m.start() for m in re.finditer('-', date)]
+	i1, i2 = inds[0], inds[1]
+
+	if i2 - i1 == 2:
+		month = '0' + date[i1+1]
+	else:
+		month = date[i1+1:i1+3]
+
+	if i0 - i2 == 2:
+		day = '0' + date[i2+1:]
+	else:
+		day =  date[i2+1:]
+
+	return '20' + date[:2] + month + day
+
 if __name__ == '__main__':
 
 	if len(sys.argv) > 1:
@@ -588,5 +627,4 @@ if __name__ == '__main__':
 	else:
 		run = None
 
-	# plot_rates(all_plots=False, run=run)
 	plot_results()

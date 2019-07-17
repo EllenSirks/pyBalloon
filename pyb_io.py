@@ -17,8 +17,9 @@ import csv
 
 import matplotlib.pyplot as plt
 
-import param_file as p
 import pyb_aux
+
+import param_file as p
 
 g_0 = 9.80665 # m/s surface acc.
 R0 = 8.3144621 # Ideal gas constant, J/(mol*K)
@@ -298,79 +299,6 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 			
 	return data
 
-# def read_gfs_set(directory1, directory2, area=None, alt0=0, main='gfs_main.grib2',
-# 				 ens_main='ens_main.grib2',
-# 				 ens_member_pattern='ens_??.grib2', descent_only=True,
-# 				 use_extra=False):
-
-# 	"""Read a set of GFS data consisting of 0.5 degree main run, 1
-# 	degree ensemble main and 1 degree ensemble members. The 1 degree
-# 	data are extended to 7 - 1 hPa levels with data from the main run.
-
-# 	Required arguments:
-# 		- directory -- Directory containing the data
-
-# 	Optional arguments:
-# 		- area -- tuple of NW and SE limits of the area to be read,
-# 		eg.  (62., 22., 59., 24.). Default: None (read all data)
-# 		- alt0 -- Starting altitude of the balloon, meters from the WGS84
-# 		reference ellipsoid. Default: 0.0.
-# 		- main -- Filename of the GFS main run. Default: gfs_main.grib2.
-# 		- ens_main -- Filename of the GFS ensemble main run. Default:
-# 		ens_main.grib2.
-# 		- ens_member_pattern -- Filename pattern of the ensemble runs.
-# 		Default: ens_??.grib2
-
-# 	Return:
-# 		- List of dictionaries containing u_winds, v_winds, temperatures,
-# 		pressures and altitudes.
-# 	"""
-
-# 	all_data = []
-
-# 	fname = os.path.join(directory1, main)
-# 	print( "Reading GFS operational run from", fname)
-# 	main_run_data = read_gfs_file(fname, area=area, alt0=alt0, descent_only=descent_only)
-# 	all_data.append(main_run_data)
-
-# 	if ens_main is not None:
-# 		fname = os.path.join(directory2, ens_main)
-# 		print( "Reading GFS ensemble main run from", fname)
-# 		if use_extra:
-# 			ens_main_data = read_gfs_file(fname, 
-# 										  area=area,
-# 										  alt0=alt0, 
-# 										  extra_data=main_run_data, descent_only=descent_only)
-# 		else:
-# 			ens_main_data = read_gfs_file(fname, 
-# 										  area=area,
-# 										  alt0=alt0, 
-# 										  extra_data=None, descent_only=descent_only)
-# 		all_data.append(ens_main_data)
-
-# 	if ens_member_pattern is not None:
-# 		ens_files = glob(os.path.join(directory2, ens_member_pattern))
-# 		ens_files.sort()
-	
-# 		for fname in ens_files:
-
-# 			if '_00.' not in fname:
-# 				print( "Reading GFS ensemble member from", fname)
-
-# 				if use_extra:
-# 					all_data.append(read_gfs_file(fname, 
-# 												  area=area, 
-# 												  alt0=alt0, 
-# 												  extra_data=main_run_data, descent_only=descent_only))
-# 				else:
-# 					all_data.append(read_gfs_file(fname, 
-# 												  area=area, 
-# 												  alt0=alt0, 
-# 												  extra_data=None, descent_only=descent_only))
-
-# 	return all_data
-
-
 def read_gfs_single(directory=None, area=None, alt0=0, descent_only=False, step=100.):
 	"""Read a set of 0.5 degree GFS data.
 
@@ -486,148 +414,6 @@ def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, des
 	data['pressures'] = np.array(all_pressures).transpose()
 
 	return data
-
-def get_sounding(station_id, date, utc_hour):
-	"""Get sounding data using station ID, date and time.
-
-	Data are retrived from Universio of Wyoming. Valid times depend on
-	the station, normal sounding times are 00 and 12 UTC, or 06 and
-	18 UTC.
-
-	Required arguments:
-		- station_id -- ID of the station: number or air-port code
-		- date -- Date as 3-tuple (yyyy, mm, dd), eg. (2013, 3, 18)
-		- utc_hour -- UTC hour of the requested sounding eg. 6
-
-	Returns:
-		- Dictionary containing station coordinates, 'u_winds',
-		  'v_wind', 'temperatures', 'altitudes' and 'pressures' as
-		  Numpy arrays
-	"""
-
-	knots2ms = 0.514
-
-	year, month, day = date[0], date[1], date[2]
-
-	url = 'http://weather.uwyo.edu/cgi-bin/sounding?' + \
-		'TYPE=TEXT%3ALIST&YEAR=' + str(year) + '&MONTH=' + \
-		'%02d' % month + '&FROM=' + '%02d%02d' % (day, utc_hour) + \
-		'&TO=' + '%02d%02d' % (day, utc_hour) + '&STNM=' + str(station_id)
-
-	req = requests.get(url)
-	text  = req.text
-	station_lat = float(text.split('Station latitude: ')[-1].split('\n')[0])
-	station_lon = float(text.split('Station longitude: ')[-1].split('\n')[0])
-	data = text.split('<PRE>')[1].split('</PRE>')[0].split('\n')
-	data = data[5:] # only the numerical rows
-	
-	pressures = []
-	altitudes = []
-	temperatures = []
-	u_winds = []
-	v_winds = []
-
-	for row in data:
-		nums = row.split()
-		if len(nums) == 11:
-			pressures.append(float(nums[0]))
-			altitudes.append(float(nums[1]))
-			temperatures.append(273.15+float(nums[2]))
-		
-			wdir = np.radians(float(nums[6]))
-			wspd = float(nums[7])*knots2ms
-		
-			# Towards North and East are positive
-			u_winds.append(-1*wspd*np.sin(wdir))
-			v_winds.append(-1*wspd*np.cos(wdir))
-
-	data = {}
-	data['lats'] = np.array(station_lat)
-	data['lons'] = np.array(station_lon)
-	data['u_winds'] = np.array(u_winds)
-	data['v_winds'] = np.array(v_winds)
-	data['temperatures'] = np.array(temperatures)
-	data['pressures'] = 100*np.array(pressures)
-	data['altitudes'] = np.array(altitudes)
-
-	return data
-
-
-def read_live_data(fname, delimiter=',', temp_conv=(1, 0),
-				   pressure_conv=(1, 0)):
-	"""Read data from live feed (via a file) from a balloon (or
-	simulator). The data are assumed to be in CSV format with the
-	following fields:
-		- latitude, longitude, altitude
-	or
-		- latitude, longitude, altitude, pressure
-	or
-		- latitude, longitude, altitude, pressure, temperature
-
-	Location data are compulsory (first 3 fields). Pressure and
-	temperature fields can be empty, missing or in use.
-
-	Required arguments:
-		- fname -- Filename of the live data.
-
-	Optional arguments:
-		- delimiter -- CSV field delimiter. Default: ','
-		- temp_conv -- Conversion factors (multiplier and offset)
-		between temperature data and temperature in Kelvins. Default
-		(Kelvin -> Kelvin): (1, 0).
-		- pressure_conv -- Conversion factors (multiplier and offset)
-		between
-		- pressure data and pressure in Pascals. Default: (Pa -> Pa):
-		(1, 0)
-
-	Return:
-		- None or dictionary of Numpy arrays containing the data, if
-		any available.
-	"""
-
-	try:
-		fid = open(fname)
-	except:
-		return None
-
-	reader = csv.reader(fid, delimiter=delimiter)
-
-	lats = []
-	lons = []
-	altitudes = []
-	pressures = []
-	temperatures = []
-	num = 0
-	for row in reader:
-		if len(row) == 3:
-			lat, lon, alt = row
-			pres, temp = None, None
-		else:
-			if len(row) == 4:
-				lat, lon, alt, pres = row
-				temp = None
-			else:
-				lat, lon, alt = row[0], row[1], row[2]
-				pres, temp = row[3], row[4]
-		
-		lats.append(float(lat))
-		lons.append(float(lon))
-		altitudes.append(float(alt))
-		pressures.append(float(pres))
-		temperatures.append(float(temp))
-		num += 1
-
-	if num == 0:
-		return None
-
-	live_data = {}
-	live_data['lats'] = np.array(lats)
-	live_data['lats'] = np.array(lons)
-	live_data['altitudes'] = np.array(altitudes)
-	live_data['pressures'] = np.array(pressures) * pressure_conv[0] + pressure_conv[1]
-	live_data['temperatures'] = np.array(temperatures) * temp_conv[0] + temp_conv[1]
-
-	return live_data
 
 # method to save given trajectories as KML files.
 def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, params=None, radius=5):
@@ -931,44 +717,6 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 	fid.write(kml_str2)
 	fid.close()
 
-# method to match prediction to gps file
-def match_pred2gps(date):
-
-	datestr = date[2:4] + '-' + date[4:6] + '-' + date[6:]
-
-	if datestr[3] == '0':
-		datestr = datestr[:3] + datestr[4:]
-		if datestr[5] == '0':
-			datestr = datestr[:5] + datestr[6:]
-	else:
-		if datestr[6] == '0':
-			datestr = datestr[:6] + datestr[7:]
-
-	return datestr
-
-# method to match gps to prediction file
-def match_gps2pred(date):
-
-	if '_' in date:
-		i0 = [m.start() for m in re.finditer('_', date)][0]
-	else:
-		i0 = len(date)
-
-	inds = [m.start() for m in re.finditer('-', date)]
-	i1, i2 = inds[0], inds[1]
-
-	if i2 - i1 == 2:
-		month = '0' + date[i1+1]
-	else:
-		month = date[i1+1:i1+3]
-
-	if i0 - i2 == 2:
-		day = '0' + date[i2+1:]
-	else:
-		day =  date[i2+1:]
-
-	return '20' + date[:2] + month + day
-
 def print_verbose(datestr, utc_hour, lat0, lon0, alt0, descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, balloon):
 
 	print('General Parameters')
@@ -1017,3 +765,20 @@ def write_verbose(params_dir, datestr, utc_hour, lat0, lon0, alt0, descent_only,
 	f.write('parachute Cd: ' + str(balloon['Cd_parachute']) + '\n')
 	f.write('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2\n')
 	f.close()
+
+def write_run_info(add_run_info, run, descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, balloon):
+
+	if add_run_info:
+
+		run_info_file = '/home/ellen/Desktop/SuperBIT/Output/runs_info.txt'
+
+		lines = [line.rstrip('\n').split(' ') for line in open(run_info_file)]
+		runs = [lines[i][0] for i in range(len(lines)) if i != 0]
+
+		f = open(run_info_file, 'a+')
+		if run not in runs:
+			f.write('\n' + str(run) + ' ' + str(descent_only) + ' ' + str(next_point) + ' ' +  str(interpolate) + ' ' + str(drift_time) + ' ' + str(resolution) + ' '  + str(vz_correct) \
+				+ ' ' + str(hr_diff)  + ' ' + str(balloon['Cd_parachute']) + ' ' + str(balloon['parachute_areas'][0]) + ' ' + str(balloon['altitude_step'])  + ' ' + str(balloon['equip_mass']) \
+				+ ' ' + str(balloon['balloon_mass']) + ' ' + str(balloon['fill_radius']) + ' ' + str(balloon['radius_empty']) + ' ' + str(balloon['burst_radius']) + ' ' + str(balloon['thickness_empty']) \
+				+ ' ' + str(balloon['Cd_balloon']) + ' ' + str(balloon['simple_ascent_rate']) + ' ' + str(balloon['parachute_change_altitude']))
+		f.close()
