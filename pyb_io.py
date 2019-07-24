@@ -329,19 +329,21 @@ def read_gfs_single(directory=None, area=None, alt0=0, descent_only=False, step=
 
 def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
 
+	indir = '/home/ellen/Desktop/SuperBIT/Weather_data/GEFS/'
+
 	if area is not None:
 		tlat, llon, blat, rlon = area
 	else:
-		print('Do you really wish to search the entire planet?')
-		tlat, llon, blat, rlon = 90., 0., -90., 360.
+		print 'Do you really wish to search the entire planet?'
+		tlat, llon, blat, rlon = (90.0, 0.0, -90.0, 360.0)
 
-	grib = pg.open(fname)
+	grib = pg.open(indir + fname)
 	grib.seek(0)
 	u_msgs = grib.select(name='U component of wind')
 	v_msgs = grib.select(name='V component of wind')
 	g_msgs = grib.select(name='Geopotential Height')
 
-	lats, lons, = u_msgs[0].latlons() # lats: -90 -> 90, lons: 0 -> 360
+	lats, lons = u_msgs[0].latlons()
 	lats2, lons2 = u_msgs[0].latlons()
 
 	for i in range(len(lons2)):
@@ -350,38 +352,40 @@ def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, des
 				lons2[i][j] -= 360
 
 	locs = pyb_aux.all_and([lats <= tlat, lats >= blat, lons2 <= rlon, lons2 >= llon])
-
 	row_idx, col_idx = np.where(locs)
-	lats = lats[row_idx, col_idx]
-	lons = lons[row_idx, col_idx]
+	lats = lats[(row_idx, col_idx)]
+	lons = lons[(row_idx, col_idx)]
 
-	if len(lats) == 0: print( 'Warning! lats is empty!')
-	if len(lons) == 0: print( 'Warning! lons is empty!')
+	if len(lats) == 0:
+		print 'Warning! lats is empty!'
+	if len(lons) == 0:
+		print 'Warning! lons is empty!'
 
 	u_wind, v_wind, altitude = {}, {}, {}
 	for msg in u_msgs:
 		if msg.typeOfLevel == 'isobaricInhPa':
-			u_wind[msg.level] = msg.values[row_idx, col_idx]
-	
+			u_wind[msg.level] = msg.values[(row_idx, col_idx)]
+
 	for msg in v_msgs:
 		if msg.typeOfLevel == 'isobaricInhPa':
-			v_wind[msg.level] = msg.values[row_idx, col_idx]
+			v_wind[msg.level] = msg.values[(row_idx, col_idx)]
 
 	for msg in g_msgs:
 		if msg.typeOfLevel == 'isobaricInhPa':
-			altitude[msg.level] = msg.values[row_idx, col_idx]
+			altitude[msg.level] = msg.values[(row_idx, col_idx)]
 
 	pressures = list(u_wind.keys())
 	pressures.sort()
 	pressures.reverse()
 
-	alt_keys, u_winds, v_winds, altitudes, alt_interp = [], [], [], [], []
+	alt_keys, u_winds, v_winds, altitudes, alt_interp = ([], [], [], [], [])
 
 	for key in pressures:
+
 		uwnd, vwnd, alt = [], [], []
+
 		uwnd.append(u_wind[key])
 		vwnd.append(v_wind[key])
-
 		u_winds.append(np.hstack(uwnd))
 		v_winds.append(np.hstack(vwnd))
 
@@ -391,14 +395,26 @@ def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, des
 			alt.append(altitude[key])
 			altitudes.append(np.hstack(alt))
 
-	p_interp_val = list(set(pressures).symmetric_difference(set(alt_keys)))[0]
-	
-	for i in range(len(lats)):
-		f = interpolate.interp1d(alt_keys, np.array(altitudes)[:, i])
-		val = float(f(p_interp_val))
-		alt_interp.append(val)
+	p_interp_vals = list(set(pressures).symmetric_difference(set(alt_keys)))
 
-	altitudes.insert(np.where(np.array(pressures) == p_interp_val)[0][0], np.array(alt_interp))
+	alt_interps = []
+
+	for p in p_interp_vals:
+
+		alt_interps.append([float(interpolate.interp1d(alt_keys, np.array(altitudes)[:, i])(p)) for i in range(len(lats))])
+
+	for i in range(len(alt_interps)):
+
+		interp_mean = np.mean(alt_interps)
+		means = [np.mean(altitudes[k]) for k in range(len(altitudes))]
+
+		index = 0
+		for j in range(len(means)):
+			index = j
+			if interp_mean < means[j]:
+				break
+				
+		altitudes.insert(index , np.array(alt_interps[i]))
 
 	data = {}
 	data['lats'] = np.array(lats)
@@ -406,10 +422,11 @@ def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, des
 	data['u_winds'] = np.array(u_winds)
 	data['v_winds'] = np.array(v_winds)
 	data['altitudes'] = np.array(altitudes)
+
 	all_pressures = []
 
 	for dat in data['lats']:
-		all_pressures.append(100*np.array(pressures)) # Convert hPa to Pa
+		all_pressures.append(100 * np.array(pressures))
 
 	data['pressures'] = np.array(all_pressures).transpose()
 

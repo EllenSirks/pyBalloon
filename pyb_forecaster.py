@@ -62,7 +62,7 @@ def forecaster(datestr=None, utc_hour=None, loc0=None, params=None, balloon=None
 	#################################################################################################################
 
 	# past forecasts we wish to check
-	hr_diffs = np.arange(0, 48, 12)
+	hr_diffs = np.arange(0, 60, 12)
 
 	# print out parameters to terminal
 	if print_verbose:
@@ -100,19 +100,19 @@ def forecast_tester_looper(datestr=None, utc_hour=None, loc0=None, params=None, 
 
 	#################################################################################################################
 
-	out_dir = '/home/ellen/Desktop/SuperBIT/Output/'
+	# out_dir = '/home/ellen/Desktop/SuperBIT/Output/'
 
-	# create run name (datestr + no.)
-	if run == None:
-		now_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
-		files = [filename for filename in os.listdir(out_dir) if now_str in filename]
-		run = now_str + '_' + str(len(files))
+	# # create run name (datestr + no.)
+	# if run == None:
+	# 	now_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
+	# 	files = [filename for filename in os.listdir(out_dir) if now_str in filename]
+	# 	run = now_str + '_' + str(len(files))
 
 	#################################################################################################################
 
 	# run pyBalloon for different days & forecasts
 	day = int(datestr[6:])
-	for i in range(0, 30):
+	for i in range(0, 10):
 		datestr = datestr[:6] + str(int(day + i)).zfill(2)
 		print('Running date: ' + datestr + '\n')
 		forecaster(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon, run=run, print_verbose=print_verbose, write_verbose=write_verbose)
@@ -125,4 +125,4 @@ def forecast_tester_looper(datestr=None, utc_hour=None, loc0=None, params=None, 
 if __name__ == '__main__':
 
 	# forecaster(datestr='20180901', utc_hour=14, loc0=(48.5, -81.4, 28000), print_verbose=True)
-	forecast_tester_looper(datestr='20180901', utc_hour=15, loc0=(48.5, -81.4, 28000))
+	forecast_tester_looper(datestr='20180922', utc_hour=15, loc0=(48.5, -81.4, 28000))

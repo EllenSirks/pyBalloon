@@ -1,4 +1,4 @@
-""" File with relevant running parameters """
+"""File with relevant running parameters"""
 
 import numpy as np
 
@@ -25,8 +25,8 @@ balloon['simple_ascent_rate'] = 5.0 # m/s
 
 # parachute parameters
 balloon['Cd_parachute'] = 0.97
+balloon['parachute_areas'] = [1.62]
 # radius = 0.5
 # balloon['parachute_areas'] = np.pi * np.array([radius])**2 # m^2
-balloon['parachute_areas'] = [1.62]
 # balloon['parachute_areas'] = 2*np.array([radius])**2 # m^2
 balloon['parachute_change_altitude'] = None # meters

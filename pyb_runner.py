@@ -166,4 +166,4 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 
 if __name__ == "__main__":
 
-	runner(datestr=sys.argv[1], utc_hour=sys.argv[2], lat0=sys.argv[3], lon0=sys.argv[4], alt0=sys.argv[5], verbose=True)
+	runner(datestr=sys.argv[1], utc_hour=sys.argv[2], lat0=sys.argv[3], lon0=sys.argv[4], alt0=sys.argv[5], print_verbose=True, write_verbose=True)
