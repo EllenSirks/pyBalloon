@@ -73,7 +73,7 @@ def air_density(data):
     return rho # kg m-3
 
 # method to interpolate data to altitude steps
-def data_interpolation(data, alt0, step, mode='spline', descent_only=False, output_figs=True):
+def data_interpolation(data, alt0, step, mode='spline', descent_only=False, output_figs=False):
 
     altitudes = data['altitudes']
 
@@ -135,9 +135,9 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False, outp
                         arr.append(tck(new_data['altitudes']))
             new_data[key] = np.array(arr)
 
-    if output_figs:
+    figs = {}
 
-        figs = {}
+    if output_figs:
 
         ind1 = np.where(altitudes[:, 0] == alt0)[0][0]
         ind2 = np.where(new_data['altitudes'] == alt0)[0][0]
@@ -159,11 +159,7 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False, outp
 
                 figs[key] = fig
 
-        return new_data, figs
-
-    else:
-
-        return new_data
+    return new_data, figs
 
 def lift(data, mass):
     """Calculate effective lift (force, in Newtons) caused by the balloon.
@@ -554,6 +550,8 @@ def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only
 
         if 'gespr_4_' + datestr + '_' + str(hhhh * 100).zfill(4) + '_' + str(hhh).zfill(3) + '.grb2' in files and 'geavg_4_' + datestr + '_' + str(hhhh * 100).zfill(4) + '_' + str(hhh).zfill(3) + '.grb2' in files:
 
+            print('Reading GEFS file...')
+
             data1 = pyb_io.read_gefs_file(fname='gespr_4_' + datestr + '_' + str(hhhh * 100).zfill(4) + '_' + str(hhh).zfill(3) + '.grb2', area=area, alt0=alt0, descent_only=descent_only)
             data2 = pyb_io.read_gefs_file(fname='geavg_4_' + datestr + '_' + str(hhhh * 100).zfill(4) + '_' + str(hhh).zfill(3) + '.grb2', area=area, alt0=alt0, descent_only=descent_only)
             
@@ -565,7 +563,7 @@ def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only
             data['altitudes'] = data2['altitudes']
             data['pressures'] = data1['pressures']
 
-            data = data_interpolation(data=data, alt0=alt0, step=100, descent_only=descent_only, output_figs=False)
+            data = data_interpolation(data=data, alt0=alt0, step=100, descent_only=descent_only, output_figs=False)[0]
 
             return data
 
@@ -617,7 +615,7 @@ def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only
             data['altitudes'] = np.array(altitudes)
             data['pressures'] = pressures
 
-            data = data_interpolation(data=data, alt0=alt0, step=100, descent_only=descent_only, output_figs=False)
+            data = data_interpolation(data=data, alt0=alt0, step=100, descent_only=descent_only, output_figs=False)[0]
 
             return data
 

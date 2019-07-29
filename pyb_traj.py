@@ -5,6 +5,8 @@ import time
 
 import matplotlib.pyplot as plt
 
+plt.rcParams["font.family"] = "serif"
+
 import get_gfs
 import pyb_aux
 import pyb_io
@@ -54,7 +56,7 @@ def read_data(loc0=None, weather_file=None, balloon=None, descent_only=False):
 
 	in_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
 
-	tile_size = 10. # degrees (read a tile this wide/high from the GFS grb2 file)
+	tile_size = 6. # degrees (read a tile this wide/high from the GFS grb2 file)
 	area = (lat0 + (tile_size/2.), lon0 - (tile_size/2.), lat0 - (tile_size/2.), lon0 + (tile_size/2.)) # note top, left, bottom, right ordering for area
 
 	model_data = pyb_io.read_gfs_single(directory=in_dir + weather_file, area=area, alt0=alt0, descent_only=descent_only, step=balloon['altitude_step'])[0]
@@ -92,7 +94,7 @@ def movement2ll(lat_rad=None, lon_rad=None, alt=None, dx=None, dy=None):
 	return lat2, lon2, dist
 
 # method to calculate necessary properties and carry out the interpolation
-def calc_properties(data=None, weather_file=None, loc0=None, balloon=None, descent_only=False):
+def calc_properties(data=None, weather_file=None, loc0=None, balloon=None, descent_only=False, output_figs=False):
 
 	if data == None:
 		data = read_data(loc0=loc0, weather_file=weather_file)
@@ -114,7 +116,7 @@ def calc_properties(data=None, weather_file=None, loc0=None, balloon=None, desce
 
 	time0 = time.time()
 
-	data, figs_dict = pyb_aux.data_interpolation(data, alt0, balloon['altitude_step'], mode='spline', descent_only=descent_only)
+	data, figs_dict = pyb_aux.data_interpolation(data, alt0, balloon['altitude_step'], mode='spline', descent_only=descent_only, output_figs=output_figs)
 
 	print('Interpolation done, %.3f s elapsed' % (time.time() - time0) + '\n')
 
@@ -151,80 +153,58 @@ def calc_displacements(data=None, balloon=None, descent_only=False, vz_correct=F
 
 	return data
 
-# method to prepare the data for the calculations of the trajectory
-def prepare_data(weather_file=None, loc0=None, current_time=None, balloon=None, descent_only=False, drift_time=0, vz_correct=False):
-
-	model_data1 = read_data(loc0=loc0, weather_file=weather_file, balloon=balloon, descent_only=descent_only)
-	err_data = pyb_aux.calc_gefs_errs(weather_file=weather_file, loc0=loc0, current_time=current_time, descent_only=descent_only)
-	model_data2, figs_dict = calc_properties(data=model_data1, weather_file=weather_file, loc0=loc0, balloon=balloon, descent_only=descent_only)
-	model_data2 = pyb_aux.add_uv_errs(main_data=model_data2, err_data=err_data)
-	model_data3 = calc_displacements(data=model_data2, balloon=balloon, descent_only=descent_only)
-
-	return model_data3, figs_dict
-
-# method to pull everything together and return the trajectory
-def run_traj(weather_files=None, loc0=None, datestr=None, utc_hour=None, balloon=None, descent_only=False, interpolate=False, drift_time=0, resolution=0.5, vz_correct=False, hr_diff=0):
-
-	time0 = time.time()
-
-	data_array = {}
-	figs1 = []
-	for weather_file in weather_files:
-
-		model_data, figs_dict = prepare_data(weather_file=weather_file, loc0=loc0, current_time=utc_hour, balloon=balloon, descent_only=descent_only, vz_correct=vz_correct)
-		data_array[int(int(weather_file[15:19])/100.) + int(weather_file[20:23])] = model_data
-		figs1.append(figs_dict)
-
-	trajectories, figs2 = calc_movements(data=data_array, loc0=loc0, datestr=datestr, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only, interpolate=interpolate, \
-		drift_time=drift_time, resolution=resolution, vz_correct=vz_correct, hr_diff=hr_diff)
-
-	for fig_dict in figs2:
-		figs1.append(fig_dict)
-
-	return trajectories, figs1
-
 # method to update weather files to newest available
 def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None, balloon=None, datestr=None, utc_hour=None, loc0=None, \
-	total_time=0, checks=None, index=0, descent_only=True, resolution=0.5, vz_correct=False):
+	total_time=0, checks=None, index=0, descent_only=True, interpolate=False, resolution=0.5, vz_correct=False, output_figs=False):
 
 	res = str(int(-4*resolution + 6))
 
 	keys = list(data.keys())
 	current_time = float(utc_hour) + np.cumsum(np.array(total_time))[-1]/3600
-			
+
+	hrs = get_gfs.get_closest_hr(utc_hour=utc_hour)
+	old_hhhh, old_hhh1, old_hhh2 = hrs[0], hrs[1], hrs[2]
+
+	hrs = get_gfs.get_closest_hr(utc_hour=current_time)
+	new_hhhh, new_hhh1, new_hhh2 = hrs[0], hrs[1], hrs[2]
+
+	# update from e.g. 0600_006 to 1200_000
 	for j in range(len(keys)):
-
 		key = keys[j]
-		if int(current_time) == key and current_time >= key and checks[j] == 0.:
+		if int(current_time) == key and current_time >= key and checks[j] == 0. and old_hhhh != new_hhhh:
 
-			print('Updating weather files...')
-
-			hrs = get_gfs.get_closest_hr(utc_hour=key)
-			new_hhhh, new_hhh1, new_hhh2 = hrs[0], hrs[1], hrs[2]
+			print('Updating current weather file...')
 
 			new_weather_file = 'gfs_' + res + '_' + datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh1).zfill(3) + '.grb2'
 			new_weather_file = get_gfs.get_gfs_files(weather_files=[new_weather_file])[0]
 
-			loc = (np.degrees(lat_rad[-1]), np.degrees(lon_rad[-1]), all_alts[-1])
-			data[new_hhhh + new_hhh1], figs_dict = prepare_data(weather_file=new_weather_file, loc0=loc0, current_time=current_time, balloon=balloon, descent_only=descent_only, vz_correct=vz_correct)
+			data[new_hhhh + new_hhh1], figs_dict = prepare_data(weather_file=new_weather_file, loc0=loc0, current_time=current_time, balloon=balloon, descent_only=descent_only, vz_correct=vz_correct, output_figs=output_figs)
 			figs.append(figs_dict)
 
 			keys = list(data.keys())
 			checks[j] += 1.
 
 	# add new weather file if current time is past 'latest' weather file
-	if current_time > max(keys) + 1.5:
+	if current_time > max(keys) + 1.5 or (interpolate and current_time > max(keys)):
 
-		print('Updating weather files...')
+		print('Adding new weather file...')
 
-		hrs = get_gfs.get_closest_hr(utc_hour=current_time)
-		new_hhhh, new_hhh1, new_hhh2 = hrs[0], hrs[1], hrs[2]
+		if not interpolate:
 
-		new_weather_file = 'gfs_' + res + '_' + datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh1).zfill(3) + '.grb2'
-		new_weather_file = get_gfs.get_gfs_files(weather_files=[new_weather_file])[0]
+			hrs = get_gfs.get_closest_hr(utc_hour=current_time)
+			new_hhhh, new_hhh1, new_hhh2 = hrs[0], hrs[1], hrs[2]
 
-		loc = (np.degrees(lat_rad[-1]), np.degrees(lon_rad[-1]), all_alts[-1])
-		data[new_hhhh + new_hhh1], figs_dict = prepare_data(weather_file=new_weather_file, loc0=loc0, current_time=current_time, balloon=balloon, descent_only=descent_only, vz_correct=vz_correct)
+			new_weather_file = 'gfs_' + res + '_' + datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh1).zfill(3) + '.grb2'
+			new_weather_files = get_gfs.get_gfs_files(weather_files=[new_weather_file])
+
+			loc = (np.degrees(lat_rad[-1]), np.degrees(lon_rad[-1]), all_alts[-1])
+
+		else:
+
+			new_weather_files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=current_time, resolution=resolution)
+			new_hhhh, new_hhh1 = int(int(new_weather_files[-1][15:19])/100), int(new_weather_files[-1][21:24])
+
+		data[new_hhhh + new_hhh1], figs_dict = prepare_data(weather_file=new_weather_files[-1], loc0=loc0, current_time=current_time, balloon=balloon, descent_only=descent_only, vz_correct=vz_correct, output_figs=output_figs)
 		figs.append(figs_dict)
 
 		keys = list(data.keys())
@@ -239,12 +219,10 @@ def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None
 	return data, keys, checks, index, figs
 
 # method to calculate the trajectory of the balloon/parachute given a start position & other input parameters
-def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=None, alt_change_fit=10, descent_only=False, interpolate=False, drift_time=0, resolution=0.5, vz_correct=False, hr_diff=0):
+def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=None, alt_change_fit=10, descent_only=False, interpolate=False, drift_time=0, resolution=0.5, vz_correct=False, hr_diff=0, output_figs=False):
 
 	time0 = time.time()
 
-	figs = []
-	
 	lat0, lon0, alt0 = loc0
 
 	keys = list(data.keys())
@@ -257,13 +235,17 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 			if float(utc_hour) >= hr:
 				checks[0] = 1.
 
+	figs, wind_figs = [], {}
 	index, i, timer = 0, 0, 0
 	stage = 1
 
 	# set initial conditions
 	alts = data[keys[0]]['altitudes'] # alts, lats and lons are the same for all weather files (if we dont give it different areas)
 	data_lats, data_lons  = np.radians(data[keys[0]]['lats']), np.radians(data[keys[0]]['lons'])
-	data_lats_err, data_lons_err = np.radians(data[keys[0]]['lats_err']), np.radians(data[keys[0]]['lons_err'])
+
+	size = int(np.sqrt(len(data_lats)))
+
+	# data_lats_err, data_lons_err = np.radians(data[keys[0]]['lats_err']), np.radians(data[keys[0]]['lons_err'])
 
 	lat_rad, lon_rad, all_alts = [np.radians(lat0)], [np.radians(lon0)], [alt0]
 
@@ -273,27 +255,23 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 		lat_rad[0] += 2*np.pi
 
 	total_time, dists, dists_u, dists_v = [0], [0], [0], [0]
-	speeds, z_speeds, omegas, temperatures, sigmas_u, sigmas_v = [], [], [], [], [], []
-
-	initial_time = float(utc_hour) + np.cumsum(np.array(total_time))[-1]/3600
-	if interpolate:
-		(t1_ini, f1_ini), (t2_ini, f2_ini) = calc_time_frac(current_time = initial_time, weather_times=keys)
+	speeds, z_speeds, omegas, temperatures, sigmas_u, sigmas_v, grid_spreads_u, grid_spreads_v = [], [], [], [], [], [], [], []
 
 	while True:
 
 		if hr_diff == 0:
 
 			data, keys, checks, index, figs = update_files(figs=figs, data=data, lat_rad=lat_rad, lon_rad=lon_rad, all_alts=all_alts, balloon=balloon, datestr=datestr, utc_hour=utc_hour, \
-				loc0=loc0, total_time=total_time, checks=checks, index=index, descent_only=descent_only, resolution=resolution, vz_correct=vz_correct)
+				loc0=loc0, total_time=total_time, checks=checks, index=index, descent_only=descent_only, interpolate=interpolate , resolution=resolution, vz_correct=vz_correct, output_figs=output_figs)
 
 		# Find the closest grid point
 		diff = np.sqrt((data_lats - lat_rad[-1])**2 + (data_lons - lon_rad[-1])**2)
 		grid_i, = np.where(diff == diff.min())
 		grid_i = grid_i[0]
 
-		diff = np.sqrt((data_lats_err - lat_rad[-1])**2 + (data_lons_err - lon_rad[-1])**2)
-		grid_i_err, = np.where(diff == diff.min())
-		grid_i_err = grid_i_err[0]
+		# diff = np.sqrt((data_lats_err - lat_rad[-1])**2 + (data_lons_err - lon_rad[-1])**2)
+		# grid_i_err, = np.where(diff == diff.min())
+		# grid_i_err = grid_i_err[0]
 
 		if interpolate:
 
@@ -326,6 +304,13 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 					z_speed = f1*data[t1]['z_speeds'][grid_i, i] + f2*data[t2]['z_speeds'][grid_i, i]
 					omega = f1*data[t1]['omegas'][grid_i, i] + f2*data[t2]['omegas'][grid_i, i]
 					T = f1*data[t1]['temperatures'][grid_i, i] + f2*data[t2]['temperatures'][grid_i, i]
+
+					grid_spread_u = f1*np.std([data[t1]['dxs_up'][grid_i-1, i], data[t1]['dxs_up'][grid_i+1, i], data[t1]['dxs_up'][grid_i-len(set(data_lats)), i], data[t1]['dxs_up'][grid_i+len(set(data_lats)), i]]) + \
+					f2*np.std([data[t2]['dxs_up'][grid_i-1, i], data[t2]['dxs_up'][grid_i+1, i], data[t2]['dxs_up'][grid_i-len(set(data_lats)), i], data[t2]['dxs_up'][grid_i+len(set(data_lats)), i]])
+
+					grid_spread_v = f1*np.std([data[t1]['dys_up'][grid_i-1, i], data[t1]['dys_up'][grid_i+1, i], data[t1]['dys_up'][grid_i-len(set(data_lats)), i], data[t1]['dys_up'][grid_i+len(set(data_lats)), i]]) + \
+					f2*np.std([data[t2]['dys_up'][grid_i-1, i], data[t2]['dys_up'][grid_i+1, i], data[t2]['dys_up'][grid_i-len(set(data_lats)), i], data[t2]['dys_up'][grid_i+len(set(data_lats)), i]])
+
 					# sigma_u = (f1*data[t1]['u_wind_errs'][grid_i_err, i] + f2*data[t2]['u_wind_errs'][grid_i_err, i])*dt
 					# sigma_v = (f1*data[t1]['v_wind_errs'][grid_i_err, i] + f2*data[t2]['v_wind_errs'][grid_i_err, i])*dt
 
@@ -335,9 +320,16 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 					dy = data[keys[index]]['dys_up'][grid_i, i]
 					dt = data[keys[index]]['ascent_time_steps'][grid_i, i]
 					speed = data[keys[index]]['ascent_speeds'][grid_i, i]
-					z_speed = f1*data[keys[index]]['z_speeds'][grid_i, i]
-					omega = f1*data[keys[index]]['omegas'][grid_i, i]
+					z_speed = data[keys[index]]['z_speeds'][grid_i, i]
+					omega = data[keys[index]]['omegas'][grid_i, i]
 					T = data[keys[index]]['temperatures'][grid_i, i]
+
+					grid_spread_u = np.std([data[keys[index]]['dxs_up'][grid_i-1, i], data[keys[index]]['dxs_up'][grid_i+1, i], data[keys[index]]['dxs_up'][grid_i-len(set(data_lats)), i], \
+					 data[keys[index]]['dxs_up'][grid_i+len(set(data_lats)), i]])
+
+					grid_spread_v = np.std([data[keys[index]]['dys_up'][grid_i-1, i], data[keys[index]]['dys_up'][grid_i+1, i], data[keys[index]]['dys_up'][grid_i-len(set(data_lats)), i], \
+					 data[keys[index]]['dys_up'][grid_i+len(set(data_lats)), i]])
+
 					# sigma_u = (data[keys[index]]['u_wind_errs'][grid_i_err, i])*dt
 					# sigma_v = (data[keys[index]]['v_wind_errs'][grid_i_err, i])*dt
 
@@ -346,7 +338,7 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 						stage += 2
 					else:
 						stage += 1
-					final_i = i
+					final_i = 0
 					continue
 
 			i += 1
@@ -368,20 +360,36 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 				dx = (f1*data[t1]['u_winds'][grid_i, i] + f2*data[t2]['u_winds'][grid_i, i])*dt
 				dy = (f1*data[t1]['v_winds'][grid_i, i] + f2*data[t2]['v_winds'][grid_i, i])*dt
 				T = f1*data[t1]['temperatures'][grid_i, i] + f2*data[t2]['temperatures'][grid_i, i]
+				speed = 0
 				z_speed = f1*data[t1]['z_speeds'][grid_i, i] + f2*data[t2]['z_speeds'][grid_i, i]
 				omega = f1*data[t1]['omegas'][grid_i, i] + f2*data[t2]['omegas'][grid_i, i]
-				sigma_u = (f1*data[t1]['u_wind_errs'][grid_i_err, i] + f2*data[t2]['u_wind_errs'][grid_i_err, i])*dt
-				sigma_v = (f1*data[t1]['v_wind_errs'][grid_i_err, i] + f2*data[t2]['v_wind_errs'][grid_i_err, i])*dt
+
+				grid_spread_u = (f1*np.std([data[t1]['u_winds'][grid_i-1, i], data[t1]['u_winds'][grid_i+1, i], data[t1]['u_winds'][grid_i-len(set(data_lats)), i], data[t1]['u_winds'][grid_i+len(set(data_lats)), i]])) + \
+					f2*np.std([data[t2]['u_winds'][grid_i-1, i], data[t2]['u_winds'][grid_i+1, i], data[t2]['u_winds'][grid_i-len(set(data_lats)), i], data[t2]['u_winds'][grid_i+len(set(data_lats)), i]])*dt
+
+				grid_spread_v = (f1*np.std([data[t1]['v_winds'][grid_i-1, i], data[t1]['v_winds'][grid_i+1, i], data[t1]['v_winds'][grid_i-len(set(data_lats)), i], data[t1]['v_winds'][grid_i+len(set(data_lats)), i]])) + \
+					f2*np.std([data[t2]['v_winds'][grid_i-1, i], data[t2]['v_winds'][grid_i+1, i], data[t2]['v_winds'][grid_i-len(set(data_lats)), i], data[t2]['v_winds'][grid_i+len(set(data_lats)), i]])*dt
+
+				# sigma_u = (f1*data[t1]['u_wind_errs'][grid_i_err, i] + f2*data[t2]['u_wind_errs'][grid_i_err, i])*dt
+				# sigma_v = (f1*data[t1]['v_wind_errs'][grid_i_err, i] + f2*data[t2]['v_wind_errs'][grid_i_err, i])*dt
 
 			else:
 
 				dx = data[keys[index]]['u_winds'][grid_i, i]*dt
 				dy = data[keys[index]]['v_winds'][grid_i, i]*dt
 				T = data[keys[index]]['temperatures'][grid_i, i]
+				speed = 0
 				z_speed = data[keys[index]]['z_speeds'][grid_i, i]
 				omega = data[keys[index]]['omegas'][grid_i, i]
-				sigma_u = (data[keys[index]]['u_wind_errs'][grid_i_err, i])*dt
-				sigma_v = (data[keys[index]]['v_wind_errs'][grid_i_err, i])*dt
+
+				grid_spread_u = np.std([data[keys[index]]['u_winds'][grid_i-1, i], data[keys[index]]['u_winds'][grid_i+1, i], data[keys[index]]['u_winds'][grid_i-len(set(data_lats)), i], \
+					 data[keys[index]]['u_winds'][grid_i+len(set(data_lats)), i]])*dt
+
+				grid_spread_v = np.std([data[keys[index]]['v_winds'][grid_i-1, i], data[keys[index]]['v_winds'][grid_i+1, i], data[keys[index]]['v_winds'][grid_i-len(set(data_lats)), i], \
+					 data[keys[index]]['v_winds'][grid_i+len(set(data_lats)), i]])*dt
+
+				# sigma_u = (data[keys[index]]['u_wind_errs'][grid_i_err, i])*dt
+				# sigma_v = (data[keys[index]]['v_wind_errs'][grid_i_err, i])*dt
 
 			speed = 0
 			timer += dt
@@ -401,8 +409,89 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 				z_speed = f1*data[t1]['z_speeds'][grid_i, i] + f2*data[t2]['z_speeds'][grid_i, i]
 				omega = f1*data[t1]['omegas'][grid_i, i] + f2*data[t2]['omegas'][grid_i, i]
 				T = f1*data[t1]['temperatures'][grid_i, i] + f2*data[t2]['temperatures'][grid_i, i]
-				sigma_u = (f1*data[t1]['u_wind_errs'][grid_i_err, i] + f2*data[t2]['u_wind_errs'][grid_i_err, i])*dt
-				sigma_v = (f1*data[t1]['v_wind_errs'][grid_i_err, i] + f2*data[t2]['v_wind_errs'][grid_i_err, i])*dt
+
+				grid_spread_u = f1*np.std([data[t1]['dxs_down'][grid_i-1, i], data[t1]['dxs_down'][grid_i+1, i], data[t1]['dxs_down'][grid_i-len(set(data_lats)), i], data[t1]['dxs_down'][grid_i+len(set(data_lats)), i]]) + \
+					f2*np.std([data[t2]['dxs_down'][grid_i-1, i], data[t2]['dxs_down'][grid_i+1, i], data[t2]['dxs_down'][grid_i-len(set(data_lats)), i], data[t2]['dxs_down'][grid_i+len(set(data_lats)), i]])
+
+				grid_spread_v = f1*np.std([data[t1]['dys_down'][grid_i-1, i], data[t1]['dys_down'][grid_i+1, i], data[t1]['dys_down'][grid_i-len(set(data_lats)), i], data[t1]['dys_down'][grid_i+len(set(data_lats)), i]]) + \
+					f2*np.std([data[t2]['dys_down'][grid_i-1, i], data[t2]['dys_down'][grid_i+1, i], data[t2]['dys_down'][grid_i-len(set(data_lats)), i], data[t2]['dys_down'][grid_i+len(set(data_lats)), i]])
+
+				# sigma_u = (f1*data[t1]['u_wind_errs'][grid_i_err, i] + f2*data[t2]['u_wind_errs'][grid_i_err, i])*dt
+				# sigma_v = (f1*data[t1]['v_wind_errs'][grid_i_err, i] + f2*data[t2]['v_wind_errs'][grid_i_err, i])*dt
+
+				if output_figs:
+
+					wind_fig = []
+
+					dx2 = np.copy(data[t1]['dxs_down'][:, i])
+					dx2 = np.array([x for _,x in sorted(zip(data_lats, dx2))])
+					dx2 = dx2.reshape(size, size)
+					dx2 = np.array([dx2[:, j] for j in range(len(dx2[0]))])
+
+					dy2 = np.copy(data[t1]['dys_down'][:, i])
+					dy2 = np.array([x for _,x in sorted(zip(data_lats, dy2))])
+					dy2 = dy2.reshape(size, size)
+					dy2 = np.array([dy2[:, j] for j in range(len(dy2[0]))])
+
+					dx3 = np.copy(data[t2]['dxs_down'][:, i])
+					dx3 = np.array([x for _,x in sorted(zip(data_lats, dx3))])
+					dx3 = dx3.reshape(size, size)
+					dx3 = np.array([dx3[:, j] for j in range(len(dx3[0]))])
+
+					dy3 = np.copy(data[t2]['dys_down'][:, i])
+					dy3 = np.array([x for _,x in sorted(zip(data_lats, dy3))])
+					dy3 = dy3.reshape(size, size)
+					dy3 = np.array([dy3[:, j] for j in range(len(dy3[0]))])
+
+					fig = plt.figure()
+
+					im = plt.imshow(dx2, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])				
+					color_bar = plt.colorbar()
+					color_bar.set_label('dx down [m/s]', fontsize=15)
+					plt.xlabel('Latitude', fontsize=15)
+					plt.ylabel('Longitude', fontsize=15)
+					plt.plot(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), 'r-', linewidth=1)
+					plt.tight_layout()
+
+					wind_fig.append(fig)
+
+					plt.clf()
+
+					im = plt.imshow(dx3, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])				
+					color_bar = plt.colorbar()
+					color_bar.set_label('dx down [m/s]', fontsize=15)
+					plt.xlabel('Latitude', fontsize=15)
+					plt.ylabel('Longitude', fontsize=15)
+					plt.plot(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), 'r-', linewidth=1)
+					plt.tight_layout()
+
+					wind_fig.append(fig)
+
+					plt.clf()
+
+					im = plt.imshow(dy2, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])
+					color_bar = plt.colorbar()
+					color_bar.set_label('dy down [m/s]', fontsize=15)
+					plt.xlabel('Latitude', fontsize=15)
+					plt.ylabel('Longitude', fontsize=15)
+					plt.plot(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), 'r-', linewidth=1)
+					plt.tight_layout()
+
+					wind_fig.append(fig)
+
+					plt.clf()
+
+					im = plt.imshow(dy3, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])
+					color_bar = plt.colorbar()
+					color_bar.set_label('dy down [m/s]', fontsize=15)
+					plt.xlabel('Latitude', fontsize=15)
+					plt.ylabel('Longitude', fontsize=15)
+					plt.plot(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), 'r-', linewidth=1)
+					plt.tight_layout()
+
+					wind_fig.append(fig)
+
+					wind_figs[alts[i]] = wind_fig
 
 			else:
 
@@ -413,64 +502,90 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 				z_speed = data[keys[index]]['z_speeds'][grid_i, i]
 				omega = data[keys[index]]['omegas'][grid_i, i]
 				T = data[keys[index]]['temperatures'][grid_i, i]
-				sigma_u = (data[keys[index]]['u_wind_errs'][grid_i_err, i])*dt
-				sigma_v = (data[keys[index]]['v_wind_errs'][grid_i_err, i])*dt
+
+				grid_spread_u = np.std([data[keys[index]]['dxs_down'][grid_i-1, i], data[keys[index]]['dxs_down'][grid_i+1, i], data[keys[index]]['dxs_down'][grid_i-len(set(data_lats)), i], \
+					 data[keys[index]]['dxs_down'][grid_i+len(set(data_lats)), i]])
+
+				grid_spread_v = np.std([data[keys[index]]['dys_down'][grid_i-1, i], data[keys[index]]['dys_down'][grid_i+1, i], data[keys[index]]['dys_down'][grid_i-len(set(data_lats)), i], \
+					 data[keys[index]]['dys_down'][grid_i+len(set(data_lats)), i]])
+
+				# sigma_u = (data[keys[index]]['u_wind_errs'][grid_i_err, i])*dt
+				# sigma_v = (data[keys[index]]['v_wind_errs'][grid_i_err, i])*dt
+
+				if output_figs:
+
+					wind_fig = []
+
+					dx2 = np.copy(data[keys[index]]['dxs_down'][:, i])
+					dx2 = np.array([x for _,x in sorted(zip(data_lats, dx2))])
+					dx2 = dx2.reshape(size, size)
+					dx2 = [dx2[:, j] for j in range(len(dx2[0]))]
+
+					dy2 = np.copy(data[keys[index]]['dys_down'][:, i])
+					dy2 = np.array([x for _,x in sorted(zip(data_lats, dy2))])
+					dy2 = dy2.reshape(size, size)
+					dy2 = [dy2[:, j] for j in range(len(dy2[0]))]
+
+					fig = plt.figure()
+
+					# im = plt.imshow(dx2, vmin=-300, vmax=300, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])
+					im = plt.imshow(dx2, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])				
+					color_bar = plt.colorbar()
+					color_bar.set_label('dx down [m/s]', fontsize=15)
+					plt.xlabel('Latitude', fontsize=15)
+					plt.ylabel('Longitude', fontsize=15)
+					plt.plot(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), 'r-', linewidth=1)
+					plt.tight_layout()
+
+					wind_fig.append(fig)
+
+					plt.clf()
+
+					# im = plt.imshow(dy2, vmin=-300, vmax=300, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])
+					im = plt.imshow(dy2, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])
+					color_bar = plt.colorbar()
+					color_bar.set_label('dy down [m/s]', fontsize=15)
+					plt.xlabel('Latitude', fontsize=15)
+					plt.ylabel('Longitude', fontsize=15)
+					plt.plot(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), 'r-', linewidth=1)
+					plt.tight_layout()
+
+					wind_fig.append(fig)
+
+					wind_figs[alts[i]] = wind_fig
 
 			elevation = pyb_aux.get_elevation(lat=np.degrees(lat_rad[-1]), lon=np.degrees(lon_rad[-1]))
 			if i == 0 or alts[i] <= elevation:
 				break
-
 			i -= 1
 
 		if not (stage == 1 and descent_only):
 
-			total_time.append(dt)
-
 			if stage == 2:
 				lat, lon, dist = movement2ll(lat_rad=lat_rad[-1], lon_rad=lon_rad[-1], alt=all_alts[-1], dx=dx, dy=dy)
-				all_alts.append(all_alts[-1])
+				alt = all_alts[-1]
 			else:
 				lat, lon, dist = movement2ll(lat_rad=lat_rad[-1], lon_rad=lon_rad[-1], alt=alts[i], dx=dx, dy=dy)
-				all_alts.append(alts[i])
-
+				alt = alts[i]
 
 			speeds.append(speed)
 			z_speeds.append(z_speed)
 			omegas.append(omega)
 			temperatures.append(T)
+
 			lat_rad.append(lat)
 			lon_rad.append(lon)
 			dists.append(dist)
+			total_time.append(dt)
+			all_alts.append(alt)
 
-			sigmas_u.append(sigma_u)
-			sigmas_v.append(sigma_v)
-			dists_u.append(np.sqrt(dx*dx))
-			dists_v.append(np.sqrt(dy*dy))
+			grid_spreads_u.append(grid_spread_u)
+			grid_spreads_v.append(grid_spread_v)
 
-	if interpolate:
+			# sigmas_u.append(sigma_u)
+			# sigmas_v.append(sigma_v)
 
-		if descent_only:
-			speed = f1_ini*data[t1]['descent_speeds'][grid_i, final_i] + f2_ini*data[t2_ini]['descent_speeds'][grid_i, final_i]
-		else:
-			speed = f1_ini*data[t1]['ascent_speeds'][grid_i, final_i] + f2_ini*data[t2_ini]['ascent_speeds'][grid_i, final_i]
-		T = f1_ini*data[t1_ini]['temperatures'][grid_i, final_i] + f2_ini*data[t2_ini]['temperatures'][grid_i, final_i]
-		z_speed = f1_ini*data[t1]['z_speeds'][grid_i, final_i] + f2_ini*data[t2_ini]['z_speeds'][grid_i, final_i]
-		omega = f1_ini*data[t1]['omegas'][grid_i, final_i] + f2_ini*data[t2_ini]['omegas'][grid_i, final_i]
-
-	else:
-
-		if descent_only:
-			speed = data[keys[index]]['descent_speeds'][grid_i, final_i]
-		else:
-			speed = data[keys[index]]['ascent_speeds'][grid_i, final_i] 
-		T = data[keys[index]]['temperatures'][grid_i, final_i]
-		z_speed = data[keys[index]]['z_speeds'][grid_i, final_i]
-		omega = data[keys[index]]['omegas'][grid_i, final_i]
-
-	speeds = [speed] + speeds
-	z_speeds = [z_speed] + z_speeds
-	omegas = [omega] + omegas
-	temperatures = [T] + temperatures
+	lat_rad, lon_rad, all_alts, total_time, dists = lat_rad[:-1], lon_rad[:-1], all_alts[:-1], total_time[:-1], dists[:-1]
 
 	# get more accurate end-point based on elevation data
 	new_end_point, new_alt = pyb_aux.get_endpoint(data=(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), np.array(all_alts), np.array(dists)))
@@ -479,15 +594,22 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 	diff = np.sqrt((np.degrees(np.array(lat_rad)) - new_end_point[0])**2 + (np.degrees(np.array(lon_rad)) - new_end_point[1])**2)
 	index = np.where(diff == min(diff))[0][0]
 
-	lat_rad, lon_rad, all_alts, dists, speeds, z_speeds, omegas, temperatures, total_time, sigmas_u, sigmas_v = \
-		lat_rad[:index], lon_rad[:index], all_alts[:index], dists[:index+1], speeds[:index+1], z_speeds[:index+1], omegas[:index+1], temperatures[:index+1], total_time[:index+1], sigmas_u[:index+1], sigmas_v[:index+1]
+	# lat_rad, lon_rad, all_alts, dists, speeds, z_speeds, omegas, temperatures, total_time, sigmas_u, sigmas_v, grid_spreads_u, grid_spreads_v = \
+	# 	lat_rad[:index], lon_rad[:index], all_alts[:index], dists[:index+1], speeds[:index+1], z_speeds[:index+1], omegas[:index+1], temperatures[:index+1],\
+	# 	 total_time[1:index+1], sigmas_u[:index+1], sigmas_v[:index+1], grid_spreads_u[:index+1], grid_spreads_v[:index+1]
 
-	# lat_rad, lon_rad, all_alts, dists, speeds, z_speeds, omegas, temperatures, total_time = \
-	# 	lat_rad[:index], lon_rad[:index], all_alts[:index], dists[:index+1], speeds[:index+1], z_speeds[:index+1], omegas[:index+1], temperatures[:index+1], total_time[:index+1]
+	lat_rad, lon_rad, all_alts, dists, speeds, z_speeds, omegas, temperatures, total_time, grid_spreads_u, grid_spreads_v = \
+		lat_rad[:index], lon_rad[:index], all_alts[:index], dists[:index+1], speeds[:index+1], z_speeds[:index+1], omegas[:index+1], temperatures[:index+1],\
+		 total_time[:index+1], grid_spreads_u[:index+1], grid_spreads_v[:index+1]
 
 	lat_rad.append(np.radians(new_end_point[0]))
 	lon_rad.append(np.radians(new_end_point[1]))
 	all_alts.append(new_alt)
+
+	if output_figs:
+		wind_dict = {}
+		wind_dict['wind_speeds'] = wind_figs
+		figs.append(wind_dict)
 
 	# Convert the result array lists to Numpy 2D-arrays
 	output = {}
@@ -501,18 +623,49 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 	output['temperatures'] = np.array(temperatures)
 	output['times'] = np.cumsum(np.array(total_time))/60 # to minutes
 	output['distance'] = np.sum(np.array(dists))
-	output['distance_u'] = np.sum(np.array(dists_u))
-	output['distance_v'] = np.sum(np.array(dists_v))
-	output['sigmas_u'] = np.array(sigmas_u)
-	output['sigmas_v'] = np.array(sigmas_v)
-	output['error_forecast'] = (1./(output['distance']*1000))*np.sqrt((output['distance_u']*np.sqrt(np.sum(output['sigmas_u']**2)))**2 \
-		+ (output['distance_v']*np.sqrt(np.sum(output['sigmas_u']**2)))**2)
+
+	output['grid_spreads_u'] = np.array(grid_spreads_u)
+	output['grid_spreads_v'] = np.array(grid_spreads_v)
+
+	# output['sigmas_u'] = np.array(sigmas_u)
+	# output['sigmas_v'] = np.array(sigmas_v)
 
 	# print out relevant quantities
 	print('Trajectories calculated, %.3f s elapsed' % (time.time() - time0) + '\n')
 	print('Maximum altitude: ' + str(np.max(all_alts)) + ' m')
 	print('Landing location: (%.6f, %.6f)' % (output['lats'][-1], output['lons'][-1]))
-	print('Flight time: %d min' % (int(output['times'][-1])) + ', distance travelled: %.1f' % output['distance'] + ' km, error from forecast: ' + str(round(output['error_forecast'], 1)) + ' m')
-	# print('Flight time: %d min' % (int(output['times'][-1])) + ', distance travelled: %.1f' % output['distance'] + ' km')
+	print('Flight time: %d min' % (int(output['times'][-1])) + ', distance travelled: %.1f' % output['distance'] + ' km')
 
 	return output, figs
+
+# method to prepare the data for the calculations of the trajectory
+def prepare_data(weather_file=None, loc0=None, current_time=None, balloon=None, descent_only=False, drift_time=0, vz_correct=False, output_figs=False):
+
+	model_data1 = read_data(loc0=loc0, weather_file=weather_file, balloon=balloon, descent_only=descent_only)
+	# err_data = pyb_aux.calc_gefs_errs(weather_file=weather_file, loc0=loc0, current_time=current_time, descent_only=descent_only)
+	model_data2, figs_dict = calc_properties(data=model_data1, weather_file=weather_file, loc0=loc0, balloon=balloon, descent_only=descent_only, output_figs=output_figs)
+	# model_data2 = pyb_aux.add_uv_errs(main_data=model_data2, err_data=err_data)
+	model_data3 = calc_displacements(data=model_data2, balloon=balloon, descent_only=descent_only)
+
+	return model_data3, figs_dict
+
+# method to pull everything together and return the trajectory
+def run_traj(weather_files=None, loc0=None, datestr=None, utc_hour=None, balloon=None, descent_only=False, interpolate=False, drift_time=0, resolution=0.5, vz_correct=False, hr_diff=0, output_figs=False):
+
+	time0 = time.time()
+
+	data_array = {}
+	figs1 = []
+	for weather_file in weather_files:
+
+		model_data, figs_dict = prepare_data(weather_file=weather_file, loc0=loc0, current_time=utc_hour, balloon=balloon, descent_only=descent_only, vz_correct=vz_correct, output_figs=output_figs)
+		data_array[int(int(weather_file[15:19])/100.) + int(weather_file[20:23])] = model_data
+		figs1.append(figs_dict)
+
+	trajectories, figs2 = calc_movements(data=data_array, loc0=loc0, datestr=datestr, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only, interpolate=interpolate, \
+		drift_time=drift_time, resolution=resolution, vz_correct=vz_correct, hr_diff=hr_diff, output_figs=output_figs)
+
+	for fig_dict in figs2:
+		figs1.append(fig_dict)
+
+	return trajectories, figs1

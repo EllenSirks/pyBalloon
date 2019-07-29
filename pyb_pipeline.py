@@ -11,7 +11,7 @@ import pyb_io
 
 import param_file as p
 
-def pipeline(params=None, balloon=None, print_verbose=False):
+def pipeline(params=None, balloon=None, print_verbose=False, output_figs=False):
 
 	time0 = time.time()
 
@@ -72,7 +72,7 @@ def pipeline(params=None, balloon=None, print_verbose=False):
 		print('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2')
 		print('----------')
 
-	pyb_looper.looper(params=params, balloon=balloon, run=run)
+	pyb_looper.looper(params=params, balloon=balloon, run=run, output_figs=output_figs)
 	pyb_plotter.plot_rates(params=params, run=run, all_plots=False)
 	pyb_plotter.plot_results(params=params, run=run)
 
@@ -80,4 +80,4 @@ def pipeline(params=None, balloon=None, print_verbose=False):
 
 if __name__ == '__main__':
 
-	pipeline(print_verbose=True)
+	pipeline(print_verbose=True, output_figs=True)

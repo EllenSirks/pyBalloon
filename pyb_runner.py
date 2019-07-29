@@ -14,6 +14,7 @@ import matplotlib as mpl
 
 import pyb_traj
 import get_gfs
+import pyb_aux
 import pyb_io
 
 import param_file as p
@@ -24,7 +25,7 @@ warnings.filterwarnings("ignore")
 # requires the starting location & starting point (0 for highest), whether or not its descent only, and the date & time of the starting point
 # if parameters are not supplied, it takes it from the param file
 
-def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon=None, params=None, run=None, print_verbose=False, write_verbose=False, add_run_info=True):
+def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon=None, params=None, run=None, print_verbose=False, write_verbose=False, add_run_info=True, output_figs=False):
 
 	print('')
 	time0 = time.time()
@@ -35,6 +36,9 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 	# starting location
 	lat0, lon0, alt0 = float(lat0), float(lon0), float(alt0)
 	loc0 = (lat0, lon0, alt0)
+
+	if pyb_aux.get_elevation(lon0, lat0) > alt0:
+		alt0 = pyb_aux.get_elevation(lon0, lat0)
 
 	# general parameters
 	next_point = '0'
@@ -94,6 +98,8 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 		os.makedirs(traj_dir)
 	if not os.path.exists(fig_dir):
 		os.makedirs(fig_dir)
+		os.makedirs(fig_dir + 'dx_down/')
+		os.makedirs(fig_dir + 'dy_down/')
 
 	############################################################################################################ <---- calculation trajectories
 
@@ -105,7 +111,7 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 
 	# calculate the trajectory of the balloon
 	trajectories, fig_dicts = pyb_traj.run_traj(weather_files=files, loc0=loc0, datestr=datestr, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only, interpolate=interpolate, \
-		drift_time=drift_time, resolution=resolution, vz_correct=vz_correct, hr_diff=hr_diff)
+		drift_time=drift_time, resolution=resolution, vz_correct=vz_correct, hr_diff=hr_diff, output_figs=output_figs)
 
 	############################################################################################################ <---- create/write output 
 
@@ -133,7 +139,13 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 
 	# write out trajectory file
 	ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds'], trajectories['z_speeds'], \
-		trajectories['omegas'], trajectories['temperatures']], traj_file, names=['lats', 'lons', 'alts', 'dists', 'times', 'speeds', 'z_speeds', 'omegas', 'temps'], overwrite=True)
+		trajectories['omegas'], trajectories['temperatures'], trajectories['grid_spreads_u'], trajectories['grid_spreads_v']], traj_file, names=['lats', 'lons', 'alts', 'dists',\
+		 'times', 'speeds', 'z_speeds', 'omegas', 'temps', 'u_spread', 'v_spread'], overwrite=True)
+
+	# ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds'], trajectories['z_speeds'], \
+	# 	trajectories['omegas'], trajectories['temperatures'], trajectories['grid_spreads_u'], trajectories['grid_spreads_v'], trajectories['sigmas_u'], trajectories['sigmas_v']]\
+	# 	, traj_file, names=['lats', 'lons', 'alts', 'dists', 'times', 'speeds', 'z_speeds', 'omegas', 'temps', 'u_spread', 'v_spread', 'sigmas_u', 'sigmas_v'], overwrite=True)
+
 
 	# write parameters of this run to file
 	if write_verbose:
@@ -145,20 +157,41 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 		vz_correct=vz_correct, hr_diff=hr_diff, balloon=balloon)
 
 	# highest point in main-run trajectory (bit redundant for descent only)
-	idx, = np.where(trajectories['alts'] == np.max(trajectories['alts']))
+	if descent_only:
+		idx, = np.where(trajectories['alts'] == np.max(trajectories['alts']))
+	else:
+		idx, = np.where(trajectories['alts'] == trajectories['alts'][0])
+
 	latx = trajectories['lats'][idx][0]
 	lonx = trajectories['lons'][idx][0]
 	altx = trajectories['alts'][idx][0]
 	timex = trajectories['times'][idx][0]
 
 	# write out file for google-earth
+	# radius = np.sqrt((np.sum(np.absolute(trajectories['grid_spreads_u']))/1000.)**2 + (np.sum(np.absolute(trajectories['grid_spreads_v']))/1000.)**2) + \
+	# np.sqrt((np.sum(np.absolute(trajectories['sigmas_u']))/1000.)**2 + (np.sum(np.absolute(trajectories['sigmas_v']))/1000.)**2)
+
+	radius = np.sqrt((np.sum(np.absolute(trajectories['grid_spreads_u']))/1000.)**2 + (np.sum(np.absolute(trajectories['grid_spreads_v']))/1000.)**2)
+
 	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
-	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params)
+	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, radius=radius)
+	# pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, radius=radius)
 
 	# save figs with interpolation checks
-	for i in range(len(fig_dicts)):
-		for key in fig_dicts[i].keys():
-			fig_dicts[i][key].savefig(fig_dir + datestr + '_' + key + '_check' + str(i) + '.png')
+	if output_figs:
+		for i in range(len(fig_dicts)-1):
+			for key in fig_dicts[i].keys():
+				fig_dicts[i][key].savefig(fig_dir + datestr + '_' + key + '_check' + str(i) + '.png')
+
+		for k in fig_dicts[-1]['wind_speeds'].keys():
+			for i in range(len(fig_dicts[-1]['wind_speeds'][k])):
+				if i < len(fig_dicts[-1]['wind_speeds'][k]) / 2.:
+					dir_str = 'x'
+					subtract = 0
+				else:
+					dir_str = 'y'
+					subtract += 2
+				fig_dicts[-1]['wind_speeds'][k][i].savefig(fig_dir + 'd' + dir_str + '_down/' + datestr + '_d' + dir_str + '_down_alt[' + str(k) + ']_check' + str(i-subtract) + '.png')
 
 	############################################################################################################
 
@@ -166,4 +199,4 @@ def runner(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, balloon
 
 if __name__ == "__main__":
 
-	runner(datestr=sys.argv[1], utc_hour=sys.argv[2], lat0=sys.argv[3], lon0=sys.argv[4], alt0=sys.argv[5], print_verbose=True, write_verbose=True)
+	runner(datestr=sys.argv[1], utc_hour=sys.argv[2], lat0=sys.argv[3], lon0=sys.argv[4], alt0=sys.argv[5], print_verbose=True, write_verbose=True, add_run_info=False, output_figs=False)

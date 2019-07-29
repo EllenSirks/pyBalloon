@@ -21,7 +21,6 @@ import pyb_io
 
 import param_file as p
 
-
 def func(x, m, c):
 	return m*x + c
 
@@ -177,7 +176,7 @@ def plot_rates(data=None, params=None, dir_pred=None, all_plots=True, run=None):
 			plt.xlabel('Altitude [m]', fontsize=15)
 			plt.grid(True)
 			plt.legend(loc='best')
-			fig.savefig(fig_dir + 'vdescent_' + pred_keys[i] + '.png', dpi=1000)
+			fig.savefig(fig_dir + 'vdescent_' + pred_keys[i] + '.png')
 
 			plt.clf()
 
@@ -205,7 +204,7 @@ def plot_rates(data=None, params=None, dir_pred=None, all_plots=True, run=None):
 	plt.grid(True)
 	plt.legend(loc='best', prop={'size':10})
 
-	fig.savefig(fig_dir + 'vdescent_all.png', dpi=1000)
+	fig.savefig(fig_dir + 'vdescent_all.png')
 
 	# all flights again but with points
 
@@ -227,7 +226,7 @@ def plot_rates(data=None, params=None, dir_pred=None, all_plots=True, run=None):
 	plt.grid(True)
 	plt.legend(loc='best', prop={'size':10})
 
-	fig.savefig(fig_dir + 'vdescent_all_points.png', dpi=1000)
+	fig.savefig(fig_dir + 'vdescent_all_points.png')
 
  	# all flights, ratio of true - pred to pred flights
 
@@ -245,7 +244,7 @@ def plot_rates(data=None, params=None, dir_pred=None, all_plots=True, run=None):
 	plt.grid(True)
 	plt.legend(loc='best', prop={'size':10})
 
-	fig.savefig(fig_dir + 'ratiovsvtrue_all.png', dpi=1000)
+	fig.savefig(fig_dir + 'ratiovsvtrue_all.png')
 
 	# omega as a function of vertical/z wind speeds
 
@@ -263,7 +262,7 @@ def plot_rates(data=None, params=None, dir_pred=None, all_plots=True, run=None):
 	plt.grid(True)
 	plt.legend(loc='best', prop={'size':10})
 
-	fig.savefig(fig_dir + 'omegasvz_all.png', dpi=1000)
+	fig.savefig(fig_dir + 'omegasvz_all.png')
 
 	# same ratio but as a function of vertical/z wind speeds
 
@@ -279,7 +278,7 @@ def plot_rates(data=None, params=None, dir_pred=None, all_plots=True, run=None):
 	plt.grid(True)
 	plt.legend(loc='best', prop={'size':10})
 
-	fig.savefig(fig_dir + 'ratiovsvz_all.png', dpi=1000)
+	fig.savefig(fig_dir + 'ratiovsvz_all.png')
 
 	# all flights fitted with points
 
@@ -312,7 +311,7 @@ def plot_rates(data=None, params=None, dir_pred=None, all_plots=True, run=None):
 	handles.append(mpatches.Patch(color='none', label=extraString))
 	ax1.legend(handles=handles, loc='best', prop={'size':8})
 
-	fig.savefig(fig_dir + 'vdescent_all_fit_points.png', dpi=1000)
+	fig.savefig(fig_dir + 'vdescent_all_fit_points.png')
 
 	print('The slope is: ' + str(round(popt[0], 3)) + '+/-' + str(round(np.sqrt(pcov[0][0]), 3)) + ', and the offset is: ' + str(round(popt[1], 3)) + '+/-' + str(round(np.sqrt(pcov[1][1]), 3)) + '.')
 	print('Ignoring the offset, the vertical speeds are ' + str(round(np.sqrt(popt[0]), 3)) + ' times what they should be.')
@@ -344,7 +343,7 @@ def plot_rates(data=None, params=None, dir_pred=None, all_plots=True, run=None):
 	handles.append(mpatches.Patch(color='none', label=extraString))
 	ax1.legend(handles=handles, loc='best', prop={'size':8})
 
-	fig.savefig(fig_dir + 'vdescent_all_fit.png', dpi=1000)
+	fig.savefig(fig_dir + 'vdescent_all_fit.png')
 
 	print('Total time elapsed: %.1f s' % (time.time() - time0))
 
@@ -396,6 +395,9 @@ def plot_results(run=None, params=None):
 
 	d = {}
 	temperatures = {}
+	grid_spreads_u = {}
+	grid_spreads_v = {}
+
 	total_time = {}
 	total_distance = {}
 	ini_alts = {}
@@ -418,8 +420,12 @@ def plot_results(run=None, params=None):
 			datestr_pred = filename[11:19]
 
 		temperatures[datestr_pred] = data_pred['temps'][0]
+		grid_spreads_u[datestr_pred] = np.sum(np.absolute(data_pred['u_spread']))
+		grid_spreads_v[datestr_pred] = np.sum(np.absolute(data_pred['v_spread']))
+
 		total_distance[datestr_pred] = np.sum(np.array(data_pred['dists']))
 		total_time[datestr_pred] = data_pred['times'][-1]
+
 		ini_alts[datestr_pred] = data_pred['alts'][0]/1000.
 		ini_lats[datestr_pred] = data_pred['lats'][0]
 		ini_lons[datestr_pred] = data_pred['lons'][0]
@@ -443,6 +449,9 @@ def plot_results(run=None, params=None):
 
 	ds = list(d.values())
 	temps = list(temperatures.values())
+	grid_spreads_u = list(grid_spreads_u.values())
+	grid_spreads_v = list(grid_spreads_v.values())
+
 	dists = list(total_distance.values())
 	times = list(total_time.values())
 	alts = list(ini_alts.values())
@@ -469,10 +478,11 @@ def plot_results(run=None, params=None):
 	plt.xlabel('Flight date', fontsize=15)
 	plt.ylabel('Error in distance [km]', fontsize=15)
 	plt.legend(loc='best', prop={'size': 10})
+
 	plt.grid(True)
 	plt.tight_layout()
 
-	fig.savefig(fig_dir + 'dvsflight.png', dpi=1000)
+	fig.savefig(fig_dir + 'dvsflight.png')
 
 	#### error in distance vs. initial temperature ####
 
@@ -488,8 +498,9 @@ def plot_results(run=None, params=None):
 	plt.ylabel('Error in distance [km]', fontsize=15)
 	plt.legend(loc='best', prop={'size': 10})
 	plt.grid(True)
+	plt.tight_layout()
 
-	fig.savefig(fig_dir + 'dvsT.png', dpi=1000)
+	fig.savefig(fig_dir + 'dvsT.png')
 
 	#### error in distance vs. total flight time ####
 
@@ -504,9 +515,11 @@ def plot_results(run=None, params=None):
 	plt.xlabel('Total Flight Time [min]', fontsize=15)
 	plt.ylabel('Error in distance [km]', fontsize=15)
 	plt.legend(loc='best', prop={'size': 10})
-	plt.grid(True)
 
-	fig.savefig(fig_dir + 'dvstime.png', dpi=1000)
+	plt.grid(True)
+	plt.tight_layout()
+
+	fig.savefig(fig_dir + 'dvstime.png')
 
 	#### error in distance vs. total flight distance ####
 
@@ -525,9 +538,45 @@ def plot_results(run=None, params=None):
 	plt.xlabel('Total Distance Travelled [km]', fontsize=15)
 	plt.ylabel('Error in distance [km]', fontsize=15)
 	plt.legend(loc='best', prop={'size': 10})
-	plt.grid(True)
 
-	fig.savefig(fig_dir + 'dvsdist.png', dpi=1000)
+	plt.grid(True)
+	plt.tight_layout()
+
+	fig.savefig(fig_dir + 'dvsdist.png')
+
+	plt.clf()
+
+	plt.axhline(mean, linestyle='--', color='black', linewidth=1, label='Avg. error: ' + str(round(mean, 1)) + ' km')
+	plt.axvline(np.mean(grid_spreads_u)/1000., linestyle='--', color='blue', linewidth=0.5, label='Avg. spread: ' + str(round(np.mean(grid_spreads_u)/1000., 1)) + ' km')
+	plt.axhline(5, linestyle='--', color='red', linewidth=1, label='5 km')
+
+	plt.plot(np.array(grid_spreads_u)/1000., ds, 'ro')
+
+	plt.xlabel('Spread in u direction [km]', fontsize=15)
+	plt.ylabel('Error in distance [km]', fontsize=15)
+	plt.legend(loc='best', prop={'size': 10})
+
+	plt.grid(True)
+	plt.tight_layout()
+
+	fig.savefig(fig_dir + 'dvsuspreads.png')
+
+	plt.clf()
+
+	plt.axhline(mean, linestyle='--', color='black', linewidth=1, label='Avg. error: ' + str(round(mean, 1)) + ' km')
+	plt.axvline(np.mean(grid_spreads_v)/1000., linestyle='--', color='blue', linewidth=0.5, label='Avg. spread: ' + str(round(np.mean(grid_spreads_v)/1000., 1)) + 'km')
+	plt.axhline(5, linestyle='--', color='red', linewidth=1, label='5 km')
+
+	plt.plot(np.array(grid_spreads_v)/1000., ds, 'ro')
+
+	plt.xlabel('Spread in v direction [km]', fontsize=15)
+	plt.ylabel('Error in distance [km]', fontsize=15)
+	plt.legend(loc='best', prop={'size': 10})
+
+	plt.grid(True)
+	plt.tight_layout()
+
+	fig.savefig(fig_dir + 'dvsvspreads.png')
 
 	#### error in distance vs. initial altitude ####
 
@@ -544,7 +593,7 @@ def plot_results(run=None, params=None):
 	# plt.legend(loc='best', prop={'size': 10})
 	# plt.grid(True)
 
-	# fig.savefig(fig_dir + 'dvsh.png', dpi=1000)
+	# fig.savefig(fig_dir + 'dvsh.png')
 
 	#### error in distance vs. latitude ####
 
@@ -561,7 +610,7 @@ def plot_results(run=None, params=None):
 	# plt.legend(loc='best', prop={'size': 10})
 	# plt.grid(True)
 
-	# fig.savefig(fig_dir + 'dvslat.png', dpi=1000)
+	# fig.savefig(fig_dir + 'dvslat.png')
 
 	#### error in distance vs. longitude ####
 
@@ -578,7 +627,7 @@ def plot_results(run=None, params=None):
 	# plt.legend(loc='best', prop={'size': 10})
 	# plt.grid(True)
 
-	# fig.savefig(fig_dir + 'dvslon.png', dpi=1000)
+	# fig.savefig(fig_dir + 'dvslon.png')
 
 	print('Total time elapsed: %.1f s' % (time.time() - time0))
 

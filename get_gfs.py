@@ -65,7 +65,7 @@ def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5):
 	weather_files = ['gfs_' + res + '_' + datestr + '_' + str(left_hr*100).zfill(4) + '_' + str(left_hhh).zfill(3) + '.grb2', 'gfs_' + res + '_' + datestr + '_' + str(right_hr*100).zfill(4) + '_' + str(right_hhh).zfill(3) + '.grb2']
 	file = get_gfs_files(weather_files=weather_files)
 
-	return [weather_files[0][:-5]]
+	return [weather_files[i][:-5] for i in range(len(weather_files))]
 
 # method to find & download weather_file nearest in time to time of ascent/descent
 def get_closest_gfs_file(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0):
@@ -263,8 +263,8 @@ def get_interval(utc_hour=None):
 	if float(left_hr) == float(utc_hour) and left_hhh == 0:
 		left_hr, left_hhh = int(utc_hour), 0
 	else:
-		if left_hr + left_hhh > utc_hour:
-			left_hhh = left_hhh - 3
+		if left_hr + left_hhh > float(utc_hour):
+			left_hhh -= 3
 
 	right_hr, right_hhh = left_hr, left_hhh + 3
 

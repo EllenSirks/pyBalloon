@@ -126,6 +126,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 	# Collect data to correct altitude order. Set "surface" values before real data.
 	# Use given surface temperature if available, otherwise use the model value
 	if not descent_only:
+
 		u_winds = [np.zeros(lats.shape)]
 		v_winds = [np.zeros(lats.shape)]
 		altitudes = [alt0*np.ones(lats.shape)]
@@ -141,6 +142,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 		ind = 0
 
 	else:
+
 		u_winds = []
 		v_winds = []
 		temperatures = []
@@ -175,7 +177,6 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 			if key in list(omega.keys()):
 				omg.append(omega[key])
 
-
 			# Add extra data to complement the currently read data, ie. 1, 2, 3, 5 and 7 hPa levels from GFS main run to ensembles. 
 			# Data are expected to be in the same format as returned by this function.
 
@@ -207,7 +208,11 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 		else:
 			i+=1
 
-	main_keys = list(u_wind.keys())
+	if descent_only:
+		main_keys = list(u_wind.keys())
+	else:
+		main_keys = list(pressures)
+
 	main_keys.sort()
 	main_keys.reverse()
 	omega_keys = list(omega.keys())
@@ -246,12 +251,9 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 			deltaV = v_winds[grid_i2] - v_winds[grid_i2 - 1]
 			deltaOmg = omegas[grid_i2] - omegas[grid_i2 - 1]
 
-			# fs = np.array([scipy.interpolate.interp1d(np.array(altitudes)[:, i], np.array(u_winds)[:, i]) for i in range(len(u_winds[0]))])
-
 			altitudes.insert(grid_i2, alt0*np.ones(lats.shape))
 			u_winds.insert(grid_i2, u_winds[grid_i2 - 1] + deltaU*f1)
 			v_winds.insert(grid_i2, v_winds[grid_i2 - 1] + deltaV*f1)
-			# v_winds.insert(grid_i2, np.array([fs[i](alt0) for i in range(len(fs))])*np.ones(lats.shape))
 			temperatures.insert(grid_i2, temperatures[grid_i2 - 1] + deltaT*f1)
 			omegas.insert(grid_i2, omegas[grid_i2 - 1] + deltaOmg*f1)
 			index = grid_i2
