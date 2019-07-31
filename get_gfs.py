@@ -190,7 +190,7 @@ def download_file(path_file=None, out_dir=None):
 	file = os.path.basename(path_file)
 
 	if 'gfs' in path_file and '0p25' in file:
-			values = {'email' : 'ellen.l.sirks@durham.ac.uk', 'passwd' : 'Petten36', 'action' : 'login'}
+			values = {'email' : p.email, 'passwd' : p.password, 'action' : 'login'}
 			ret = requests.post(url = 'https://rda.ucar.edu/cgi-bin/login',  data = values)
 			cookies = ret.cookies
 	else:
