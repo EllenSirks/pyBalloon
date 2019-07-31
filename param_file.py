@@ -39,5 +39,5 @@ M_helium = 4.002602 # molar mass of helium [kg/mol], altitude dependence
 Cd_sphere = 0.47 # Drag coefficient for a sphere
 
 # login for more weather data
-email = 'ellen.l.sirks@durham.ac.uk'
-password = 'Petten36'
+email = ''
+password = ''
