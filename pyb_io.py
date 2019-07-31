@@ -796,6 +796,12 @@ def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 
 		run_info_file = p.path + 'Output/runs_info.txt'
 
+		if not os.path.isfile(run_info_file):
+
+			f = open(run_info_file, 'w+')
+			f.write('run descent_only next_point interpolate drift_time resolution vz_correct hr_diff Cd_parachute parachute_area altitude_step equip_mass balloon_mass fill_radius radius_empty burst_radius\
+			 thickness_empty Cd_balloon simple_ascent_rate parachute_change_altitude')
+
 		lines = [line.rstrip('\n').split(' ') for line in open(run_info_file)]
 		runs = [lines[i][0] for i in range(len(lines)) if i != 0]
 
