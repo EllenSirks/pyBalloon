@@ -26,11 +26,7 @@ balloon['simple_ascent_rate'] = 5.0 # m/s
 
 # parachute parameters
 balloon['Cd_parachute'] = 0.97
-<<<<<<< HEAD
-balloon['parachute_areas'] = [1.62]
-=======
 balloon['parachute_areas'] = [1.62] # meters
->>>>>>> 355f0bcbeb629c3cc243cf7bf516430282475ac6
 balloon['parachute_change_altitude'] = None # meters
 
 # constants
@@ -43,10 +39,5 @@ M_helium = 4.002602 # molar mass of helium [kg/mol], altitude dependence
 Cd_sphere = 0.47 # Drag coefficient for a sphere
 
 # login for more weather data
-<<<<<<< HEAD
 email = 'ellen.l.sirks@durham.ac.uk'
 password = 'Petten36'
-=======
-email = ''
-password = ''
->>>>>>> 355f0bcbeb629c3cc243cf7bf516430282475ac6
