@@ -1,23 +1,17 @@
 """Auxiliary functions used in pyBalloon"""
 
-from scipy.interpolate import griddata
 import matplotlib.pyplot as plt
 from scipy import interpolate
 from astropy.io import ascii
-from shutil import copyfile
-import datetime as dt
-import pygrib as pg
 import numpy as np
-import gdal
-import json
-import sys
 import os
-import re
 
 import get_gfs
 import pyb_io
 
 import param_file as p
+
+#################################################################################################################
 
 def all_and(data):
     """Logical and for a list of arrays.
@@ -34,6 +28,8 @@ def all_and(data):
 
     return result
 
+#################################################################################################################
+
 # method to calculate Earth WGS84 based radius on a given latitude.
 # see http://en.wikipedia.org/wiki/Earth_radius#Radius_at_a_given_geodetic_latitude
 def earth_radius(lat_rad):
@@ -49,6 +45,8 @@ def earth_radius(lat_rad):
 
     return r
 
+#################################################################################################################
+
 # method to calculate the air density
 def air_density(data):
 
@@ -63,6 +61,8 @@ def air_density(data):
         rho = (ps * p.M_air)/(p.R0 * Ts)
 
     return rho # kg m-3
+
+#################################################################################################################
 
 # method to interpolate data to altitude steps
 def data_interpolation(data, alt0, step, mode='spline', descent_only=False, output_figs=False):
@@ -153,6 +153,8 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False, outp
 
     return new_data, figs
 
+#################################################################################################################
+
 def lift(data, mass):
     """Calculate effective lift (force, in Newtons) caused by the balloon.
 
@@ -173,6 +175,7 @@ def lift(data, mass):
 
     return F_lift
 
+#################################################################################################################
 
 def balloon_volume(data):
     """Calculate volume of a sphere.
@@ -189,6 +192,7 @@ def balloon_volume(data):
 
     return V
 
+#################################################################################################################
 
 def balloon_volume_ideal_gas(data, gas_mass, gas_molar_mass=p.M_helium):
     """Calculate gas (~balloon) volume based on ideal gas law: pV = nRT.
@@ -215,6 +219,7 @@ def balloon_volume_ideal_gas(data, gas_mass, gas_molar_mass=p.M_helium):
 
     return V
 
+#################################################################################################################
 
 def burst_altitude(data, burst_radius):
 
@@ -232,6 +237,7 @@ def burst_altitude(data, burst_radius):
 
     return np.array(alt_out), np.array(i_out)
 
+#################################################################################################################
 
 def neutral_buoyancy_level(data):
     """Find the level of neutral buoyancy (or more precise, the level where effective lift is closest to zero).
@@ -255,6 +261,7 @@ def neutral_buoyancy_level(data):
 
     return np.array(alt_out), np.array(i_out)
 
+#################################################################################################################
 
 def ascent_speed(data, mass, Cd=p.Cd_sphere):
     """Calculate the rate of ascent (in m/s) for the inflated balloon at given levels.
@@ -293,6 +300,8 @@ def ascent_speed(data, mass, Cd=p.Cd_sphere):
 
     return v
 
+#################################################################################################################
+
 def descent_speed(data, mass, Cd, areas, alt_step, change_alt=None):
     """Calculate the rate of descent for deflated (burst) balloon with
     1 or 2 different sized parachutes with given areas, change
@@ -330,7 +339,8 @@ def descent_speed(data, mass, Cd, areas, alt_step, change_alt=None):
             v = np.sqrt(2*m*g/(rho*Cd*areas))
             speeds.append(v)
     return -1*np.array(speeds)
-    
+
+#################################################################################################################    
 
 def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_mass=p.M_helium):
 
@@ -410,6 +420,8 @@ def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_
 
     return all_radii, gas_mass
 
+#################################################################################################################
+
 def get_elevation(lon, lat):
 
     SAMPLES = 1201  # Change this to 3601 for SRTM1
@@ -446,6 +458,8 @@ def get_elevation(lon, lat):
             lon_row = int(round((lon - int(lon)) * (SAMPLES - 1), 0))
 
             return elevations[SAMPLES - 1 - lat_row, lon_row].astype(int)
+
+#################################################################################################################
 
 # method to get more accurate endpoint for predictions as they can go underground.
 def get_endpoint(data=None, run=None, filename=None, params=None):
@@ -508,6 +522,8 @@ def get_endpoint(data=None, run=None, filename=None, params=None):
     newlat = lats[inds[1]] + f*dlat
 
     return (newlat, newlon), get_elevation(lat=newlat, lon=newlon)
+
+#################################################################################################################
 
 def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only=False):
 
@@ -607,6 +623,8 @@ def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only
         
         count += 1
 
+#################################################################################################################
+
 def add_uv_errs(main_data=None, err_data=None):
 
     print('Adding u/v wind errors...\n')
@@ -618,11 +636,4 @@ def add_uv_errs(main_data=None, err_data=None):
 
     return main_data
 
-if __name__ == '__main__':
-
-    fname1 = 'gfs_4_20181028_0600_006.grb2'
-    fname2 = 'gfs_4_20190530_0000_000.grb2'
-    descent_only = True
-    loc0 = 30.776012, -5.613083, 25892
-
-    new_data = calc_uv_errs(weather_file=fname1, loc0=loc0, descent_only=descent_only, current_time=6)
+################################################################################################################# 
