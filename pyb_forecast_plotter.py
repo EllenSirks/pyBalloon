@@ -1,11 +1,7 @@
-"""Method to determine trajectories for one starting position with forecasts at different times in the past"""
-
 from scipy.optimize import curve_fit
 from collections import defaultdict
-from calendar import monthrange
 from haversine import haversine
 from astropy.io import ascii
-import datetime as dt
 import numpy as np
 import sys, os
 import time
@@ -21,142 +17,18 @@ import matplotlib
 
 matplotlib.rcParams['mathtext.fontset'] = 'dejavuserif'
 
+import pyb_info_searcher
 import pyb_plotter
-import pyb_runner
 import pyb_aux
-import pyb_io
 
 import param_file as p
-
-#################################################################################################################
-
-def forecast_tester_looper(datestr=None, utc_hour=None, loc0=None, params=None, hr_diffs=None, balloon=None, run=None, print_verbose=False, write_verbose=True):
-
-	now = dt.datetime.now()
-
-	#################################################################################################################
-
-	out_dir = p.path + 'Output/'
-
-	# create run name (datestr + no.)
-	if run == None:
-		now_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
-		files = [filename for filename in os.listdir(out_dir) if now_str in filename]
-		run = now_str + '_' + str(len(files))
-
-	#################################################################################################################
-
-	# starting location
-	lat0, lon0, alt0 = loc0
-
-	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
-	params[-1] = hr_diffs
-
-	# print out parameters to terminal
-	if print_verbose:
-		pyb_io.print_verbose(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon)
-
-	# write out parameters to params.txt file
-	if write_verbose:
-
-		params_dir = out_dir + run + '/'
-		if not os.path.exists(params_dir):
-			os.makedirs(params_dir)
-
-		pyb_io.write_verbose(params_dir=params_dir, params=params, balloon=balloon)
-
-	# run pyBalloon for different days & forecasts
-	day = int(datestr[6:])
-	month = int(datestr[4:6])
-	year = int(datestr[:4])
-
-	params[-1] = None
-
-	for i in range(0, monthrange(year, month)[-1]):
-
-		datestr = datestr[:6] + str(int(day + i)).zfill(2)
-		print('Running date: ' + datestr + '\n')
-
-		# run pyBalloon for different forecasts
-		for hr_diff in hr_diffs:
-
-			params = [descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff]
-			print('Running hr_diff: ' + str(hr_diff) + ' hours')
-			pyb_runner.runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon, run=run, add_run_info=False)
-			print('\n----------\n')
-
-		print('\n----------\n')
-
-	forecast_test_plotter(run=run, loc0=loc0)
-
-#################################################################################################################
-
-def forecast_flights_looper(params=None, hr_diffs=None, balloon=None, run=None, print_verbose=False, write_verbose=True):
-
-	now = dt.datetime.now()
-
-	#################################################################################################################
-
-	in_dir = p.path + 'Flight_data/'
-	out_dir = p.path + 'Output/'
-
-	# create run name (datestr + no.)
-	if run == None:
-		now_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
-		files = [filename for filename in os.listdir(out_dir) if now_str in filename]
-		run = now_str + '_' + str(len(files))
-
-	#################################################################################################################
-
-	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
-	params[-1] = hr_diffs
-
-	# print out parameters to terminal
-	if print_verbose:
-		pyb_io.print_verbose(params=params, balloon=balloon)
-
-	# write out parameters to params.txt file
-	if write_verbose:
-
-		params_dir = out_dir + run + '/'
-		if not os.path.exists(params_dir):
-			os.makedirs(params_dir)
-
-		pyb_io.write_verbose(params_dir=params_dir, params=params, balloon=balloon)
-
-	#################################################################################################################
-
-	# run pyBalloon for different flights
-	fname = 'descent_only_start' + next_point + '_2.txt'
-	lines = [line.rstrip('\n').split(' ') for line in open(in_dir + fname)]
-
-	for i in range(len(lines)):
-
-		print('\nRunning date: ' + lines[i][0])
-		print('Starting point: ' + str(lines[i][2]) + ' lat., ' + str(lines[i][3]) + ' lon., ' + str(lines[i][4]) + ' m')
-		print('\n----------\n')
-
-		loc0 = float(lines[i][2]), float(lines[i][3]), float(lines[i][4])
-
-		for hr_diff in hr_diffs:
-
-			params = [descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff]
-			print('Running hr_diff: ' + str(hr_diff) + ' hours')
-			pyb_runner.runner(datestr=lines[i][0], utc_hour=lines[i][1], loc0=loc0, params=params, balloon=balloon, run=run, add_run_info=False)
-			print('\n----------\n')
-
-	#################################################################################################################
-
-	forecast_flights_plotter(run=run)
-
-#################################################################################################################
 
 def func(x, m, c):
 	return m*x + c
 
-#################################################################################################################
-
 def forecast_flights_plotter(run=None):
+
+	##################################################################################################
 
 	in_dir = p.path + 'Output/'
 	dir_gps = p.path + 'Flight_data/'
@@ -164,8 +36,6 @@ def forecast_flights_plotter(run=None):
 
 	if not os.path.exists(fig_dir):
 		os.makedirs(fig_dir)
-
-	#################################################################################################################
 
 	err_dists = {}
 	tot_dists = {}
@@ -181,8 +51,6 @@ def forecast_flights_plotter(run=None):
 			hr_diffs[-1] = hr_diffs[-1][:-1]
 			hr_diffs = np.array([float(j) for j in hr_diffs])
 			break
-
-	#################################################################################################################
 
 	for filename in os.listdir(dir_pred):
 
@@ -224,8 +92,6 @@ def forecast_flights_plotter(run=None):
 		err_dists[datestr_pred][no] = err_dist
 		tot_dists[datestr_pred][no] = tot_dist
 
-	#################################################################################################################
-
 	datestrs = list(err_dists.keys())
 	nos = list(err_dists[datestrs[0]].keys())
 
@@ -238,8 +104,6 @@ def forecast_flights_plotter(run=None):
 		for datestr in datestrs:
 			err_dists_2[no].append(err_dists[datestr][no])
 			tot_dists_2[no].append(tot_dists[datestr][no])
-
-	#################################################################################################################
 
 	colors = ['deeppink', 'firebrick', 'darkorange', 'cornflowerblue', 'limegreen'][::-1]
 	# markers = ['o', '^', 's', 'P', '*', 'D', 'v', '<', '>', 'X', 'd', r'$o$', 'p', '.', 'h', r'$v$', r'$u$', r'$n$']
@@ -270,9 +134,8 @@ def forecast_flights_plotter(run=None):
 	plt.grid(True)
 	plt.tight_layout()
 
-	fig.savefig(fig_dir + 'forecast_results.png')
 
-	#################################################################################################################
+	fig.savefig(fig_dir + 'forecast_results.png')
 
 	plt.clf()
 
@@ -297,7 +160,7 @@ def forecast_flights_plotter(run=None):
 
 	fig.savefig(fig_dir + 'forecast_results_points.png')
 
-#################################################################################################################
+#################################################################################################
 
 def forecast_test_plotter(run=None, loc0=None):
 
@@ -316,8 +179,6 @@ def forecast_test_plotter(run=None, loc0=None):
 	if lon0 > 180:
 		lon0 -= 360
 
-	#################################################################################################################	
-
 	fname = 'params.txt'
 	lines = [line.rstrip('\n').split(' ') for line in open(in_dir + run + '/' + fname)]
 
@@ -327,8 +188,6 @@ def forecast_test_plotter(run=None, loc0=None):
 			hr_diffs[-1] = hr_diffs[-1][:-1]
 			hr_diffs = np.array([float(j) for j in hr_diffs])
 			break
-
-	#################################################################################################################
 
 	for filename in os.listdir(dir_pred):
 
@@ -349,13 +208,10 @@ def forecast_test_plotter(run=None, loc0=None):
 	datestrs = list(lats.keys())
 	datestrs.sort()
 
-	#################################################################################################################
-
 	colors = cm.rainbow(np.linspace(0, 1, len(datestrs)))
 	markers = ['o', '^', 's', '*', 'P']
 
 	fig = plt.figure()
-
 	plt.xlabel('Latitude', fontsize=15)
 	plt.ylabel('Longitude', fontsize=15)
 
@@ -374,8 +230,6 @@ def forecast_test_plotter(run=None, loc0=None):
 	plt.tight_layout()
 
 	fig.savefig(fig_dir + 'forecast_results_2018Sept.png')
-
-	#################################################################################################################
 
 	plt.clf()
 
@@ -416,8 +270,6 @@ def forecast_test_plotter(run=None, loc0=None):
 
 		delta_xs[datestr] = delta_x
 
-	#################################################################################################################
-
 	plt.clf()
 
 	plt.xlabel('$\Delta t_{forecast}$ [hours]', fontsize=15)
@@ -433,8 +285,6 @@ def forecast_test_plotter(run=None, loc0=None):
 	plt.tight_layout()
 
 	fig.savefig(fig_dir + 'forecast_results_2018Sept_xvst.png')
-
-	#################################################################################################################
 
 	plt.clf()
 
@@ -459,8 +309,6 @@ def forecast_test_plotter(run=None, loc0=None):
 
 	fig.savefig(fig_dir + 'forecast_results_2018Sept_xvst_lines.png')
 
-	#################################################################################################################
-
 	maxs = []
 	mins = []
 
@@ -468,8 +316,6 @@ def forecast_test_plotter(run=None, loc0=None):
 
 		mins.append(min([delta_xs[datestr][i+1] for datestr in datestrs]))
 		maxs.append(max([delta_xs[datestr][i+1] for datestr in datestrs]))
-
-	#################################################################################################################
 
 	plt.clf()
 
@@ -489,15 +335,18 @@ def forecast_test_plotter(run=None, loc0=None):
 
 	fig.savefig(fig_dir + 'forecast_results_2018Sept_xvst_minmax.png')
 
-#################################################################################################################
+##################################################################################################
 
 if __name__ == '__main__':
 
 	time0 = time.time()
 
-	hr_diffs = np.arange(0, 30, 6)
+	run = sys.argv[1]
 
-	# forecast_tester_looper(datestr='20180901', utc_hour=15, loc0=(48.5, -81.4, 28000), hr_diffs=hr_diffs, print_verbose=True)
-	forecast_flights_looper(hr_diffs=hr_diffs, print_verbose=True)
+	# forecast_flights_plotter(run=run)
+
+	loc0 = float(sys.argv[2]), float(sys.argv[3])
+	forecast_test_plotter(run=run, loc0=loc0)
 
 	print('Total time elapsed: %.1f s' % (time.time() - time0))
+

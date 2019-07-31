@@ -21,12 +21,6 @@ import pyb_aux
 
 import param_file as p
 
-g_0 = 9.80665 # m/s surface acc.
-R0 = 8.3144621 # Ideal gas constant, J/(mol*K)
-R_e = 6371009 # mean Earth radius in meters
-M_air = 0.0289644 # molar mass of air [kg/mol], altitude dependence
-T0 = 288.15 # K
-
 def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
 
 	"""
@@ -295,9 +289,9 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 
 	if descent_only: # h2 = alts_min[grid_i2], h1 = alt0
 		if alts_min[grid_i2] > alt0:
-			data['pressures'][grid_i2] = data['pressures'][grid_i2]/np.exp(-((g_0*M_air)/(T0*R0))*(alts_min[grid_i2] - alt0))
+			data['pressures'][grid_i2] = data['pressures'][grid_i2]/np.exp(-((p.g_0*p.M_air)/(p.T0*p.R0))*(alts_min[grid_i2] - alt0))
 		else:
-			data['pressures'][grid_i2 + 1] = data['pressures'][grid_i2]/np.exp(-((g_0*M_air)/(T0*R0))*(alts_min[grid_i2] - alt0))
+			data['pressures'][grid_i2 + 1] = data['pressures'][grid_i2]/np.exp(-((p.g_0*p.M_air)/(p.T0*p.R0))*(alts_min[grid_i2] - alt0))
 			
 	return data
 
@@ -323,7 +317,7 @@ def read_gfs_single(directory=None, area=None, alt0=0, descent_only=False, step=
 	all_data = []
 
 	fname = os.path.join(directory, (directory + '.grb2'))
-	print('Reading GFS data from ' + fname[-28:])
+	# print('Reading GFS data from ' + fname[-28:])
 	main_run_data = read_gfs_file(fname, area=area, alt0=alt0, descent_only=descent_only, step=step)
 	all_data.append(main_run_data)
 
@@ -331,7 +325,7 @@ def read_gfs_single(directory=None, area=None, alt0=0, descent_only=False, step=
 
 def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
 
-	indir = '/home/ellen/Desktop/SuperBIT/Weather_data/GEFS/'
+	indir = p.path + 'Weather_data/GEFS/'
 
 	if area is not None:
 		tlat, llon, blat, rlon = area
@@ -619,7 +613,7 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 		interpolate = bool(params[-2])
 		drift_time = float(params[-1])
 
-	dir_base = '/home/ellen/Desktop/SuperBIT/Output/' + str(run)
+	dir_base = p.path + 'Output/' + str(run)
 
 	kml_str1 = '<?xml version="1.0" encoding="UTF-8"?>\n'
 	kml_str1 += '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">\n'
@@ -736,7 +730,9 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 	fid.write(kml_str2)
 	fid.close()
 
-def print_verbose(datestr, utc_hour, lat0, lon0, alt0, descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, balloon):
+def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=None):
+
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff = params
 
 	print('General Parameters')
 	print('----------')
@@ -756,13 +752,19 @@ def print_verbose(datestr, utc_hour, lat0, lon0, alt0, descent_only, next_point,
 	print('equipment mass: ' + str(balloon['equip_mass']) + ' kg')
 	print('parachute Cd: ' + str(balloon['Cd_parachute']))
 	print('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2')
-	print('----------\n')
 
-	print('Running date/time: ' + datestr + ', ' + str(utc_hour) + ' hr')
-	print('Starting point: ' + str(lat0) + ' lat., ' + str(lon0) + ' lon., ' + str(alt0) + ' m\n')
+	if datestr != None and utc_hour !=  None:
+		print('----------\n')
+		print('Running date/time: ' + datestr + ', ' + str(utc_hour) + ' hr')
+	if loc0 != None:
+		print('Starting point: ' + str(loc0[0]) + ' lat., ' + str(loc0[1]) + ' lon., ' + str(loc0[2]) + ' m\n')
+	
+	print('----------')
 
 # write parameters of run to file
-def write_verbose(params_dir, datestr, utc_hour, lat0, lon0, alt0, descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, balloon):
+def write_verbose(params_dir, params, balloon):
+
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff = params
 
 	f = open(params_dir + 'params.txt', 'w+')
 	f.write('General parameters\n')
@@ -783,13 +785,16 @@ def write_verbose(params_dir, datestr, utc_hour, lat0, lon0, alt0, descent_only,
 	f.write('equipment mass: ' + str(balloon['equip_mass']) + ' kg\n')
 	f.write('parachute Cd: ' + str(balloon['Cd_parachute']) + '\n')
 	f.write('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2\n')
+
 	f.close()
 
-def write_run_info(add_run_info, run, descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, balloon):
+def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
+
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff = params
 
 	if add_run_info:
 
-		run_info_file = '/home/ellen/Desktop/SuperBIT/Output/runs_info.txt'
+		run_info_file = p.path + 'Output/runs_info.txt'
 
 		lines = [line.rstrip('\n').split(' ') for line in open(run_info_file)]
 		runs = [lines[i][0] for i in range(len(lines)) if i != 0]
@@ -801,3 +806,37 @@ def write_run_info(add_run_info, run, descent_only, next_point, interpolate, dri
 				+ ' ' + str(balloon['balloon_mass']) + ' ' + str(balloon['fill_radius']) + ' ' + str(balloon['radius_empty']) + ' ' + str(balloon['burst_radius']) + ' ' + str(balloon['thickness_empty']) \
 				+ ' ' + str(balloon['Cd_balloon']) + ' ' + str(balloon['simple_ascent_rate']) + ' ' + str(balloon['parachute_change_altitude']))
 		f.close()
+
+def set_params(params=None, balloon=None):
+
+	# balloon parameters
+	if balloon == None:
+		balloon = p.balloon
+
+	next_point = '0'
+
+	if params == None:
+
+		descent_only = p.descent_only
+		if descent_only:
+			next_point = p.next_point
+		interpolate = p.interpolate
+		drift_time = float(p.drift_time)
+		resolution = float(p.resolution)
+		vz_correct = bool(p.vz_correct)
+		hr_diff = int(p.hr_diff)
+
+		params = [descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff]
+		
+	else:
+
+		descent_only = bool(params[0])
+		if descent_only:
+			next_point = str(params[1])
+		interpolate = bool(params[2])
+		drift_time = float(params[3])
+		resolution = float(params[4])
+		vz_correct = bool(params[5])
+		hr_diff = int(params[6])
+
+	return descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon

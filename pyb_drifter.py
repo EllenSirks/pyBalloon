@@ -12,11 +12,14 @@ import pyb_io
 
 import param_file as p
 
-def drifter(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, params=None, run=None, balloon=None, print_verbose=False, write_verbose=True):
+def drifter(datestr=None, utc_hour=None, loc0=None, params=None, run=None, balloon=None, print_verbose=False, write_verbose=True):
 
-	time0 = time.time()
+	out_dir = p.path + 'Output/' 
 
-	out_dir = '/home/ellen/Desktop/SuperBIT/Output/' 
+	if loc0 != None:
+		lat0, lon0, alt0 = loc0
+		lat0, lon0, alt0 = float(lat0), float(lon0), float(alt0)
+		loc0 = lat0, lon0, alt0
 
 	if run == None:
 
@@ -26,41 +29,15 @@ def drifter(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, params
 		files = [filename for filename in os.listdir(out_dir) if now_str in filename]
 		run = now_str + '_' + str(len(files))
 
-	if params == None:
-
-		descent_only = p.descent_only
-		if descent_only:
-			next_point = p.next_point
-		else:
-			next_point = '0'
-		interpolate = p.interpolate
-		resolution = p.resolution
-		vz_correct = p.vz_correct
-		hr_diff = p.hr_diff
-
-	else:
-
-		descent_only = bool(params[0])
-		if descent_only:
-			next_point = str(params[1])
-		else:
-			next_point = '0'
-		interpolate = bool(params[2])
-		resolution = float(params[3])
-		vz_correct = bool(params[4])
-		hr_diff = int(params[5])
-
-	if balloon == None:
-		balloon = p.balloon
-
-	if utc_hour == None or lat0 == None or lon0 == None or alt0 == None:
-		utc_hour, lat0, lon0, alt0 = inf.get_ini(datestr=datestr, descent_only=descent_only, next_point=next_point)
-
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 	drift_times = np.arange(0., 60., 30.)
+	params[3] = drift_times
+
+	if utc_hour == None or loc0 == None:
+		utc_hour, loc0 = inf.get_ini(datestr=datestr, descent_only=descent_only, next_point=next_point)
 
 	if print_verbose:
-		pyb_io.print_verbose(datestr=datestr, utc_hour=utc_hour, lat0=lat0, lon0=lon0, alt0=alt0, descent_only=descent_only, next_point=next_point, interpolate=interpolate,\
-		 drift_time=drift_times, resolution=resolution, vz_correct=vz_correct, hr_diff=hr_diff, balloon=balloon)
+		pyb_io.print_verbose(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon)
 
 	if write_verbose:
 
@@ -68,20 +45,21 @@ def drifter(datestr=None, utc_hour=None, lat0=None, lon0=None, alt0=None, params
 		if not os.path.exists(params_dir):
 			os.makedirs(params_dir)
 
-		pyb_io.write_verbose(params_dir=params_dir, datestr=datestr, utc_hour=utc_hour, lat0=lat0, lon0=lon0, alt0=alt0, descent_only=descent_only, next_point=next_point, interpolate=interpolate,\
-			drift_time=drift_times, resolution=resolution, vz_correct=vz_correct, hr_diff=hr_diff, balloon=balloon)
+		pyb_io.write_verbose(params_dir=params_dir, params=params, balloon=balloon)
 
 	for drift_time in drift_times:
 
-		params = [descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff]
+		params[3] = drift_time
 		print('Running drift time: ' + str(drift_time) + ' minutes')
-		pyb_runner.runner(datestr=datestr, utc_hour=utc_hour, lat0=lat0, lon0=lon0, alt0=alt0, params=params, balloon=balloon, run=run, add_run_info=False)
+		pyb_runner.runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon, run=run, add_run_info=False)
 		print('\n----------\n')
 
 	pyb_io.merge_kml(datestr=datestr, run=run, params=params, balloon=balloon, drift_times=drift_times)
 
-	print('Total time elapsed: %.1f s' % (time.time() - time0))
-
 if __name__ == '__main__':
 
+	time0 = time.time()
+
 	drifter(datestr='20181215', print_verbose=True)
+
+	print('Total time elapsed: %.1f s' % (time.time() - time0))

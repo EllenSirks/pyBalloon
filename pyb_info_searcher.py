@@ -4,9 +4,11 @@ from astropy.io import ascii
 import numpy as np
 import sys
 
+import param_file as p
+
 def get_ini(datestr=None, descent_only=False, next_point='1'):
 
-	dir = '/home/ellen/Desktop/SuperBIT/Flight_data/'
+	inf_dir = p.path + 'Flight_data/'
 
 	if descent_only:
 		fname = 'descent_only_start' + next_point + '.txt'
@@ -14,16 +16,16 @@ def get_ini(datestr=None, descent_only=False, next_point='1'):
 		print('No file with specified flight data!')
 		sys.exit()
 
-	lines = [line.rstrip('\n').split(' ') for line in open(dir + fname)]
+	lines = [line.rstrip('\n').split(' ') for line in open(inf_dir + fname)]
 	for i in range(len(lines)):
 		if lines[i][0] == datestr:
 			break
 
-	return lines[i][1], lines[i][2], lines[i][3], lines[i][4]
+	return lines[i][1], (float(lines[i][2]), float(lines[i][3]), float(lines[i][4]))
 
 def search_info(run=None, print_verbose=True):
 
-	data = ascii.read('/home/ellen/Desktop/SuperBIT/Output/runs_info.txt')
+	data = ascii.read(p.path + 'Output/runs_info.txt')
 	runs = data['run']
 
 	index = np.where(runs == run)[0]

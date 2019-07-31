@@ -1,21 +1,59 @@
 """Pipeline for performing all analysis in one go"""
 
+from astropy.io import ascii
 import datetime as dt
-import time
-import os
+import time, os
 
 import pyb_plotter
-import pyb_looper
-
+import pyb_runner
 import pyb_io
 
 import param_file as p
+
+def looper(params=None, balloon=None, run=None, print_verbose=False, output_figs=False):
+
+	if run == None:
+
+		now = dt.datetime.now()
+		now_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
+
+		files = [filename for filename in os.listdir(out_dir) if now_str in filename]
+		run = now_str + '_' + str(len(files))
+
+	flights_dir = p.path + 'Flight_data/'
+
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+
+	if descent_only:
+		fname = 'descent_only_start' + next_point + '.txt'
+		if not os.path.isfile(flights_dir + fname):
+			print('No file with specified flight data!')
+	else:
+		print('No file with specified flight data!')
+
+	if print_verbose:
+		pyb_io.print_verbose(params=params, balloon=balloon)
+
+	print('\nRunning file: ' + fname)
+
+	lines = [line.rstrip('\n').split(' ') for line in open(flights_dir + fname)]
+	for i in range(len(lines)):
+
+		print('\n----------')
+		print('\nRunning date: ' + lines[i][0])
+		print('Starting point: ' + str(lines[i][2]) + ' lat., ' + str(lines[i][3]) + ' lon., ' + str(lines[i][4]) + ' m')
+
+		try: 
+			pyb_runner.runner(datestr=lines[i][0], utc_hour=lines[i][1], lat0=lines[i][2], lon0=lines[i][3], alt0=lines[i][4], params=params, balloon=balloon, run=run, write_verbose=True, output_figs=output_figs)
+		except Exception as e: 
+			print(e)
+			continue
 
 def pipeline(params=None, balloon=None, print_verbose=False, output_figs=False):
 
 	time0 = time.time()
 
-	out_dir = '/home/ellen/Desktop/SuperBIT/Output/'
+	out_dir = p.path + 'Output/'
 
 	now = dt.datetime.now()
 	now_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
@@ -23,60 +61,18 @@ def pipeline(params=None, balloon=None, print_verbose=False, output_figs=False):
 	files = [filename for filename in os.listdir(out_dir) if now_str in filename]
 	run = now_str + '_' + str(len(files))
 
-	if params == None:
-		descent_only = p.descent_only
-		if descent_only:
-			next_point = p.next_point
-		else:
-			next_point = '0'
-		interpolate = p.interpolate
-		drift_time = p.drift_time
-		resolution = p.resolution
-		vz_correct = p.vz_correct
-		hr_diff = p.hr_diff
-
-		params = [descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff]
-
-	else:
-		descent_only = bool(params[0])
-		if descent_only:
-			next_point = str(params[1])
-		else:
-			next_point = '0'
-		interpolate = bool(params[2])
-		drift_time = float(params[3])
-		resolution = float(params[4])
-		vz_correct = bool(params[5])
-		hr_diff = int(params[6])
-
-	if balloon == None:
-		balloon = p.balloon
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	if print_verbose:
-		print('\nGeneral Parameters')
-		print('----------')
-		print('descent_only: ' + str(descent_only))
-		if descent_only:
-			print('starting point: ' + next_point)
-		print('interpolate: ' + str(interpolate))
-		print('drift time: ' + str(drift_time) + ' minutes')
-		print('resolution of forecasts: ' + str(resolution) + ' degrees')
-		print('correct for vertical winds: ' + str(vz_correct))
-		print('difference in hrs for forecasts: ' + str(hr_diff) + ' hours')
-		print('----------')
-		print('\nBalloon/Parachute Parameters')
-		print('----------')
-		print('altitude step: ' + str(balloon['altitude_step']) + ' m')
-		print('equipment mass: ' + str(balloon['equip_mass']) + ' kg')
-		print('parachute Cd: ' + str(balloon['Cd_parachute']))
-		print('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2')
-		print('----------')
+		print_verbose(params=params, balloon=balloon)
 
-	pyb_looper.looper(params=params, balloon=balloon, run=run, output_figs=output_figs)
+	looper(params=params, balloon=balloon, run=run, output_figs=output_figs)
 	pyb_plotter.plot_rates(params=params, run=run, all_plots=False)
 	pyb_plotter.plot_results(params=params, run=run)
 
-	print('Program finished. Total time elapsed: %.1f s' % (time.time() - time0))
+	sys.stdout.write('\r')
+	sys.stdout.flush()
+	sys.stdout.write(('Program finished in ' + str(round((time.time() - time0), 1)) + ' s').ljust(60) + '\n')
 
 if __name__ == '__main__':
 

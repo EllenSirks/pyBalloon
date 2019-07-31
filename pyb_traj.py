@@ -2,6 +2,7 @@
 
 import numpy as np
 import time
+import sys
 
 import matplotlib.pyplot as plt
 
@@ -10,13 +11,8 @@ plt.rcParams["font.family"] = "serif"
 import get_gfs
 import pyb_aux
 import pyb_io
-import test
 
-g_0 = 9.80665 # m/s surface acc.
-R0 = 8.3144621 # Ideal gas constant, J/(mol*K)
-R_e = 6371009 # mean Earth radius in meters
-M_air = 0.0289644 # molar mass of air [kg/mol], altitude dependence
-T0 = 288.15 # K
+import param_file as p
 
 # method to calculate the fractions needed for interpolation
 # e.g. if time is 10 then on the lhs we have 6 and on the rhs we have 12, 10 is then 2/3 of the way away from 6 and 1/3 away from 12.
@@ -50,17 +46,20 @@ def calc_time_frac(current_time=None, weather_times=None, weather_files=None):
 # method to read in model data
 def read_data(loc0=None, weather_file=None, balloon=None, descent_only=False):
 
-	time0 = time.time()
-
 	lat0, lon0, alt0 = loc0
 
-	in_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
+	in_dir = p.path + 'Weather_data/GFS/'
 
 	tile_size = 6. # degrees (read a tile this wide/high from the GFS grb2 file)
 	area = (lat0 + (tile_size/2.), lon0 - (tile_size/2.), lat0 - (tile_size/2.), lon0 + (tile_size/2.)) # note top, left, bottom, right ordering for area
 
+	sys.stdout.write('\r')
+	sys.stdout.flush()
+	sys.stdout.write('Reading GFS data from ' + str(weather_file) + '.grb2...'.ljust(20))
+	sys.stdout.flush()
+
 	model_data = pyb_io.read_gfs_single(directory=in_dir + weather_file, area=area, alt0=alt0, descent_only=descent_only, step=balloon['altitude_step'])[0]
-	print('GFS data read, %.1f s elapsed' % (time.time() - time0))
+	# print('GFS data read')
 
 	return model_data
 
@@ -114,17 +113,13 @@ def calc_properties(data=None, weather_file=None, loc0=None, balloon=None, desce
 		if 'simple_ascent_rate' in balloon:
 			data['ascent_speeds'] = np.ones_like(data['ascent_speeds']) * balloon['simple_ascent_rate']
 
-	time0 = time.time()
-
 	data, figs_dict = pyb_aux.data_interpolation(data, alt0, balloon['altitude_step'], mode='spline', descent_only=descent_only, output_figs=output_figs)
-
-	print('Interpolation done, %.3f s elapsed' % (time.time() - time0) + '\n')
 
 	return data, figs_dict
 
 def calc_displacements(data=None, balloon=None, descent_only=False, vz_correct=False):
 
-	g = g_0 * (R_e / (R_e + data['altitudes']))**2
+	g = p.g_0 * (p.R_e / (p.R_e + data['altitudes']))**2
 	data['z_speeds'] = -data['omegas']/(data['air_densities']*g)
 
 	data['descent_speeds'] = pyb_aux.descent_speed(data, balloon['equip_mass'], balloon['Cd_parachute'], balloon['parachute_areas'], balloon['altitude_step'], balloon['parachute_change_altitude'])
@@ -155,7 +150,9 @@ def calc_displacements(data=None, balloon=None, descent_only=False, vz_correct=F
 
 # method to update weather files to newest available
 def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None, balloon=None, datestr=None, utc_hour=None, loc0=None, \
-	total_time=0, checks=None, index=0, descent_only=True, interpolate=False, resolution=0.5, vz_correct=False, output_figs=False):
+	total_time=0, checks=None, index=0, params=None, output_figs=False):
+
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	res = str(int(-4*resolution + 6))
 
@@ -173,7 +170,11 @@ def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None
 		key = keys[j]
 		if int(current_time) == key and current_time >= key and checks[j] == 0. and old_hhhh != new_hhhh:
 
-			print('Updating current weather file...')
+			sys.stdout.write('\r')
+			sys.stdout.flush()
+			sys.stdout.write('Updating current weather file...'.ljust(60) + '\r')
+			sys.stdout.flush()
+			time.sleep(0.5)
 
 			new_weather_file = 'gfs_' + res + '_' + datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh1).zfill(3) + '.grb2'
 			new_weather_file = get_gfs.get_gfs_files(weather_files=[new_weather_file])[0]
@@ -187,7 +188,11 @@ def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None
 	# add new weather file if current time is past 'latest' weather file
 	if current_time > max(keys) + 1.5 or (interpolate and current_time > max(keys)):
 
-		print('Adding new weather file...')
+		sys.stdout.write('\r')
+		sys.stdout.flush()
+		sys.stdout.write('Adding new weather file...'.ljust(60) + '\r')
+		sys.stdout.flush()
+		time.sleep(0.5)
 
 		if not interpolate:
 
@@ -219,16 +224,18 @@ def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None
 	return data, keys, checks, index, figs
 
 # method to calculate the trajectory of the balloon/parachute given a start position & other input parameters
-def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=None, alt_change_fit=10, descent_only=False, interpolate=False, drift_time=0, resolution=0.5, vz_correct=False, hr_diff=0, output_figs=False):
+def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, alt_change_fit=10, output_figs=False):
 
 	time0 = time.time()
 
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 	lat0, lon0, alt0 = loc0
 
 	keys = list(data.keys())
 	checks = [0. for key in keys]
 
 	hrs = np.array([0., 6., 12., 18.])
+
 	if not interpolate:
 		if int(float(utc_hour)) in hrs:
 			hr = hrs[np.where(hrs == int(float(utc_hour)))[0][0]]
@@ -254,15 +261,15 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 	if lat_rad[0] < 0:
 		lat_rad[0] += 2*np.pi
 
-	total_time, dists, dists_u, dists_v = [0], [0], [0], [0]
 	speeds, z_speeds, omegas, temperatures, sigmas_u, sigmas_v, grid_spreads_u, grid_spreads_v = [], [], [], [], [], [], [], []
+	total_time, dists, dists_u, dists_v = [0], [0], [0], [0]
 
 	while True:
 
 		if hr_diff == 0:
 
 			data, keys, checks, index, figs = update_files(figs=figs, data=data, lat_rad=lat_rad, lon_rad=lon_rad, all_alts=all_alts, balloon=balloon, datestr=datestr, utc_hour=utc_hour, \
-				loc0=loc0, total_time=total_time, checks=checks, index=index, descent_only=descent_only, interpolate=interpolate , resolution=resolution, vz_correct=vz_correct, output_figs=output_figs)
+				loc0=loc0, total_time=total_time, checks=checks, index=index, params=params, output_figs=output_figs)
 
 		# Find the closest grid point
 		diff = np.sqrt((data_lats - lat_rad[-1])**2 + (data_lons - lon_rad[-1])**2)
@@ -280,7 +287,13 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 
 		if stage == 1:
 			if i == 0:
-				print('Calculating ascent...')
+				# print('Calculating ascent...')
+
+				sys.stdout.write('\r')
+				sys.stdout.flush()
+				sys.stdout.write('Calculating ascent...'.ljust(60) + '\r')
+				sys.stdout.flush()
+				time.sleep(1)
 
 			if descent_only:
 
@@ -346,7 +359,12 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 		if stage == 2:
 
 			if timer == 0:
-				print('Calculating drift trajectory...')
+
+				sys.stdout.write('\r')
+				sys.stdout.flush()
+				sys.stdout.write('Calculating drift trajectory...'.ljust(60) + '\r')
+				sys.stdout.flush()
+				time.sleep(1)
 
 			dt = 5 # seconds
 
@@ -397,7 +415,12 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 		if stage == 3:
 
 			if i == final_i:
-				print('Calculating descent...\n')
+	
+				sys.stdout.write('\r')
+				sys.stdout.flush()
+				sys.stdout.write('Calculating descent...'.ljust(60) + '\r')
+				sys.stdout.flush()
+				time.sleep(1)
 
 			# calculate change in latitude & longitude, and distance travelled
 			if interpolate:
@@ -419,80 +442,6 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 				# sigma_u = (f1*data[t1]['u_wind_errs'][grid_i_err, i] + f2*data[t2]['u_wind_errs'][grid_i_err, i])*dt
 				# sigma_v = (f1*data[t1]['v_wind_errs'][grid_i_err, i] + f2*data[t2]['v_wind_errs'][grid_i_err, i])*dt
 
-				if output_figs:
-
-					wind_fig = []
-
-					dx2 = np.copy(data[t1]['dxs_down'][:, i])
-					dx2 = np.array([x for _,x in sorted(zip(data_lats, dx2))])
-					dx2 = dx2.reshape(size, size)
-					dx2 = np.array([dx2[:, j] for j in range(len(dx2[0]))])
-
-					dy2 = np.copy(data[t1]['dys_down'][:, i])
-					dy2 = np.array([x for _,x in sorted(zip(data_lats, dy2))])
-					dy2 = dy2.reshape(size, size)
-					dy2 = np.array([dy2[:, j] for j in range(len(dy2[0]))])
-
-					dx3 = np.copy(data[t2]['dxs_down'][:, i])
-					dx3 = np.array([x for _,x in sorted(zip(data_lats, dx3))])
-					dx3 = dx3.reshape(size, size)
-					dx3 = np.array([dx3[:, j] for j in range(len(dx3[0]))])
-
-					dy3 = np.copy(data[t2]['dys_down'][:, i])
-					dy3 = np.array([x for _,x in sorted(zip(data_lats, dy3))])
-					dy3 = dy3.reshape(size, size)
-					dy3 = np.array([dy3[:, j] for j in range(len(dy3[0]))])
-
-					fig = plt.figure()
-
-					im = plt.imshow(dx2, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])				
-					color_bar = plt.colorbar()
-					color_bar.set_label('dx down [m/s]', fontsize=15)
-					plt.xlabel('Latitude', fontsize=15)
-					plt.ylabel('Longitude', fontsize=15)
-					plt.plot(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), 'r-', linewidth=1)
-					plt.tight_layout()
-
-					wind_fig.append(fig)
-
-					plt.clf()
-
-					im = plt.imshow(dx3, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])				
-					color_bar = plt.colorbar()
-					color_bar.set_label('dx down [m/s]', fontsize=15)
-					plt.xlabel('Latitude', fontsize=15)
-					plt.ylabel('Longitude', fontsize=15)
-					plt.plot(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), 'r-', linewidth=1)
-					plt.tight_layout()
-
-					wind_fig.append(fig)
-
-					plt.clf()
-
-					im = plt.imshow(dy2, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])
-					color_bar = plt.colorbar()
-					color_bar.set_label('dy down [m/s]', fontsize=15)
-					plt.xlabel('Latitude', fontsize=15)
-					plt.ylabel('Longitude', fontsize=15)
-					plt.plot(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), 'r-', linewidth=1)
-					plt.tight_layout()
-
-					wind_fig.append(fig)
-
-					plt.clf()
-
-					im = plt.imshow(dy3, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])
-					color_bar = plt.colorbar()
-					color_bar.set_label('dy down [m/s]', fontsize=15)
-					plt.xlabel('Latitude', fontsize=15)
-					plt.ylabel('Longitude', fontsize=15)
-					plt.plot(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), 'r-', linewidth=1)
-					plt.tight_layout()
-
-					wind_fig.append(fig)
-
-					wind_figs[alts[i]] = wind_fig
-
 			else:
 
 				dx = data[keys[index]]['dxs_down'][grid_i, i]
@@ -511,48 +460,6 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 
 				# sigma_u = (data[keys[index]]['u_wind_errs'][grid_i_err, i])*dt
 				# sigma_v = (data[keys[index]]['v_wind_errs'][grid_i_err, i])*dt
-
-				if output_figs:
-
-					wind_fig = []
-
-					dx2 = np.copy(data[keys[index]]['dxs_down'][:, i])
-					dx2 = np.array([x for _,x in sorted(zip(data_lats, dx2))])
-					dx2 = dx2.reshape(size, size)
-					dx2 = [dx2[:, j] for j in range(len(dx2[0]))]
-
-					dy2 = np.copy(data[keys[index]]['dys_down'][:, i])
-					dy2 = np.array([x for _,x in sorted(zip(data_lats, dy2))])
-					dy2 = dy2.reshape(size, size)
-					dy2 = [dy2[:, j] for j in range(len(dy2[0]))]
-
-					fig = plt.figure()
-
-					# im = plt.imshow(dx2, vmin=-300, vmax=300, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])
-					im = plt.imshow(dx2, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])				
-					color_bar = plt.colorbar()
-					color_bar.set_label('dx down [m/s]', fontsize=15)
-					plt.xlabel('Latitude', fontsize=15)
-					plt.ylabel('Longitude', fontsize=15)
-					plt.plot(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), 'r-', linewidth=1)
-					plt.tight_layout()
-
-					wind_fig.append(fig)
-
-					plt.clf()
-
-					# im = plt.imshow(dy2, vmin=-300, vmax=300, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])
-					im = plt.imshow(dy2, extent=[np.degrees(min(data_lats)), np.degrees(max(data_lats)), np.degrees(min(data_lons)), np.degrees(max(data_lons))])
-					color_bar = plt.colorbar()
-					color_bar.set_label('dy down [m/s]', fontsize=15)
-					plt.xlabel('Latitude', fontsize=15)
-					plt.ylabel('Longitude', fontsize=15)
-					plt.plot(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), 'r-', linewidth=1)
-					plt.tight_layout()
-
-					wind_fig.append(fig)
-
-					wind_figs[alts[i]] = wind_fig
 
 			elevation = pyb_aux.get_elevation(lat=np.degrees(lat_rad[-1]), lon=np.degrees(lon_rad[-1]))
 			if i == 0 or alts[i] <= elevation:
@@ -606,11 +513,6 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 	lon_rad.append(np.radians(new_end_point[1]))
 	all_alts.append(new_alt)
 
-	if output_figs:
-		wind_dict = {}
-		wind_dict['wind_speeds'] = wind_figs
-		figs.append(wind_dict)
-
 	# Convert the result array lists to Numpy 2D-arrays
 	output = {}
 	output['lats'] = np.degrees(np.array(lat_rad)) # to decimal degrees
@@ -631,7 +533,11 @@ def calc_movements(data=None, loc0=None, datestr=None, utc_hour=None, balloon=No
 	# output['sigmas_v'] = np.array(sigmas_v)
 
 	# print out relevant quantities
-	print('Trajectories calculated, %.3f s elapsed' % (time.time() - time0) + '\n')
+	sys.stdout.write('\r')
+	sys.stdout.flush()
+	sys.stdout.write('Trajectories calculated'.ljust(60))
+	sys.stdout.write('\n')
+
 	print('Maximum altitude: ' + str(np.max(all_alts)) + ' m')
 	print('Landing location: (%.6f, %.6f)' % (output['lats'][-1], output['lons'][-1]))
 	print('Flight time: %d min' % (int(output['times'][-1])) + ', distance travelled: %.1f' % output['distance'] + ' km')
@@ -650,9 +556,9 @@ def prepare_data(weather_file=None, loc0=None, current_time=None, balloon=None, 
 	return model_data3, figs_dict
 
 # method to pull everything together and return the trajectory
-def run_traj(weather_files=None, loc0=None, datestr=None, utc_hour=None, balloon=None, descent_only=False, interpolate=False, drift_time=0, resolution=0.5, vz_correct=False, hr_diff=0, output_figs=False):
+def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, output_figs=False):
 
-	time0 = time.time()
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	data_array = {}
 	figs1 = []
@@ -662,8 +568,7 @@ def run_traj(weather_files=None, loc0=None, datestr=None, utc_hour=None, balloon
 		data_array[int(int(weather_file[15:19])/100.) + int(weather_file[20:23])] = model_data
 		figs1.append(figs_dict)
 
-	trajectories, figs2 = calc_movements(data=data_array, loc0=loc0, datestr=datestr, utc_hour=utc_hour, balloon=balloon, descent_only=descent_only, interpolate=interpolate, \
-		drift_time=drift_time, resolution=resolution, vz_correct=vz_correct, hr_diff=hr_diff, output_figs=output_figs)
+	trajectories, figs2 = calc_movements(data=data_array, datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon, output_figs=output_figs)
 
 	for fig_dict in figs2:
 		figs1.append(fig_dict)

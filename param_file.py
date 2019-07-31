@@ -2,6 +2,9 @@
 
 import numpy as np
 
+# general path
+path = '/home/ellen/Desktop/SuperBIT_DRS/'
+
 # general parameters
 descent_only = True
 next_point = '1'
@@ -30,3 +33,13 @@ balloon['parachute_areas'] = [1.62]
 # balloon['parachute_areas'] = np.pi * np.array([radius])**2 # m^2
 # balloon['parachute_areas'] = 2*np.array([radius])**2 # m^2
 balloon['parachute_change_altitude'] = None # meters
+
+# constants
+g_0 = 9.80665 # m/s surface acc.
+R0 = 8.3144621 # Ideal gas constant, J/(mol*K)
+R_e = 6371009 # mean Earth radius in meters
+M_air = 0.0289644 # molar mass of air [kg/mol], altitude dependence
+T0 = 288.15 # K
+M_helium = 4.002602 # molar mass of helium [kg/mol], altitude dependence
+Cd_sphere = 0.47 # Drag coefficient for a sphere
+

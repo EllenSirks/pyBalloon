@@ -19,14 +19,6 @@ import pyb_io
 
 import param_file as p
 
-# necessary constants
-g_0 = 9.80665 # Earth gravitational acceleration at surface
-R_e = 6371009 # mean Earth radius in meters
-R = 8.3144621 # Ideal gas constant
-M_air = 0.0289644 # molar mass of air [kg/mol], altitude dependence
-M_helium = 4.002602
-Cd_sphere = 0.47 # Drag coefficient for a sphere
-
 def all_and(data):
     """Logical and for a list of arrays.
     
@@ -60,15 +52,15 @@ def earth_radius(lat_rad):
 # method to calculate the air density
 def air_density(data):
 
-    p = data['pressures'] # Pa
-    T = data['temperatures'] # K
+    ps = data['pressures'] # Pa
+    Ts = data['temperatures'] # K
 
-    if p.shape != T.shape:
-        x, y = p.shape
-        rho = [np.array((p[:, i] * M_air)/(R * T)) for i in range(0, y)]
+    if ps.shape != Ts.shape:
+        x, y = ps.shape
+        rho = [np.array((ps[:, i] * p.M_air)/(p.R0 * Ts)) for i in range(0, y)]
         rho = np.array(rho).transpose()
     else:
-        rho = (p * M_air)/(R * T)
+        rho = (ps * p.M_air)/(p.R0 * Ts)
 
     return rho # kg m-3
 
@@ -175,7 +167,7 @@ def lift(data, mass):
     h = data['altitudes']
     V_b = data['balloon_volumes']
     rho_air = data['air_densities']
-    g = g_0 * (R_e / (R_e + h))**2 # Gravitational acceleration at height h
+    g = p.g_0 * (p.R_e / (p.R_e + h))**2 # Gravitational acceleration at height h
 
     F_lift = g * (V_b*rho_air - mass)
 
@@ -198,7 +190,7 @@ def balloon_volume(data):
     return V
 
 
-def balloon_volume_ideal_gas(data, gas_mass, gas_molar_mass=M_helium):
+def balloon_volume_ideal_gas(data, gas_mass, gas_molar_mass=p.M_helium):
     """Calculate gas (~balloon) volume based on ideal gas law: pV = nRT.
 
     Required arguments:
@@ -215,11 +207,11 @@ def balloon_volume_ideal_gas(data, gas_mass, gas_molar_mass=M_helium):
     m = gas_mass # 
     M = gas_molar_mass/1000. # default to Helium, convert to kg/mol
 
-    T = data['temperatures']
-    p = data['pressures'] # pressure in Pascals
+    Ts = data['temperatures']
+    ps = data['pressures'] # pressure in Pascals
 
     # gas volume without the balloon
-    V = m*R*T/(M*p) # pV = nRT, n = m/M
+    V = m*p.R0*Ts/(M*ps) # pV = nRT, n = m/M
 
     return V
 
@@ -264,7 +256,7 @@ def neutral_buoyancy_level(data):
     return np.array(alt_out), np.array(i_out)
 
 
-def ascent_speed(data, mass, Cd=Cd_sphere):
+def ascent_speed(data, mass, Cd=p.Cd_sphere):
     """Calculate the rate of ascent (in m/s) for the inflated balloon at given levels.
 
     Required arguments:
@@ -285,7 +277,7 @@ def ascent_speed(data, mass, Cd=Cd_sphere):
     V = data['balloon_volumes']
     h = data['altitudes']
 
-    g = g_0 * (R_e / (R_e + h))**2
+    g = p.g_0 * (p.R_e / (p.R_e + h))**2
 
     Fb = V*rho*g # byoyance
     Fg = m*g     # gravity
@@ -323,7 +315,7 @@ def descent_speed(data, mass, Cd, areas, alt_step, change_alt=None):
 
     m = mass
     h = data['altitudes']
-    g = g_0 * (R_e / (R_e + h))**2 # Gravitational acceleration at height h
+    g = p.g_0 * (p.R_e / (p.R_e + h))**2 # Gravitational acceleration at height h
 
     speeds = []
     if change_alt is not None:
@@ -340,22 +332,22 @@ def descent_speed(data, mass, Cd, areas, alt_step, change_alt=None):
     return -1*np.array(speeds)
     
 
-def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_mass=M_helium):
+def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_mass=p.M_helium):
 
     r0 = radius_empty # in meters
     r1 = radius_filled # in meters
     t0 = thickness_empty # in meters
     M = gas_molar_mass / 1000. # convert to kg/mol
-    p = data['pressures']
+    ps = data['pressures']
     p0 = p[0]
-    T = data['temperatures']
+    Ts = data['temperatures']
     T0 = T[0]
 
     mu = 300000. # balloon shear modulus in Pascals
     alfa = 10./11.
 
     # Amount of gas in moles
-    n = (4/3. * np.pi * r1**3)/(R*T0) * (p0 - 2*mu*(t0/r0)*((r0/r1) - (r0/r1)**7) * (1 + (1/alfa - 1) * (r1/r0)**2))
+    n = (4/3. * np.pi * r1**3)/(p.R0*T0) * (p0 - 2*mu*(t0/r0)*((r0/r1) - (r0/r1)**7) * (1 + (1/alfa - 1) * (r1/r0)**2))
     gas_mass = n*M
 
     # Solve balloon-radius-roots for each height level
@@ -374,7 +366,7 @@ def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_
         for i in range(0, x):
             radii = []
             for j in range(0, y):
-                a4 = -3*n[j]*R/(4*np.pi)
+                a4 = -3*n[j]*p.R0/(4*np.pi)
                 # 8th degree polynomial
                 poly = [a8,        # r^8
                         p[i,j],    # r^7
@@ -396,7 +388,7 @@ def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_
 
     except ValueError:        
         for i in range(0, len(p)):
-            a4 = -3*n*R/(4*np.pi)
+            a4 = -3*n*p.R0/(4*np.pi)
             # 8th degree polynomial
             poly = [a8,        # r^8
                     p[i],    # r^7
@@ -421,7 +413,7 @@ def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_
 def get_elevation(lon, lat):
 
     SAMPLES = 1201  # Change this to 3601 for SRTM1
-    HGTDIR = '/home/ellen/Desktop/SuperBIT/SRTM_data/'
+    HGTDIR = p.path + 'SRTM_data/'
 
     if lat > 180:
         lat -= 360
@@ -456,7 +448,7 @@ def get_elevation(lon, lat):
             return elevations[SAMPLES - 1 - lat_row, lon_row].astype(int)
 
 # method to get more accurate endpoint for predictions as they can go underground.
-def get_endpoint(data=None, filename=None, params=None):
+def get_endpoint(data=None, run=None, filename=None, params=None):
 
     if params == None:
         descent_only = p.descent_only
@@ -473,15 +465,9 @@ def get_endpoint(data=None, filename=None, params=None):
         interpolate = bool(params[-2])
         drift_time = float(params[-1])
 
-    if descent_only:
-        fext = 'descent_only/start_point' + next_point + '/'
-    else:
-        fext = 'ascent+descent/'
+    if data == None and run != None:
 
-    dir_pred = '/home/ellen/Desktop/SuperBIT/Weather_data/Trajectories/' + fext
-
-    if data == None:
-
+        dir_pred = p.path + 'Weather_data/Trajectories/' + run + '/'
         data  = ascii.read(dir_pred + filename)
 
         lats = data['lats']
@@ -494,8 +480,6 @@ def get_endpoint(data=None, filename=None, params=None):
         lats, lons, alts, dists = data
 
     elevations = []
-
-    print('Checking altitudes & elevations...')
 
     for i in range(1, len(lats)):
         elevation = get_elevation(lat=lats[-i], lon=lons[-i])
@@ -527,7 +511,7 @@ def get_endpoint(data=None, filename=None, params=None):
 
 def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only=False):
 
-    indir = '/home/ellen/Desktop/SuperBIT/Weather_data/GEFS/'
+    indir = p.path + 'Weather_data/GEFS/'
 
     tile_size = 10.0
     lat0, lon0, alt0 = loc0

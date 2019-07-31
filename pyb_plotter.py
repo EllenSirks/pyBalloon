@@ -114,8 +114,13 @@ def get_rates(params=None, run=None):
 					alts.append(int(data_gps[i][4]))
 					times.append(data_gps[i][1])
 
-			ind = int(np.where(alts == np.max(alts))[0]) + add
-			alt0 = np.max(alts)
+			alts = np.array(alts)
+
+			if datestr_pred == '20190209':
+				ind = int(np.where(alts == 14905)[0]) + add
+			else:
+				ind = int(np.where(alts == np.max(alts))[0]) + add
+				alt0 = np.max(alts)
 
 			descent_rates_gps[datestr_pred] = np.array([float((alts[i+1] - alts[i]))/(dt.datetime.strptime(times[i+1], FMT) - dt.datetime.strptime(times[i], FMT)).seconds for i in range(ind, len(alts)-2)])
 			alts_gps[datestr_pred] = np.array([alts[i] for i in range(ind, len(alts) -2)])
@@ -123,8 +128,6 @@ def get_rates(params=None, run=None):
 	return (descent_rates_gps, descent_rates_pred, z_rates_pred, omegas_pred, alts_gps, alts_pred), dir_pred
 
 def plot_rates(data=None, params=None, dir_pred=None, all_plots=True, run=None):
-
-	time0 = time.time()
 
 	print('Plotting properties...')
 
@@ -345,11 +348,7 @@ def plot_rates(data=None, params=None, dir_pred=None, all_plots=True, run=None):
 
 	fig.savefig(fig_dir + 'vdescent_all_fit.png')
 
-	print('Total time elapsed: %.1f s' % (time.time() - time0))
-
 def plot_results(run=None, params=None):
-
-	time0 = time.time()
 
 	print('Plotting final results...')
 
@@ -578,58 +577,38 @@ def plot_results(run=None, params=None):
 
 	fig.savefig(fig_dir + 'dvsvspreads.png')
 
-	#### error in distance vs. initial altitude ####
 
-	# plt.clf()
+	plt.clf()
 
-	# plt.axhline(mean, linestyle='--', color='black', linewidth=1, label='Avg. error: ' + str(round(mean, 1)) + ' km')
-	# plt.axhline(5, linestyle='--', color='red', linewidth=1, label='5 km')
-	# plt.axvline(np.mean(alts), linestyle='--', color='blue', linewidth=0.5, label='Avg. altitude: ' + str(round(np.mean(alts), 1)) + ' km')
+	plt.axvline(np.mean(dists), linestyle='--', color='blue', linewidth=0.5, label='Avg. distance: ' + str(round(np.mean(dists), 1)) + ' km')
+	plt.axhline(np.mean(grid_spreads_u)/1000., linestyle='--', color='red', linewidth=0.5, label='Avg. spread: ' + str(round(np.mean(grid_spreads_u)/1000., 1)) + ' km')
 
-	# plt.plot(alts, ds, 'ro')
+	plt.plot(dists, np.array(grid_spreads_u)/1000., 'ro')
 
-	# plt.xlabel('Initial Altitude [km]', fontsize=15)
-	# plt.ylabel('Error in distance [km]', fontsize=15)
-	# plt.legend(loc='best', prop={'size': 10})
-	# plt.grid(True)
+	plt.ylabel('Spread in u direction [km]', fontsize=15)
+	plt.xlabel('Total Distance Travelled [km]', fontsize=15)
+	plt.legend(loc='best', prop={'size': 10})
 
-	# fig.savefig(fig_dir + 'dvsh.png')
+	plt.grid(True)
+	plt.tight_layout()
 
-	#### error in distance vs. latitude ####
+	fig.savefig(fig_dir + 'uspreadsvsdist.png')
 
-	# plt.clf()
+	plt.clf()
 
-	# plt.axhline(mean, linestyle='--', color='black', linewidth=1, label='Avg. error: ' + str(round(mean, 1)) + ' km')
-	# plt.axvline(np.mean(lats), linestyle='--', color='blue', linewidth=0.5, label='Avg. latitude: ' + str(round(np.mean(lats), 1)) + '$^\circ$')
-	# plt.axhline(5, linestyle='--', color='red', linewidth=1, label='5 km')
+	plt.axvline(np.mean(dists), linestyle='--', color='blue', linewidth=0.5, label='Avg. distance: ' + str(round(np.mean(dists), 1)) + ' km')
+	plt.axhline(np.mean(grid_spreads_v)/1000., linestyle='--', color='red', linewidth=0.5, label='Avg. spread: ' + str(round(np.mean(grid_spreads_v)/1000., 1)) + 'km')
 
-	# plt.plot(lats, ds, 'ro')
+	plt.plot(dists, np.array(grid_spreads_v)/1000., 'ro')
 
-	# plt.xlabel('Initial Latitude [$^\circ$]', fontsize=15)
-	# plt.ylabel('Error in distance [km]', fontsize=15)
-	# plt.legend(loc='best', prop={'size': 10})
-	# plt.grid(True)
+	plt.ylabel('Spread in v direction [km]', fontsize=15)
+	plt.xlabel('Total Distance Travelled [km]', fontsize=15)
+	plt.legend(loc='best', prop={'size': 10})
 
-	# fig.savefig(fig_dir + 'dvslat.png')
+	plt.grid(True)
+	plt.tight_layout()
 
-	#### error in distance vs. longitude ####
-
-	# plt.clf()
-
-	# plt.axhline(mean, linestyle='--', color='black', linewidth=1, label='Avg. error: ' + str(round(mean, 1)) + ' km')
-	# plt.axvline(np.mean(lons), linestyle='--', color='blue', linewidth=0.5, label='Avg. longitude: ' + str(round(np.mean(lons), 1)) + '$^\circ$')
-	# plt.axhline(5, linestyle='--', color='red', linewidth=1, label='5 km')
-
-	# plt.plot(lons, ds, 'ro')
-
-	# plt.xlabel('Initial Longitude [$^\circ$]', fontsize=15)
-	# plt.ylabel('Error in distance [km]', fontsize=15)
-	# plt.legend(loc='best', prop={'size': 10})
-	# plt.grid(True)
-
-	# fig.savefig(fig_dir + 'dvslon.png')
-
-	print('Total time elapsed: %.1f s' % (time.time() - time0))
+	fig.savefig(fig_dir + 'vspreadsvsdist.png')
 
 # method to match prediction to gps file
 def match_pred2gps(date):
@@ -671,9 +650,14 @@ def match_gps2pred(date):
 
 if __name__ == '__main__':
 
+	time0 = time.time()
+
 	if len(sys.argv) > 1:
 		run = sys.argv[1]
 	else:
 		run = None
 
-	plot_results()
+	plot_rates(run=run)
+	plot_results(run=run)
+
+	print('Total time elapsed: %.1f s' % (time.time() - time0))

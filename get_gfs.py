@@ -4,6 +4,9 @@ import numpy as np
 import requests
 import sys, os
 import math
+import time
+
+import param_file as p
 
 # method to find & download latest weather file
 def get_latest_gfs_file(resolution=0.5):
@@ -15,7 +18,7 @@ def get_latest_gfs_file(resolution=0.5):
 	now_hour = int(round(now.hour - 1 + now.minute/60.)) ### using UTC time
 	now_date_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
 
-	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
+	out_dir = p.path + 'Weather_data/GFS/'
 	url_base = 'https://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/'
 
 	req = requests.get(url_base)
@@ -70,11 +73,17 @@ def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5):
 # method to find & download weather_file nearest in time to time of ascent/descent
 def get_closest_gfs_file(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0):
 
-	print('Finding closest gfs file...')
+	# print('Finding closest gfs file...')
+
+	sys.stdout.write('\r')
+	sys.stdout.flush()
+	sys.stdout.write('Finding closest gfs file...'.ljust(60) + '\r')
+	sys.stdout.flush()
+	time.sleep(1)
 
 	res = str(int((-4*resolution + 6)))
 
-	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
+	out_dir = p.path + 'Weather_data/GFS/'
 	now = dt.datetime.now()
 
 	hrs = get_closest_hr(datestr=datestr, utc_hour=utc_hour, hr_diff=hr_diff) ### change here!!
@@ -93,7 +102,7 @@ def get_closest_gfs_file(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0)
 
 def get_gfs_files(weather_files=None): # files should be formatted like; gfs_x_datestr_hhhh_hhh.grb2
 
-	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GFS/'
+	out_dir = p.path + 'Weather_data/GFS/'
 	now = dt.datetime.now()
 
 	for file in weather_files:
@@ -124,7 +133,7 @@ def get_gfs_files(weather_files=None): # files should be formatted like; gfs_x_d
 		second_file = 'gfs_' + res2 + '_' + datestr + '_' + hhhh + '_' + hhh + '.grb2'
 
 		if os.path.isfile(out_dir + second_file) and float(os.stat(out_dir + second_file).st_size) > 40000000.:
-			print(file + ' already downloaded!')
+			# print(file + ' already downloaded!')
 			continue
 
 		download_file(path_file=filename, out_dir=out_dir)
@@ -137,7 +146,7 @@ def get_gfs_files(weather_files=None): # files should be formatted like; gfs_x_d
 
 def get_gefs_files(datestr=None, utc_hour=None): # gfs files we wish to have the gefs for, in format: gfs_x_datestr_hhhh_hhh.grb2
 
-	out_dir = '/home/ellen/Desktop/SuperBIT/Weather_data/GEFS/'
+	out_dir = p.path + 'Weather_data/GEFS/'
 	now = dt.datetime.now()
 
 	url_base = 'https://www.ftp.ncep.noaa.gov/data/nccf/com/gens/prod/'
@@ -187,9 +196,12 @@ def download_file(path_file=None, out_dir=None):
 	else:
 		cookies = None
 
-	print('Downloading ' + os.path.basename(path_file) + '...')
-
 	req = requests.get(path_file, cookies = cookies, allow_redirects=True, stream=True)
+
+	if req.ok is not True:
+		print('Cannot download ' + str(file) + ' this way! Check spelling or go to: https://www.ncdc.noaa.gov/has/HAS.DsSelect')
+		sys.exit()
+
 	filesize = int(req.headers['Content-length'])
 	with open(out_dir + file, 'wb') as outfile:
 		chunk_size = 1048576
@@ -198,15 +210,15 @@ def download_file(path_file=None, out_dir=None):
 			if chunk_size < filesize:
 				check_file_status(out_dir + file, filesize)
 	check_file_status(out_dir + file, filesize)
-	print()
 
 # method to check what percentage of a file has been downloaded
 def check_file_status(filepath=None, filesize=None):
+
 	sys.stdout.write('\r')
 	sys.stdout.flush()
 	size = float(os.stat(filepath).st_size)
 	percent_complete = (size/filesize)*100.
-	sys.stdout.write('%.1f %s ' % (percent_complete, '% Completed'))
+	sys.stdout.write(('Downloading ' + os.path.basename(filepath) + ', %.1f %s ' % (percent_complete, '% Completed')).ljust(40) + '\r')
 	sys.stdout.flush()
 
 # method to find time & date that is nearest to the time of ascent/descent
