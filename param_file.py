@@ -1,9 +1,7 @@
 """File with relevant running parameters"""
 
-import numpy as np
-
 # general path
-path = '/home/ellen/Desktop/SuperBIT_DRS/'
+path = '/path/to/folder/with/code/and/others/'
 
 # general parameters
 descent_only = True
@@ -16,7 +14,7 @@ hr_diff = 0
 
 # balloon parameters
 balloon = {}
-balloon['altitude_step'] = 100.0 # (meters); (~100-800)
+balloon['altitude_step'] = 100.0 # (meters); (~50-800)
 balloon['equip_mass'] = 1.608 # kg
 balloon['balloon_mass'] = 1.50 # kg
 balloon['fill_radius'] = 2.122/2 # meters
@@ -28,7 +26,11 @@ balloon['simple_ascent_rate'] = 5.0 # m/s
 
 # parachute parameters
 balloon['Cd_parachute'] = 0.97
+<<<<<<< HEAD
 balloon['parachute_areas'] = [1.62]
+=======
+balloon['parachute_areas'] = [1.62] # meters
+>>>>>>> 355f0bcbeb629c3cc243cf7bf516430282475ac6
 balloon['parachute_change_altitude'] = None # meters
 
 # constants
@@ -41,5 +43,10 @@ M_helium = 4.002602 # molar mass of helium [kg/mol], altitude dependence
 Cd_sphere = 0.47 # Drag coefficient for a sphere
 
 # login for more weather data
+<<<<<<< HEAD
 email = 'ellen.l.sirks@durham.ac.uk'
 password = 'Petten36'
+=======
+email = ''
+password = ''
+>>>>>>> 355f0bcbeb629c3cc243cf7bf516430282475ac6
