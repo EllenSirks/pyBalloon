@@ -19,7 +19,7 @@ Dependencies
 - functools
 - pyproj
 
-The code is setup such that it requires the following folders:
+Folders
 ------------
 - pyBalloon: contains the code. 
 - Output: here the output from pyBalloon is saved (this folder is created automatically).
