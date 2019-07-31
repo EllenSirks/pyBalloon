@@ -6,15 +6,14 @@ import numpy as np
 import sys, os
 import time
 
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-
 import pyb_traj
 import get_gfs
 import pyb_aux
 import pyb_io
 
 import param_file as p
+
+#################################################################################################################
 
 # method to run entire simulation of flight
 # requires the starting location & starting point (0 for highest), whether or not its descent only, and the date & time of the starting point
@@ -67,8 +66,6 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 		os.makedirs(traj_dir)
 	if not os.path.exists(fig_dir):
 		os.makedirs(fig_dir)
-		# os.makedirs(fig_dir + 'dx_down/')
-		# os.makedirs(fig_dir + 'dy_down/')
 
 	############################################################################################################ <---- calculation trajectories
 
@@ -149,17 +146,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 			for key in fig_dicts[i].keys():
 				fig_dicts[i][key].savefig(fig_dir + datestr + '_' + key + '_check' + str(i) + '.png')
 
-		# for k in fig_dicts[-1]['wind_speeds'].keys():
-		# 	for i in range(len(fig_dicts[-1]['wind_speeds'][k])):
-		# 		if i < len(fig_dicts[-1]['wind_speeds'][k]) / 2.:
-		# 			dir_str = 'x'
-		# 			subtract = 0
-		# 		else:
-		# 			dir_str = 'y'
-		# 			subtract += 2
-		# 		fig_dicts[-1]['wind_speeds'][k][i].savefig(fig_dir + 'd' + dir_str + '_down/' + datestr + '_d' + dir_str + '_down_alt[' + str(k) + ']_check' + str(i-subtract) + '.png')
-
-	############################################################################################################
+#################################################################################################################
 
 if __name__ == "__main__":
 
@@ -172,3 +159,5 @@ if __name__ == "__main__":
 	sys.stdout.write('\r')
 	sys.stdout.flush()
 	sys.stdout.write(('Program finished in ' + str(round((time.time() - time0), 1)) + ' s').ljust(60) + '\n')
+
+#################################################################################################################

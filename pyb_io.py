@@ -1,25 +1,20 @@
 """Input and output functions used by pyBalloon"""
 
-from shapely.geometry import Point, mapping
+from shapely.geometry import Point
 from shapely.ops import transform
 from functools import partial
 from scipy import interpolate
 from astropy.io import ascii
-from glob import glob
 import pygrib as pg
 import numpy as np
-import requests
 import sys, os
 import pyproj
-import scipy
-import json
-import csv
-
-import matplotlib.pyplot as plt
 
 import pyb_aux
 
 import param_file as p
+
+#################################################################################################################
 
 def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
 
@@ -295,6 +290,8 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 			
 	return data
 
+#################################################################################################################
+
 def read_gfs_single(directory=None, area=None, alt0=0, descent_only=False, step=100.):
 	"""Read a set of 0.5 degree GFS data.
 
@@ -322,6 +319,8 @@ def read_gfs_single(directory=None, area=None, alt0=0, descent_only=False, step=
 	all_data.append(main_run_data)
 
 	return all_data
+
+#################################################################################################################
 
 def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
 
@@ -427,6 +426,8 @@ def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, des
 	data['pressures'] = np.array(all_pressures).transpose()
 
 	return data
+
+#################################################################################################################
 
 # method to save given trajectories as KML files.
 def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, params=None, radius=5):
@@ -547,6 +548,8 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 	fid.write(kml_str)
 	fid.close()
 
+#################################################################################################################
+
 def geodesic_point_buffer(lat, lon, km):
 
 	proj_wgs84 = pyproj.Proj(init='epsg:4326')
@@ -559,6 +562,8 @@ def geodesic_point_buffer(lat, lon, km):
 		proj_wgs84)
 	buf = Point(0, 0).buffer(km * 1000)  # distance in metres
 	return transform(project, buf).exterior.coords[:]
+
+#################################################################################################################
 
 def create_circle(lon=None, lat=None, radius=5):
 
@@ -595,6 +600,8 @@ def create_circle(lon=None, lat=None, radius=5):
 	kml_str += '</Placemark>\n'
 
 	return kml_str
+
+#################################################################################################################
 
 def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=None):
 
@@ -730,6 +737,8 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 	fid.write(kml_str2)
 	fid.close()
 
+#################################################################################################################
+
 def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=None):
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff = params
@@ -761,6 +770,8 @@ def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=N
 	
 	print('----------')
 
+#################################################################################################################
+
 # write parameters of run to file
 def write_verbose(params_dir, params, balloon):
 
@@ -787,6 +798,8 @@ def write_verbose(params_dir, params, balloon):
 	f.write('parachute area: ' + str(round(balloon['parachute_areas'][0], 2)) + ' m^2\n')
 
 	f.close()
+
+#################################################################################################################
 
 def set_params(params=None, balloon=None):
 
@@ -822,6 +835,8 @@ def set_params(params=None, balloon=None):
 
 	return descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon
 
+#################################################################################################################
+
 def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff = params
@@ -846,6 +861,8 @@ def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 				+ ' ' + str(balloon['balloon_mass']) + ' ' + str(balloon['fill_radius']) + ' ' + str(balloon['radius_empty']) + ' ' + str(balloon['burst_radius']) + ' ' + str(balloon['thickness_empty']) \
 				+ ' ' + str(balloon['Cd_balloon']) + ' ' + str(balloon['simple_ascent_rate']) + ' ' + str(balloon['parachute_change_altitude']))
 		f.close()
+
+#################################################################################################################
 
 def search_info(run=None, print_verbose=True):
 
@@ -885,3 +902,5 @@ def search_info(run=None, print_verbose=True):
 			print('----------\n')
 
 		return index
+
+#################################################################################################################

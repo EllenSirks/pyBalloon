@@ -8,6 +8,8 @@ import time
 
 import param_file as p
 
+#################################################################################################################
+
 # method to find & download latest weather file
 def get_latest_gfs_file(resolution=0.5):
 
@@ -58,6 +60,8 @@ def get_latest_gfs_file(resolution=0.5):
 
 	return weather_files
 
+#################################################################################################################
+
 # method to find & download weather files needed for interpolation (3)
 def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5):
 
@@ -69,6 +73,8 @@ def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5):
 	file = get_gfs_files(weather_files=weather_files)
 
 	return [weather_files[i][:-5] for i in range(len(weather_files))]
+
+#################################################################################################################
 
 # method to find & download weather_file nearest in time to time of ascent/descent
 def get_closest_gfs_file(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0):
@@ -99,6 +105,8 @@ def get_closest_gfs_file(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0)
 	file = get_gfs_files(weather_files=files)
 
 	return [files[0][:-5]]
+
+#################################################################################################################
 
 def get_gfs_files(weather_files=None): # files should be formatted like; gfs_x_datestr_hhhh_hhh.grb2
 
@@ -144,6 +152,8 @@ def get_gfs_files(weather_files=None): # files should be formatted like; gfs_x_d
 
 	return [weather_files[0][:-5]]
 
+#################################################################################################################
+
 def get_gefs_files(datestr=None, utc_hour=None): # gfs files we wish to have the gefs for, in format: gfs_x_datestr_hhhh_hhh.grb2
 
 	out_dir = p.path + 'Weather_data/GEFS/'
@@ -184,6 +194,7 @@ def get_gefs_files(datestr=None, utc_hour=None): # gfs files we wish to have the
 				print('Cannot download ' + str(file) + ' this way! Go to: https://www.ncdc.noaa.gov/has/HAS.DsSelect')
 				continue
 
+#################################################################################################################
 
 def download_file(path_file=None, out_dir=None):
 
@@ -211,6 +222,8 @@ def download_file(path_file=None, out_dir=None):
 				check_file_status(out_dir + file, filesize)
 	check_file_status(out_dir + file, filesize)
 
+#################################################################################################################
+
 # method to check what percentage of a file has been downloaded
 def check_file_status(filepath=None, filesize=None):
 
@@ -221,8 +234,10 @@ def check_file_status(filepath=None, filesize=None):
 	sys.stdout.write(('Downloading ' + os.path.basename(filepath) + ', %.1f %s ' % (percent_complete, '% Completed')).ljust(40) + '\r')
 	sys.stdout.flush()
 
+#################################################################################################################
+
 # method to find time & date that is nearest to the time of ascent/descent
-### hr_diff needs to be a multiple of 6
+# hr_diff needs to be a multiple of 6
 def get_closest_hr(datestr=None, utc_hour=None, hr_diff=0): 
 
 	utc_hour = float(utc_hour)
@@ -266,6 +281,8 @@ def get_closest_hr(datestr=None, utc_hour=None, hr_diff=0):
 
 	return (closest_model, hhh3, hhh6, datestr)
 
+#################################################################################################################
+
 # method to find time & date left & right of time of ascent/descent
 def get_interval(utc_hour=None):
 
@@ -282,6 +299,8 @@ def get_interval(utc_hour=None):
 
 	return left_hr, left_hhh, right_hr, right_hhh
 
+#################################################################################################################
+
 # method to iterate date by 1 day and return new datestr
 def date_check(datestr=None):
 
@@ -290,6 +309,8 @@ def date_check(datestr=None):
 	new_datestr = str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2)
 
 	return new_datestr
+
+#################################################################################################################
 
 if __name__ == '__main__':
 
@@ -303,3 +324,5 @@ if __name__ == '__main__':
 	hrs = get_closest_hr(datestr='20190624', utc_hour=15, hr_diff=48)
 
 	print(hrs)
+
+#################################################################################################################

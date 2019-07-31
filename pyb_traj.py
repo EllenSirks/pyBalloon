@@ -4,15 +4,13 @@ import numpy as np
 import time
 import sys
 
-import matplotlib.pyplot as plt
-
-plt.rcParams["font.family"] = "serif"
-
 import get_gfs
 import pyb_aux
 import pyb_io
 
 import param_file as p
+
+#################################################################################################################
 
 # method to calculate the fractions needed for interpolation
 # e.g. if time is 10 then on the lhs we have 6 and on the rhs we have 12, 10 is then 2/3 of the way away from 6 and 1/3 away from 12.
@@ -43,6 +41,8 @@ def calc_time_frac(current_time=None, weather_times=None, weather_files=None):
 
 	return (earlier_time, frac1), (later_time, frac2)
 
+#################################################################################################################
+
 # method to read in model data
 def read_data(loc0=None, weather_file=None, balloon=None, descent_only=False):
 
@@ -62,6 +62,8 @@ def read_data(loc0=None, weather_file=None, balloon=None, descent_only=False):
 	# print('GFS data read')
 
 	return model_data
+
+#################################################################################################################
 
 # method to calculate new lat/lon coordinates from Cartesian displacements. 
 # Required arguments: lat_rad [rad] (current latitude), lon_rad [rad] (current longitude), alt [m] (current altitude), dx (East - west movement), dy [m] (North - south movement)
@@ -92,6 +94,8 @@ def movement2ll(lat_rad=None, lon_rad=None, alt=None, dx=None, dy=None):
 	# return new coordinates: latitude [radians], longitude [radians], and distance traveled [km]
 	return lat2, lon2, dist
 
+#################################################################################################################
+
 # method to calculate necessary properties and carry out the interpolation
 def calc_properties(data=None, weather_file=None, loc0=None, balloon=None, descent_only=False, output_figs=False):
 
@@ -116,6 +120,8 @@ def calc_properties(data=None, weather_file=None, loc0=None, balloon=None, desce
 	data, figs_dict = pyb_aux.data_interpolation(data, alt0, balloon['altitude_step'], mode='spline', descent_only=descent_only, output_figs=output_figs)
 
 	return data, figs_dict
+
+#################################################################################################################
 
 def calc_displacements(data=None, balloon=None, descent_only=False, vz_correct=False):
 
@@ -147,6 +153,8 @@ def calc_displacements(data=None, balloon=None, descent_only=False, vz_correct=F
 	data['dys_down'] = data['v_winds'] * data['descent_time_steps']
 
 	return data
+
+#################################################################################################################
 
 # method to update weather files to newest available
 def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None, balloon=None, datestr=None, utc_hour=None, loc0=None, \
@@ -222,6 +230,8 @@ def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None
 		index += 1
 
 	return data, keys, checks, index, figs
+
+#################################################################################################################
 
 # method to calculate the trajectory of the balloon/parachute given a start position & other input parameters
 def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, alt_change_fit=10, output_figs=False):
@@ -544,6 +554,8 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 
 	return output, figs
 
+#################################################################################################################
+
 # method to prepare the data for the calculations of the trajectory
 def prepare_data(weather_file=None, loc0=None, current_time=None, balloon=None, descent_only=False, drift_time=0, vz_correct=False, output_figs=False):
 
@@ -554,6 +566,8 @@ def prepare_data(weather_file=None, loc0=None, current_time=None, balloon=None, 
 	model_data3 = calc_displacements(data=model_data2, balloon=balloon, descent_only=descent_only)
 
 	return model_data3, figs_dict
+
+#################################################################################################################
 
 # method to pull everything together and return the trajectory
 def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, output_figs=False):
@@ -574,3 +588,5 @@ def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=
 		figs1.append(fig_dict)
 
 	return trajectories, figs1
+
+#################################################################################################################

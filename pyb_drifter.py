@@ -6,11 +6,12 @@ import numpy as np
 import sys, os
 import time
 
-import pyb_info_searcher as inf
 import pyb_runner
 import pyb_io
 
 import param_file as p
+
+#################################################################################################################
 
 def drifter(datestr=None, utc_hour=None, loc0=None, params=None, run=None, balloon=None, print_verbose=False, write_verbose=True):
 
@@ -34,7 +35,7 @@ def drifter(datestr=None, utc_hour=None, loc0=None, params=None, run=None, ballo
 	params[3] = drift_times
 
 	if utc_hour == None or loc0 == None:
-		utc_hour, loc0 = inf.get_ini(datestr=datestr, descent_only=descent_only, next_point=next_point)
+		utc_hour, loc0 = pyb_io.get_ini(datestr=datestr, descent_only=descent_only, next_point=next_point)
 
 	if print_verbose:
 		pyb_io.print_verbose(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon)
@@ -56,6 +57,8 @@ def drifter(datestr=None, utc_hour=None, loc0=None, params=None, run=None, ballo
 
 	pyb_io.merge_kml(datestr=datestr, run=run, params=params, balloon=balloon, drift_times=drift_times)
 
+#################################################################################################################
+
 if __name__ == '__main__':
 
 	time0 = time.time()
@@ -63,3 +66,5 @@ if __name__ == '__main__':
 	drifter(datestr='20181215', print_verbose=True)
 
 	print('Total time elapsed: %.1f s' % (time.time() - time0))
+
+#################################################################################################################
