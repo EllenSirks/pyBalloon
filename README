@@ -7,23 +7,17 @@ Dependencies
 ------------
 - Python 2.x (tested with 2.7.15+)
 - Numpy
-- pygrib
-- scipy.interpolate
-- scipy.optimize
-- requests
-- wget
-- shutil
-- astropy.io
+- Scipy
+- astropy
 - matplotlib
+- requests
+- pygrib
+- shutil
 - datetime
-- calendar
 - haversine
-- collections
 - shapely
 - functools
 - pyproj
-- json
-- csv
 
 Notes
 ------------
