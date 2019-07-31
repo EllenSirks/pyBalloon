@@ -788,31 +788,6 @@ def write_verbose(params_dir, params, balloon):
 
 	f.close()
 
-def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
-
-	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff = params
-
-	if add_run_info:
-
-		run_info_file = p.path + 'Output/runs_info.txt'
-
-		if not os.path.isfile(run_info_file):
-
-			f = open(run_info_file, 'w+')
-			f.write('run descent_only next_point interpolate drift_time resolution vz_correct hr_diff Cd_parachute parachute_area altitude_step equip_mass balloon_mass fill_radius radius_empty burst_radius\
-			 thickness_empty Cd_balloon simple_ascent_rate parachute_change_altitude')
-
-		lines = [line.rstrip('\n').split(' ') for line in open(run_info_file)]
-		runs = [lines[i][0] for i in range(len(lines)) if i != 0]
-
-		f = open(run_info_file, 'a+')
-		if run not in runs:
-			f.write('\n' + str(run) + ' ' + str(descent_only) + ' ' + str(next_point) + ' ' +  str(interpolate) + ' ' + str(drift_time) + ' ' + str(resolution) + ' '  + str(vz_correct) \
-				+ ' ' + str(hr_diff)  + ' ' + str(balloon['Cd_parachute']) + ' ' + str(balloon['parachute_areas'][0]) + ' ' + str(balloon['altitude_step'])  + ' ' + str(balloon['equip_mass']) \
-				+ ' ' + str(balloon['balloon_mass']) + ' ' + str(balloon['fill_radius']) + ' ' + str(balloon['radius_empty']) + ' ' + str(balloon['burst_radius']) + ' ' + str(balloon['thickness_empty']) \
-				+ ' ' + str(balloon['Cd_balloon']) + ' ' + str(balloon['simple_ascent_rate']) + ' ' + str(balloon['parachute_change_altitude']))
-		f.close()
-
 def set_params(params=None, balloon=None):
 
 	# balloon parameters
@@ -846,3 +821,67 @@ def set_params(params=None, balloon=None):
 		hr_diff = int(params[6])
 
 	return descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon
+
+def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
+
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff = params
+
+	if add_run_info:
+
+		run_info_file = p.path + 'Output/runs_info.txt'
+
+		if not os.path.isfile(run_info_file):
+
+			f = open(run_info_file, 'w+')
+			f.write('run descent_only next_point interpolate drift_time resolution vz_correct hr_diff Cd_parachute parachute_area altitude_step equip_mass balloon_mass fill_radius radius_empty burst_radius\
+			 thickness_empty Cd_balloon simple_ascent_rate parachute_change_altitude')
+
+		lines = [line.rstrip('\n').split(' ') for line in open(run_info_file)]
+		runs = [lines[i][0] for i in range(len(lines)) if i != 0]
+
+		f = open(run_info_file, 'a+')
+		if run not in runs:
+			f.write('\n' + str(run) + ' ' + str(descent_only) + ' ' + str(next_point) + ' ' +  str(interpolate) + ' ' + str(drift_time) + ' ' + str(resolution) + ' '  + str(vz_correct) \
+				+ ' ' + str(hr_diff)  + ' ' + str(balloon['Cd_parachute']) + ' ' + str(balloon['parachute_areas'][0]) + ' ' + str(balloon['altitude_step'])  + ' ' + str(balloon['equip_mass']) \
+				+ ' ' + str(balloon['balloon_mass']) + ' ' + str(balloon['fill_radius']) + ' ' + str(balloon['radius_empty']) + ' ' + str(balloon['burst_radius']) + ' ' + str(balloon['thickness_empty']) \
+				+ ' ' + str(balloon['Cd_balloon']) + ' ' + str(balloon['simple_ascent_rate']) + ' ' + str(balloon['parachute_change_altitude']))
+		f.close()
+
+def search_info(run=None, print_verbose=True):
+
+	data = ascii.read(p.path + 'Output/runs_info.txt')
+	runs = data['run']
+
+	index = np.where(runs == run)[0]
+
+	if len(index) < 1:
+
+		print('Cannot find the info for this run! Check the folder.')
+		sys.exit()
+
+	else:
+
+		index = int(index)
+
+		if print_verbose:
+
+			print('\nGeneral Parameters')
+			print('----------')
+			print('descent_only: ' + str(data['descent_only'][index]))
+			if data['descent_only'][index]:
+				print('starting point: ' + str(data['next_point'][index]))
+			print('interpolate: ' + str(data['interpolate'][index]))
+			print('drift time: ' + str(data['drift_time'][index]) + ' minutes')
+			print('resolution of forecasts: ' + str(data['resolution'][index]) + ' degrees')
+			print('correct for vertical winds: ' + str(data['vz_correct'][index]))
+			print('difference in hrs for forecasts: ' + str(data['hr_diff'][index]) + ' hours')
+			print('----------')
+			print('\nBalloon/Parachute Parameters')
+			print('----------')
+			print('altitude step: ' + str(data['altitude_step'][index]) + ' m')
+			print('equipment mass: ' + str(data['equip_mass'][index]) + ' kg')
+			print('parachute Cd: ' + str(data['Cd_parachute'][index]))
+			print('parachute area: ' + str(data['parachute_area'][index]) + ' m^2')
+			print('----------\n')
+
+		return index
