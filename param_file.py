@@ -29,9 +29,6 @@ balloon['simple_ascent_rate'] = 5.0 # m/s
 # parachute parameters
 balloon['Cd_parachute'] = 0.97
 balloon['parachute_areas'] = [1.62]
-# radius = 0.5
-# balloon['parachute_areas'] = np.pi * np.array([radius])**2 # m^2
-# balloon['parachute_areas'] = 2*np.array([radius])**2 # m^2
 balloon['parachute_change_altitude'] = None # meters
 
 # constants
@@ -43,3 +40,6 @@ T0 = 288.15 # K
 M_helium = 4.002602 # molar mass of helium [kg/mol], altitude dependence
 Cd_sphere = 0.47 # Drag coefficient for a sphere
 
+# login for more weather data
+email = 'ellen.l.sirks@durham.ac.uk'
+password = 'Petten36'
