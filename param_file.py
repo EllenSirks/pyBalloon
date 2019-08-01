@@ -1,7 +1,19 @@
 """File with relevant running parameters"""
 
 # general path
-path = '/path/to/folder/with/code/and/others/'
+path = '/home/ellen/Desktop/SuperBIT_DRS/'
+
+weather_data_folder = 'Weather_data/'
+GFS_folder =  'GFS/'
+GEFS_folder = 'GEFS/'
+elevation_data_folder = 'SRTM_data/'
+
+output_folder = 'Output/'
+kml_folder = 'Kml_files/'
+traj_folder = 'Trajectories/'
+
+fig_folder = 'Figs/'
+check_figs_folder = 'Checks/'
 
 # general parameters
 descent_only = True
@@ -32,12 +44,12 @@ balloon['parachute_change_altitude'] = None # meters
 # constants
 g_0 = 9.80665 # m/s surface acc.
 R0 = 8.3144621 # Ideal gas constant, J/(mol*K)
-R_e = 6371009 # mean Earth radius in meters
-M_air = 0.0289644 # molar mass of air [kg/mol], altitude dependence
+R_e = 6371009 # Mean Earth radius in meters
+M_air = 0.0289644 # Molar mass of air [kg/mol], altitude dependence
 T0 = 288.15 # K
 M_helium = 4.002602 # molar mass of helium [kg/mol], altitude dependence
 Cd_sphere = 0.47 # Drag coefficient for a sphere
 
-# login for more weather data
-email = ''
-password = ''
+# login for 0.25 degrees resolution weather data
+email = 'ellen.l.sirks@durham.ac.uk'
+password = 'Petten36'
