@@ -60,7 +60,11 @@ if __name__ == '__main__':
 
 	time0 = time.time()
 
-	drifter(datestr='20181215', utc_hour=10.2, loc0=(45.853462,7.897272,26435), print_verbose=True)
+	datestr = sys.argv[1]
+	utc_hour = sys.argv[2]
+	loc0 = float(sys.argv[3]), float(sys.argv[4]), float(sys.argv[5])
+
+	drifter(datestr=datestr, utc_hour=utc_hour, loc0=loc0, print_verbose=True)
 
 	print('Total time elapsed: %.1f s' % (time.time() - time0))
 
