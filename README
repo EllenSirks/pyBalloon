@@ -14,7 +14,6 @@ Dependencies
 - pygrib
 - shutil
 - datetime
-- haversine
 - shapely
 - functools
 - pyproj
