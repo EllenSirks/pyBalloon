@@ -122,6 +122,7 @@ def calc_properties(data=None, weather_file=None, loc0=None, balloon=None, desce
 
 #################################################################################################################
 
+# method to calculate the displacements in the x/y directions
 def calc_displacements(data=None, balloon=None, descent_only=False, vz_correct=False):
 
 	g = p.g_0 * (p.R_e / (p.R_e + data['altitudes']))**2
