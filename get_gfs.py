@@ -242,7 +242,7 @@ def get_closest_hr(datestr=None, utc_hour=None, hr_diff=0):
 
 	hrs_6 = [0., 6., 12., 18., 24.]
 
-	if utc_hour in hrs_6:
+	if utc_hour in hrs_6 and hr_diff == 0:
 
 		closest_model = int(utc_hour)
 		hhh3 = 0
@@ -265,8 +265,6 @@ def get_closest_hr(datestr=None, utc_hour=None, hr_diff=0):
 	closest_model -= hr_diff
 	hhh3 += hr_diff
 	days = 0
-
-	# print(closest_model)
 
 	if closest_model < 0:
 

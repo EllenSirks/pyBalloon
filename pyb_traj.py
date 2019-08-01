@@ -158,27 +158,32 @@ def calc_displacements(data=None, balloon=None, descent_only=False, vz_correct=F
 
 # method to update weather files to newest available
 def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None, balloon=None, datestr=None, utc_hour=None, loc0=None, \
-	total_time=0, checks=None, index=0, params=None, output_figs=False):
+	total_time=[0], index=0, params=None, output_figs=False):
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	res = str(int(-4*resolution + 6))
 
 	keys = list(data.keys())
-	current_time = float(utc_hour) + np.cumsum(np.array(total_time))[-1]/3600
+	if len(total_time) != 1:
+		prev_time = utc_hour + np.cumsum(np.array(total_time)[:-1])[-1]/3600
+	else:
+		prev_time = utc_hour
 
-	hrs = get_gfs.get_closest_hr(utc_hour=utc_hour)
-	old_hhhh, old_hhh1, old_hhh2 = hrs[0], hrs[1], hrs[2]
+	current_time = utc_hour + np.cumsum(np.array(total_time))[-1]/3600
 
-	hrs = get_gfs.get_closest_hr(utc_hour=current_time)
-	new_hhhh, new_hhh1, new_hhh2 = hrs[0], hrs[1], hrs[2]
+	hrs = get_gfs.get_closest_hr(datestr=datestr, utc_hour=prev_time, hr_diff=hr_diff)
+	old_hhhh, old_hhh1, old_hhh2, old_datestr = hrs[0], hrs[1], hrs[2], hrs[3]
+
+	hrs = get_gfs.get_closest_hr(datestr=datestr, utc_hour=current_time, hr_diff=hr_diff)
+	new_hhhh, new_hhh1, new_hhh2, new_datestr = hrs[0], hrs[1], hrs[2], hrs[3]
 
 	############################################################################################################
 
 	# update from e.g. 0600_006 to 1200_000
 	for j in range(len(keys)):
 		key = keys[j]
-		if int(current_time) == key and current_time >= key and checks[j] == 0. and old_hhhh != new_hhhh:
+		if int(current_time) == (key % 24)  and current_time >= (key % 24) and old_hhhh != new_hhhh:
 
 			sys.stdout.write('\r')
 			sys.stdout.flush()
@@ -193,12 +198,11 @@ def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None
 			figs.append(figs_dict)
 
 			keys = list(data.keys())
-			checks[j] += 1.
 
 	############################################################################################################
 
 	# add new weather file if current time is past 'latest' weather file
-	if current_time > max(keys) + 1.5 or (interpolate and current_time > max(keys)):
+	if current_time > (max(keys) % 24) + 1.5 or (interpolate and current_time > max(keys)):
 
 		sys.stdout.write('\r')
 		sys.stdout.flush()
@@ -208,8 +212,8 @@ def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None
 
 		if not interpolate:
 
-			hrs = get_gfs.get_closest_hr(utc_hour=current_time)
-			new_hhhh, new_hhh1, new_hhh2 = hrs[0], hrs[1], hrs[2]
+			hrs = get_gfs.get_closest_hr(datestr=datestr, utc_hour=current_time, hr_diff=hr_diff)
+			new_hhhh, new_hhh1, new_hhh2, datestr = hrs[0], hrs[1], hrs[2], hrs[3]
 
 			new_weather_file = 'gfs_' + res + '_' + datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh1).zfill(3) + '.grb2'
 			new_weather_files = get_gfs.get_gfs_files(weather_files=[new_weather_file])
@@ -226,14 +230,9 @@ def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None
 
 		keys = list(data.keys())
 
-		if new_hhh1 == 0.:
-			checks.append(1.)
-		else:
-			checks.append(0.)
-
 		index += 1
 
-	return data, keys, checks, index, figs
+	return data, keys, index, figs
 
 #################################################################################################################
 
@@ -256,15 +255,6 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 
 	keys = list(data.keys())
 
-	checks = [0. for key in keys]
-
-	hrs = np.arange(0., 24., 6.)
-	if not interpolate:
-		if int(float(utc_hour)) in hrs:
-			hr = hrs[np.where(hrs == int(float(utc_hour)))[0][0]]
-			if float(utc_hour) >= hr:
-				checks[0] = 1.
-
 	alts = data[keys[0]]['altitudes'] # alts, lats and lons are the same for all weather files (if we dont give it different areas)
 	data_lats, data_lons  = np.radians(data[keys[0]]['lats']), np.radians(data[keys[0]]['lons'])
 	size = int(np.sqrt(len(data_lats)))
@@ -280,11 +270,11 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 
 	while True:
 
-		if hr_diff == 0:
+		if not (stage == 1 and descent_only):
 
 			# update weather files
-			data, keys, checks, index, figs = update_files(figs=figs, data=data, lat_rad=lat_rad, lon_rad=lon_rad, all_alts=all_alts, balloon=balloon, datestr=datestr, utc_hour=utc_hour, \
-				loc0=loc0, total_time=total_time, checks=checks, index=index, params=params, output_figs=output_figs)
+			data, keys, index, figs = update_files(figs=figs, data=data, lat_rad=lat_rad, lon_rad=lon_rad, all_alts=all_alts, balloon=balloon, datestr=datestr, utc_hour=utc_hour, \
+				loc0=loc0, total_time=total_time, index=index, params=params, output_figs=output_figs)
 
 		# Find the closest grid point
 		diff = np.sqrt((data_lats - lat_rad[-1])**2 + (data_lons - lon_rad[-1])**2)
@@ -569,7 +559,7 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 
 	print('Maximum altitude: ' + str(np.max(all_alts)) + ' m')
 	print('Landing location: (%.6f, %.6f)' % (output['lats'][-1], output['lons'][-1]))
-	print('Flight time: %d min' % (int(output['times'][-1])) + ', distance travelled: %.1f' % output['distance'] + ' km')
+	print('Flight time: %d min' % (int(output['times'][-1])) + ', distance travelled: %.1f' % output['distance'] + ' km\n')
 
 	return output, figs
 

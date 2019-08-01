@@ -502,8 +502,8 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 
 #################################################################################################################
 
-# method to find all latslons to create a circle of a given radius around a lat/lon point
-def geodesic_point_buffer(lat, lon, km):
+# method to find all latslons to create a circle of a given radius (km) around a lat/lon point
+def geodesic_point_buffer(lat, lon, radius):
 
 	proj_wgs84 = pyproj.Proj(init='epsg:4326')
 
@@ -513,7 +513,7 @@ def geodesic_point_buffer(lat, lon, km):
 		pyproj.transform,
 		pyproj.Proj(aeqd_proj.format(lat=lat, lon=lon)),
 		proj_wgs84)
-	buf = Point(0, 0).buffer(km * 1000)  # distance in metres
+	buf = Point(0, 0).buffer(radius * 1000)  # distance in metres
 	return transform(project, buf).exterior.coords[:]
 
 #################################################################################################################
@@ -711,7 +711,7 @@ def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=N
 	if loc0 != None:
 		print('Starting point: ' + str(loc0[0]) + ' lat., ' + str(loc0[1]) + ' lon., ' + str(loc0[2]) + ' m\n')
 	
-	print('----------')
+	print('----------\n')
 
 #################################################################################################################
 
