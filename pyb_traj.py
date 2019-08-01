@@ -48,7 +48,7 @@ def read_data(loc0=None, weather_file=None, balloon=None, descent_only=False):
 
 	lat0, lon0, alt0 = loc0
 
-	in_dir = p.path + 'Weather_data/GFS/'
+	in_dir = p.path + p.weather_data_folder + p.GFS_folder
 
 	tile_size = 6. # degrees (read a tile this wide/high from the GFS grb2 file)
 	area = (lat0 + (tile_size/2.), lon0 - (tile_size/2.), lat0 - (tile_size/2.), lon0 + (tile_size/2.)) # note top, left, bottom, right ordering for area
@@ -59,7 +59,6 @@ def read_data(loc0=None, weather_file=None, balloon=None, descent_only=False):
 	sys.stdout.flush()
 
 	model_data = pyb_io.read_gfs_single(directory=in_dir + weather_file, area=area, alt0=alt0, descent_only=descent_only, step=balloon['altitude_step'])[0]
-	# print('GFS data read')
 
 	return model_data
 
@@ -182,7 +181,7 @@ def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None
 			sys.stdout.flush()
 			sys.stdout.write('Updating current weather file...'.ljust(60) + '\r')
 			sys.stdout.flush()
-			time.sleep(0.5)
+			time.sleep(0.4)
 
 			new_weather_file = 'gfs_' + res + '_' + datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh1).zfill(3) + '.grb2'
 			new_weather_file = get_gfs.get_gfs_files(weather_files=[new_weather_file])[0]
@@ -200,7 +199,7 @@ def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None
 		sys.stdout.flush()
 		sys.stdout.write('Adding new weather file...'.ljust(60) + '\r')
 		sys.stdout.flush()
-		time.sleep(0.5)
+		time.sleep(0.4)
 
 		if not interpolate:
 
@@ -303,7 +302,7 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 				sys.stdout.flush()
 				sys.stdout.write('Calculating ascent...'.ljust(60) + '\r')
 				sys.stdout.flush()
-				time.sleep(1)
+				time.sleep(0.4)
 
 			if descent_only:
 
@@ -374,7 +373,7 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 				sys.stdout.flush()
 				sys.stdout.write('Calculating drift trajectory...'.ljust(60) + '\r')
 				sys.stdout.flush()
-				time.sleep(1)
+				time.sleep(0.4)
 
 			dt = 5 # seconds
 
@@ -430,7 +429,7 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 				sys.stdout.flush()
 				sys.stdout.write('Calculating descent...'.ljust(60) + '\r')
 				sys.stdout.flush()
-				time.sleep(1)
+				time.sleep(0.4)
 
 			# calculate change in latitude & longitude, and distance travelled
 			if interpolate:

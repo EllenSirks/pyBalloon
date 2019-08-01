@@ -43,9 +43,9 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 
 	# initialise paths
 	dir_base = p.path
-	in_dir = dir_base + 'Weather_data/GFS/'
-	traj_dir = dir_base + 'Output/'
-	fig_dir = dir_base + 'Output/'
+	in_dir = dir_base + p.weather_data_folder + p.GFS_folder
+	traj_dir = dir_base + p.output_folder
+	fig_dir = dir_base + p.output_folder
 
 	# determine run number (datestr + no.)
 	if run == None:
@@ -54,10 +54,10 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 		run = now_str + '_' + str(len(files))
 
 	# create path names with correct run
-	kml_dir = traj_dir + run + '/Kml_files/'
+	kml_dir = traj_dir + run + '/' + kml_folder
 	params_dir = traj_dir + run + '/'
-	traj_dir += run + '/Trajectories/'
-	fig_dir += run + '/Figs/Checks/'
+	traj_dir += run + '/' traj_folder
+	fig_dir += run + fig_folder + check_figs_folder
 
 	# check if the paths exist/make them
 	if not os.path.exists(kml_dir):
@@ -110,7 +110,6 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	# ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds'], trajectories['z_speeds'], \
 	# 	trajectories['omegas'], trajectories['temperatures'], trajectories['grid_spreads_u'], trajectories['grid_spreads_v'], trajectories['sigmas_u'], trajectories['sigmas_v']]\
 	# 	, traj_file, names=['lats', 'lons', 'alts', 'dists', 'times', 'speeds', 'z_speeds', 'omegas', 'temps', 'u_spread', 'v_spread', 'sigmas_u', 'sigmas_v'], overwrite=True)
-
 
 	# write parameters of this run to file
 	if write_verbose:

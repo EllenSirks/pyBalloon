@@ -425,7 +425,7 @@ def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_
 def get_elevation(lon, lat):
 
     SAMPLES = 1201  # Change this to 3601 for SRTM1
-    HGTDIR = p.path + 'SRTM_data/'
+    HGTDIR = p.path + p.elevation_data_folder
 
     if lat > 180:
         lat -= 360
@@ -481,7 +481,7 @@ def get_endpoint(data=None, run=None, filename=None, params=None):
 
     if data == None and run != None:
 
-        dir_pred = p.path + 'Weather_data/Trajectories/' + run + '/'
+        dir_pred = p.path + p.output_folder + p.traj_folder + run + '/'
         data  = ascii.read(dir_pred + filename)
 
         lats = data['lats']
@@ -527,7 +527,7 @@ def get_endpoint(data=None, run=None, filename=None, params=None):
 
 def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only=False):
 
-    indir = p.path + 'Weather_data/GEFS/'
+    indir = p.path + p.weather_data_folder + p.GEFS_folder
 
     tile_size = 10.0
     lat0, lon0, alt0 = loc0

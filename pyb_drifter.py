@@ -15,7 +15,7 @@ import param_file as p
 
 def drifter(datestr=None, utc_hour=None, loc0=None, params=None, run=None, balloon=None, print_verbose=False, write_verbose=True):
 
-	out_dir = p.path + 'Output/' 
+	out_dir = p.path + p.output_folder
 
 	if loc0 != None:
 		lat0, lon0, alt0 = loc0

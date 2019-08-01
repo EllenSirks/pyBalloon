@@ -324,7 +324,7 @@ def read_gfs_single(directory=None, area=None, alt0=0, descent_only=False, step=
 
 def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
 
-	indir = p.path + 'Weather_data/GEFS/'
+	indir = p.path + p.weather_data_folder + p.GFS_folder
 
 	if area is not None:
 		tlat, llon, blat, rlon = area
@@ -620,14 +620,14 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 		interpolate = bool(params[-2])
 		drift_time = float(params[-1])
 
-	dir_base = p.path + 'Output/' + str(run)
+	dir_base = p.path + p.output_folder + str(run) + '/'
 
 	kml_str1 = '<?xml version="1.0" encoding="UTF-8"?>\n'
 	kml_str1 += '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">\n'
 	kml_str1 += '<Document id="feat_2">\n'
 
-	dir1 = dir_base + '/Kml_files/'
-	dir2 = dir_base + '/Trajectories/'
+	dir1 = dir_base + p.kml_folder
+	dir2 = dir_base + p.traj_folder
 
 	endpoints = {}
 
@@ -843,7 +843,7 @@ def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 
 	if add_run_info:
 
-		run_info_file = p.path + 'Output/runs_info.txt'
+		run_info_file = p.path + p.output_folder + 'runs_info.txt'
 
 		if not os.path.isfile(run_info_file):
 
@@ -866,7 +866,7 @@ def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 
 def search_info(run=None, print_verbose=True):
 
-	data = ascii.read(p.path + 'Output/runs_info.txt')
+	data = ascii.read(p.path + p.output_folder + 'runs_info.txt')
 	runs = data['run']
 
 	index = np.where(runs == run)[0]
