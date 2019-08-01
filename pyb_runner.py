@@ -128,7 +128,7 @@ if __name__ == "__main__":
 	time0 = time.time()
 
 	datestr = sys.argv[1]
-	utc_hour = sys.argv[2]
+	utc_hour = float(sys.argv[2])
 	loc0 = float(sys.argv[3]), float(sys.argv[4]), float(sys.argv[5])
 
 	runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, print_verbose=True, write_verbose=True)

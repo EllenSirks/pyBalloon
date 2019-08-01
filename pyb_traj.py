@@ -237,32 +237,9 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 
 	time0 = time.time()
 
+	# set general parameters and initial conditions
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 	lat0, lon0, alt0 = loc0
-
-	keys = list(data.keys())
-	checks = [0. for key in keys]
-
-	hrs = np.array([0., 6., 12., 18.])
-
-	if not interpolate:
-		if int(float(utc_hour)) in hrs:
-			hr = hrs[np.where(hrs == int(float(utc_hour)))[0][0]]
-			if float(utc_hour) >= hr:
-				checks[0] = 1.
-
-	figs, wind_figs = [], {}
-	index, i, timer = 0, 0, 0
-	stage = 1
-
-	# set initial conditions
-	alts = data[keys[0]]['altitudes'] # alts, lats and lons are the same for all weather files (if we dont give it different areas)
-	data_lats, data_lons  = np.radians(data[keys[0]]['lats']), np.radians(data[keys[0]]['lons'])
-
-	size = int(np.sqrt(len(data_lats)))
-
-	# data_lats_err, data_lons_err = np.radians(data[keys[0]]['lats_err']), np.radians(data[keys[0]]['lons_err'])
-
 	lat_rad, lon_rad, all_alts = [np.radians(lat0)], [np.radians(lon0)], [alt0]
 
 	if lon_rad[0] < 0:
@@ -270,13 +247,33 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 	if lat_rad[0] < 0:
 		lat_rad[0] += 2*np.pi
 
-	speeds, z_speeds, omegas, temperatures, sigmas_u, sigmas_v, grid_spreads_u, grid_spreads_v = [], [], [], [], [], [], [], []
+	keys = list(data.keys())
+
+	checks = [0. for key in keys]
+
+	hrs = np.arange(0., 24., 6.)
+	if not interpolate:
+		if int(float(utc_hour)) in hrs:
+			hr = hrs[np.where(hrs == int(float(utc_hour)))[0][0]]
+			if float(utc_hour) >= hr:
+				checks[0] = 1.
+
+	alts = data[keys[0]]['altitudes'] # alts, lats and lons are the same for all weather files (if we dont give it different areas)
+	data_lats, data_lons  = np.radians(data[keys[0]]['lats']), np.radians(data[keys[0]]['lons'])
+	size = int(np.sqrt(len(data_lats)))
+	# data_lats_err, data_lons_err = np.radians(data[keys[0]]['lats_err']), np.radians(data[keys[0]]['lons_err'])
+
+	speeds, z_speeds, omegas, temperatures, sigmas_u, sigmas_v, grid_spreads_u, grid_spreads_v, figs = [], [], [], [], [], [], [], [], []
 	total_time, dists, dists_u, dists_v = [0], [0], [0], [0]
+	index, i, timer = 0, 0, 0
+
+	stage = 1
 
 	while True:
 
 		if hr_diff == 0:
 
+			# update weather files
 			data, keys, checks, index, figs = update_files(figs=figs, data=data, lat_rad=lat_rad, lon_rad=lon_rad, all_alts=all_alts, balloon=balloon, datestr=datestr, utc_hour=utc_hour, \
 				loc0=loc0, total_time=total_time, checks=checks, index=index, params=params, output_figs=output_figs)
 
@@ -294,9 +291,9 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 			current_time = float(utc_hour) + np.cumsum(np.array(total_time))[-1]/3600
 			(t1, f1), (t2, f2) = calc_time_frac(current_time=current_time, weather_times=keys)
 
+		# ascent stage
 		if stage == 1:
 			if i == 0:
-				# print('Calculating ascent...')
 
 				sys.stdout.write('\r')
 				sys.stdout.flush()
@@ -365,6 +362,7 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 
 			i += 1
 
+		# drift/level flight stage
 		if stage == 2:
 
 			if timer == 0:
@@ -421,6 +419,7 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 			speed = 0
 			timer += dt
 
+		# descent stage
 		if stage == 3:
 
 			if i == final_i:

@@ -79,8 +79,6 @@ def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5):
 # method to find & download weather_file nearest in time to time of ascent/descent
 def get_closest_gfs_file(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0):
 
-	# print('Finding closest gfs file...')
-
 	sys.stdout.write('\r')
 	sys.stdout.flush()
 	sys.stdout.write('Finding closest gfs file...'.ljust(60) + '\r')
@@ -240,8 +238,6 @@ def check_file_status(filepath=None, filesize=None):
 # hr_diff needs to be a multiple of 6
 def get_closest_hr(datestr=None, utc_hour=None, hr_diff=0): 
 
-	utc_hour = float(utc_hour)
-
 	hrs_6 = [0., 6., 12., 18., 24.]
 
 	if utc_hour in hrs_6:
@@ -289,10 +285,10 @@ def get_interval(utc_hour=None):
 	hrs = get_closest_hr(utc_hour=utc_hour)
 	left_hr, left_hhh, hhh6 = hrs[0], hrs[1], hrs[2]
 
-	if float(left_hr) == float(utc_hour) and left_hhh == 0:
+	if float(left_hr) == utc_hour and left_hhh == 0:
 		left_hr, left_hhh = int(utc_hour), 0
 	else:
-		if left_hr + left_hhh > float(utc_hour):
+		if left_hr + left_hhh > utc_hour:
 			left_hhh -= 3
 
 	right_hr, right_hhh = left_hr, left_hhh + 3
@@ -314,15 +310,8 @@ def date_check(datestr=None):
 
 if __name__ == '__main__':
 
-	# get_gfs_files(weather_files=['gfs_4_20190624_1200_003.grb2'])
-	# print(get_latest_gfs_file(resolution=0.5))
-	# get_closest_gfs_file(datestr='20180620', utc_hour = '18', resolution = 0.5)
-	# print(get_interpolation_gfs_files(datestr='20180620', utc_hour='12.5'))
-	# get_gefs_files(datestr='20190524', utc_hour='13.5')
+	file = sys.argv[1]
 
-	# get_gefs_files(datestr='20190624', utc_hour='14.5')
-	hrs = get_closest_hr(datestr='20190624', utc_hour=15, hr_diff=48)
-
-	print(hrs)
+	get_gfs_files(weather_files=[file])
 
 #################################################################################################################

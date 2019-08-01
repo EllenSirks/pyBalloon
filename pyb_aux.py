@@ -72,7 +72,6 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False, outp
     new_data = {}
 
     if descent_only:
-        # new_data['altitudes'] = np.arange(alt0 % step,  altitudes.max(), step)
         new_data['altitudes'] = np.arange(alt0 % step,  alt0 + step, step)
     else:
         new_data['altitudes'] = np.arange(alt0, altitudes.max(), step)
