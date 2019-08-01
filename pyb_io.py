@@ -11,45 +11,22 @@ import sys, os
 import pyproj
 
 import pyb_aux
+import pyb_io
 
 import param_file as p
 
 #################################################################################################################
 
+# method to collect relevant data from GFS file
 def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
-
-	"""
-
-	Collect relevant information from GFS model.
-
-	Required arguments:
-		- fname -- File to read
-
-	Optional arguments:
-		- area -- tuple of NW and SE limits of the area to be read,
-		eg.  (62., 22., 59., 24.). Default: None (read all data)
-		NOTE top, left, bottom, right order!
-		- alt0 -- Starting altitude above sea level, default: 0.0 m
-		- t_0 -- Temperature at ground level, default: None
-		- extra_data -- Add highest levels from extra_data to GFS
-		ensembles which are limited to 10 hPa.
-
-	Return the following data for the closest pixel location as Numpy
-	arrays in a dictionary:
-		- u_winds -- U component of wind [m/s] - E-W component,
-		positive *towards* East
-		- v_winds -- V component of wind [m/s] - N-S component,
-		positive *towards* North
-		- temperatures -- Temperature [K]
-		- altitudes -- Geopotential height [m]
-		
-	"""
 
 	if area is not None:
 		tlat, llon, blat, rlon = area
 	else:
 		print('Do you really wish to search the entire planet?')
 		tlat, llon, blat, rlon = 90., 0., -90., 360.
+
+	############################################################################################################
 
 	grib = pg.open(fname)
 	grib.seek(0)
@@ -76,6 +53,8 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 
 	if len(lats) == 0: print( 'Warning! lats is empty!')
 	if len(lons) == 0: print( 'Warning! lons is empty!')
+
+	############################################################################################################
 
 	# Collect U component of wind data
 	u_wind = {}
@@ -109,6 +88,8 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 	for msg in omega_msgs:
 		if msg.typeOfLevel == 'isobaricInhPa':
 			omega[msg.level] = msg.values[row_idx, col_idx]
+
+	############################################################################################################
 
 	pressures = list(u_wind.keys())
 
@@ -152,7 +133,9 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 	pressures.reverse()
 
 	if descent_only:
-		ind = np.where(np.array(pressures) == p_or)[0][0]		
+		ind = np.where(np.array(pressures) == p_or)[0][0]
+
+	############################################################################################################	
 
 	i = 0
 	for key in pressures:
@@ -197,6 +180,8 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 		else:
 			i+=1
 
+	############################################################################################################
+
 	if descent_only:
 		main_keys = list(u_wind.keys())
 	else:
@@ -218,6 +203,8 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 			omega_ext[key] = omega[key]
 
 	omegas = [omega_ext[key] for key in main_keys]
+
+	############################################################################################################
 
 	if descent_only:
 
@@ -266,6 +253,8 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 			omegas.insert(grid_i2 + 1, omegas[grid_i2] + deltaOmg*f1)
 			index = grid_i2 + 1
 
+	############################################################################################################
+
 	# Convert data in lists to Numpy arrays and add them to a dictionary that is returned
 	data = {}
 	data['lats'] = np.array(lats)
@@ -292,24 +281,8 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 
 #################################################################################################################
 
-def read_gfs_single(directory=None, area=None, alt0=0, descent_only=False, step=100.):
-	"""Read a set of 0.5 degree GFS data.
-
-	Required arguments:
-		- directory -- Directory containing the data
-
-	Optional arguments:
-		- area -- tuple of NW and SE limits of the area to be read,
-		eg.  (62., 22., 59., 24.). Default: None (read all data).
-		Note: top, left, bottom, right order.
-		- alt0 -- Starting altitude of the balloon, meters from the WGS84
-		reference ellipsoid. Default: 0.0.
-
-	Return:
-		- List of dictionaries containing u_winds, v_winds, temperatures,
-		pressures and altitudes.
-
-	"""
+# method to read a single GFS file
+def read_gfs_single(directory=None, area=None, alt0=None, descent_only=False, step=100.):
 
 	all_data = []
 
@@ -322,6 +295,7 @@ def read_gfs_single(directory=None, area=None, alt0=0, descent_only=False, step=
 
 #################################################################################################################
 
+# method to read a GEFS file
 def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
 
 	indir = p.path + p.weather_data_folder + p.GFS_folder
@@ -331,6 +305,8 @@ def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, des
 	else:
 		print 'Do you really wish to search the entire planet?'
 		tlat, llon, blat, rlon = (90.0, 0.0, -90.0, 360.0)
+
+	############################################################################################################
 
 	grib = pg.open(indir + fname)
 	grib.seek(0)
@@ -356,6 +332,8 @@ def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, des
 	if len(lons) == 0:
 		print 'Warning! lons is empty!'
 
+	############################################################################################################
+
 	u_wind, v_wind, altitude = {}, {}, {}
 	for msg in u_msgs:
 		if msg.typeOfLevel == 'isobaricInhPa':
@@ -368,6 +346,8 @@ def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, des
 	for msg in g_msgs:
 		if msg.typeOfLevel == 'isobaricInhPa':
 			altitude[msg.level] = msg.values[(row_idx, col_idx)]
+
+	############################################################################################################
 
 	pressures = list(u_wind.keys())
 	pressures.sort()
@@ -390,6 +370,8 @@ def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, des
 			alt.append(altitude[key])
 			altitudes.append(np.hstack(alt))
 
+	############################################################################################################
+
 	p_interp_vals = list(set(pressures).symmetric_difference(set(alt_keys)))
 
 	alt_interps = []
@@ -410,6 +392,8 @@ def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, des
 				break
 				
 		altitudes.insert(index , np.array(alt_interps[i]))
+
+	############################################################################################################
 
 	data = {}
 	data['lats'] = np.array(lats)
@@ -432,39 +416,7 @@ def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, des
 # method to save given trajectories as KML files.
 def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, params=None, radius=5):
 
-	# Required arguments:
-	# 	- fname -- File to save the KML data to
-	# 	- data -- List of dictionaries containing 'lats', 'lons',
-	# 	'altitudes' and 'times.
-
-	# Optional arguments
-	# 	- model_start_idx -- Vector index to show where model
-	# 	trajectory starts. Trajectory before this is from live
-	# 	data. Default: 0
-	# 	- eps_mode -- How to present ensemble predictions of
-	# 	trajectories. Possible modes are 'end' and 'full'. Default:
-	# 	'end'
-	# 	- other_info -- Additional information to save into the KML
-	# 	path: eg.  other_info = [(lat, lon, alt, 'marker name', 
-	# 							  'marker description')]
-
-	if params == None:
-		descent_only = p.descent_only
-		if descent_only:
-			next_point = p.next_point
-		else:
-			next_point = '0'
-		interpolate = p.interpolate
-		drift_time = p.drift_time
-
-	else:
-		descent_only = bool(params[0])
-		if descent_only:
-			next_point = str(params[1])
-		else:
-			next_point = '0'			
-		interpolate = bool(params[-2])
-		drift_time = float(params[-1])
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	kml_str = '<?xml version="1.0" encoding="UTF-8"?>\n'
 	kml_str += '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">\n'
@@ -550,6 +502,7 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 
 #################################################################################################################
 
+# method to find all latslons to create a circle of a given radius around a lat/lon point
 def geodesic_point_buffer(lat, lon, km):
 
 	proj_wgs84 = pyproj.Proj(init='epsg:4326')
@@ -565,6 +518,7 @@ def geodesic_point_buffer(lat, lon, km):
 
 #################################################################################################################
 
+# method to create a circle of given radius around the landing point in the kml files.
 def create_circle(lon=None, lat=None, radius=5):
 
 	coords = np.array(geodesic_point_buffer(lat, lon, radius))
@@ -603,22 +557,10 @@ def create_circle(lon=None, lat=None, radius=5):
 
 #################################################################################################################
 
+# method to merge the kml files output by the pyb_drifter script
 def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=None):
 
-	if params == None:
-		descent_only = p.descent_only
-		if descent_only:
-			next_point = p.next_point
-		interpolate = p.interpolate
-		drift_time = p.drift_time
-
-	else:
-
-		descent_only = bool(params[0])
-		if descent_only:
-			next_point = str(params[1])
-		interpolate = bool(params[-2])
-		drift_time = float(params[-1])
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	dir_base = p.path + p.output_folder + str(run) + '/'
 
@@ -739,6 +681,7 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 
 #################################################################################################################
 
+# method to print out the parameters being used to the terminal
 def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=None):
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff = params
@@ -772,7 +715,7 @@ def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=N
 
 #################################################################################################################
 
-# write parameters of run to file
+# method to write the parameters used of run to file
 def write_verbose(params_dir, params, balloon):
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff = params
@@ -801,6 +744,7 @@ def write_verbose(params_dir, params, balloon):
 
 #################################################################################################################
 
+# method to set the parameters being used
 def set_params(params=None, balloon=None):
 
 	# balloon parameters
@@ -837,6 +781,7 @@ def set_params(params=None, balloon=None):
 
 #################################################################################################################
 
+# method to write the parameters being used to the runs_info.txt file which contains the info for all runs run
 def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff = params
@@ -864,6 +809,7 @@ def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 
 #################################################################################################################
 
+# method to find the info for a run in the runs_info.txt file
 def search_info(run=None, print_verbose=True):
 
 	data = ascii.read(p.path + p.output_folder + 'runs_info.txt')

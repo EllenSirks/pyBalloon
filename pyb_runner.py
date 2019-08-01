@@ -18,7 +18,6 @@ import param_file as p
 # method to run entire simulation of flight
 # requires the starting location & starting point (0 for highest), whether or not its descent only, and the date & time of the starting point
 # if parameters are not supplied, it takes it from the param file
-
 def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, run=None, print_verbose=False, write_verbose=False, add_run_info=True, output_figs=False):
 
 	print('')

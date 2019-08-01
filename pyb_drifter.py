@@ -17,11 +17,6 @@ def drifter(datestr=None, utc_hour=None, loc0=None, params=None, run=None, ballo
 
 	out_dir = p.path + p.output_folder
 
-	if loc0 != None:
-		lat0, lon0, alt0 = loc0
-		lat0, lon0, alt0 = float(lat0), float(lon0), float(alt0)
-		loc0 = lat0, lon0, alt0
-
 	if run == None:
 
 		now = dt.datetime.now()

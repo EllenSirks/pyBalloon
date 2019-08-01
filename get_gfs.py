@@ -23,6 +23,8 @@ def get_latest_gfs_file(resolution=0.5):
 	out_dir = p.path + p.weather_data_folder + p.GFS_folder
 	url_base = 'https://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/'
 
+	############################################################################################################
+
 	req = requests.get(url_base)
 	if req.ok is not True:
 		print("Could not connect!")

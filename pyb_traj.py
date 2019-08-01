@@ -173,6 +173,8 @@ def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None
 	hrs = get_gfs.get_closest_hr(utc_hour=current_time)
 	new_hhhh, new_hhh1, new_hhh2 = hrs[0], hrs[1], hrs[2]
 
+	############################################################################################################
+
 	# update from e.g. 0600_006 to 1200_000
 	for j in range(len(keys)):
 		key = keys[j]
@@ -192,6 +194,8 @@ def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None
 
 			keys = list(data.keys())
 			checks[j] += 1.
+
+	############################################################################################################
 
 	# add new weather file if current time is past 'latest' weather file
 	if current_time > max(keys) + 1.5 or (interpolate and current_time > max(keys)):
@@ -238,6 +242,8 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 
 	time0 = time.time()
 
+	############################################################################################################
+
 	# set general parameters and initial conditions
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 	lat0, lon0, alt0 = loc0
@@ -270,6 +276,8 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 
 	stage = 1
 
+	############################################################################################################
+
 	while True:
 
 		if hr_diff == 0:
@@ -291,6 +299,8 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 
 			current_time = float(utc_hour) + np.cumsum(np.array(total_time))[-1]/3600
 			(t1, f1), (t2, f2) = calc_time_frac(current_time=current_time, weather_times=keys)
+
+		############################################################################################################	
 
 		# ascent stage
 		if stage == 1:
@@ -363,6 +373,8 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 
 			i += 1
 
+		############################################################################################################
+
 		# drift/level flight stage
 		if stage == 2:
 
@@ -420,6 +432,8 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 			speed = 0
 			timer += dt
 
+		############################################################################################################
+
 		# descent stage
 		if stage == 3:
 
@@ -475,6 +489,8 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 				break
 			i -= 1
 
+		############################################################################################################
+
 		if not (stage == 1 and descent_only):
 
 			if stage == 2:
@@ -501,6 +517,8 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 			# sigmas_u.append(sigma_u)
 			# sigmas_v.append(sigma_v)
 
+	############################################################################################################
+
 	lat_rad, lon_rad, all_alts, total_time, dists = lat_rad[:-1], lon_rad[:-1], all_alts[:-1], total_time[:-1], dists[:-1]
 
 	# get more accurate end-point based on elevation data
@@ -521,6 +539,8 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 	lat_rad.append(np.radians(new_end_point[0]))
 	lon_rad.append(np.radians(new_end_point[1]))
 	all_alts.append(new_alt)
+
+	############################################################################################################
 
 	# Convert the result array lists to Numpy 2D-arrays
 	output = {}

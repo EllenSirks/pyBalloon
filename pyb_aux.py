@@ -13,15 +13,9 @@ import param_file as p
 
 #################################################################################################################
 
+# method to create new array for given conditions
 def all_and(data):
-    """Logical and for a list of arrays.
-    
-    Required arguments:
-        - data -- list of Numpy boolean arrays
 
-    Return:
-        - result -- Logical and of all given arrays
-    """
     result = data.pop()
     for d in data:
         result = np.logical_and(result, d)
@@ -30,8 +24,7 @@ def all_and(data):
 
 #################################################################################################################
 
-# method to calculate Earth WGS84 based radius on a given latitude.
-# see http://en.wikipedia.org/wiki/Earth_radius#Radius_at_a_given_geodetic_latitude
+# method to calculate Earth WGS84 based radius on a given latitude. See http://en.wikipedia.org/wiki/Earth_radius#Radius_at_a_given_geodetic_latitude
 def earth_radius(lat_rad):
     
     # WGS84 reference ellipsoid
@@ -154,16 +147,8 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False, outp
 
 #################################################################################################################
 
+# method to calculate effective lift (force, in Newtons) caused by the balloon.
 def lift(data, mass):
-    """Calculate effective lift (force, in Newtons) caused by the balloon.
-
-    Required arguments:
-        - data -- Dictionary containing 'altitudes' (meters), balloon
-        'volumes' (m^3) and 'air_densities' (kg/m^3)
-        - mass -- Mass of the whole balloon
-
-    Return resultant lift force.
-    """
 
     h = data['altitudes']
     V_b = data['balloon_volumes']
@@ -176,15 +161,8 @@ def lift(data, mass):
 
 #################################################################################################################
 
+# method to calculate volume of a sphere.
 def balloon_volume(data):
-    """Calculate volume of a sphere.
-
-    Required argument:
-        - data -- Dictionary containing 'balloon_radii' (in meters)
-
-    Return:
-        - Volume of the balloon at each level in data
-    """
 
     r = data['balloon_radii']
     V = 4/3. * np.pi * r**3
@@ -193,19 +171,8 @@ def balloon_volume(data):
 
 #################################################################################################################
 
+# method to calculate gas (~balloon) volume based on ideal gas law: pV = nRT
 def balloon_volume_ideal_gas(data, gas_mass, gas_molar_mass=p.M_helium):
-    """Calculate gas (~balloon) volume based on ideal gas law: pV = nRT.
-
-    Required arguments:
-        - data -- Dictionary returned by read_gfs_data()
-        - gas_mass -- Mass of the gas in question
-
-    Optional arguments:
-        - gas_molar_mass -- Gas molar mask (g/mol). Default: 4.002602 (Helium)
-
-    Return:
-        - Gas volume at each level in data
-    """
 
     m = gas_mass # 
     M = gas_molar_mass/1000. # default to Helium, convert to kg/mol
@@ -220,6 +187,7 @@ def balloon_volume_ideal_gas(data, gas_mass, gas_molar_mass=p.M_helium):
 
 #################################################################################################################
 
+# method to calculate burst radius of balloon
 def burst_altitude(data, burst_radius):
 
     radii = data['balloon_radii']
@@ -238,15 +206,8 @@ def burst_altitude(data, burst_radius):
 
 #################################################################################################################
 
+# method to find the level of neutral buoyancy (or more precise, the level where effective lift is closest to zero)
 def neutral_buoyancy_level(data):
-    """Find the level of neutral buoyancy (or more precise, the level where effective lift is closest to zero).
-
-    Required arguments:
-        - data -- Dictionary containing 'altitudes' and corresponding 'lifts'
-
-    Return:
-        - Altitude of neutral buoyancy and corresponding array index
-    """
 
     alt_out = []
     i_out = []
@@ -262,20 +223,8 @@ def neutral_buoyancy_level(data):
 
 #################################################################################################################
 
+# method to calculate the rate of ascent (in m/s) for the inflated balloon at given levels
 def ascent_speed(data, mass, Cd=p.Cd_sphere):
-    """Calculate the rate of ascent (in m/s) for the inflated balloon at given levels.
-
-    Required arguments:
-        - data -- Dictionary with 'altitudes' and corresponding
-        'air_densities', 'balloon_radii' and 'balloon_volumes'
-        - mass -- Full balloon mass (in kg)
-
-    Optional arguments:
-        - Cd -- Coefficient of drag. Default: 0.47 (sphere)
-
-    Return:
-        - Ascent speed (m/s) at every level in input data.
-    """
 
     m = mass
     rho = data['air_densities']
@@ -295,31 +244,14 @@ def ascent_speed(data, mass, Cd=p.Cd_sphere):
         idx = idxs[0][0]
         F[idx:] = 1e-30
 
-    v = np.sqrt(2*F/(rho*Cd*A))
+    v = np.sqrt(2*F/(rho*Cd*A)) # m/s
 
     return v
 
 #################################################################################################################
 
+# method to calculate the rate of descent (in m/s) for deflated (burst) balloon with 1 or 2 different sized parachutes with given areas, change altitude and drag-coefficient.
 def descent_speed(data, mass, Cd, areas, alt_step, change_alt=None):
-    """Calculate the rate of descent for deflated (burst) balloon with
-    1 or 2 different sized parachutes with given areas, change
-    altitude and drag-coefficient.
-
-    Required arguments:
-        - data -- Dictionary with 'altitudes', and corresponding 'air_densities'
-        - mass -- Mass of the payload + assumed remnants of the balloon
-        - Cd -- Coefficients of drag for one or two parachutes in a tuple
-        - areas -- Effective areas (in m^2) of one or two parachutes in a tuple
-
-    Optional arguments:
-        - change_alt -- Altitude where first parachute is changed to
-        the second one. If None, only one parachute is used. Default:
-        None
-
-    Return:
-        - Rate of descent (m/s) for each level in input data
-    """
 
     m = mass
     h = data['altitudes']
@@ -329,18 +261,20 @@ def descent_speed(data, mass, Cd, areas, alt_step, change_alt=None):
     if change_alt is not None:
         idxs = h < change_alt
         for rho in data['air_densities']:
-            v = np.sqrt(2*m*g/(rho*Cd*areas[0]))
+            v = np.sqrt(2*m*g/(rho*Cd*areas[0])) # m/s
             v[idxs] = np.sqrt(2*m*g[idxs]/(rho[idxs]*Cd*areas[1]))
             speeds.append(v)
     else:
         factor = 1
         for rho in data['air_densities']:
-            v = np.sqrt(2*m*g/(rho*Cd*areas))
+            v = np.sqrt(2*m*g/(rho*Cd*areas)) # m/s
             speeds.append(v)
+
     return -1*np.array(speeds)
 
 #################################################################################################################    
 
+#  method to find balloon radii at each height level
 def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_mass=p.M_helium):
 
     r0 = radius_empty # in meters
@@ -421,6 +355,7 @@ def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_
 
 #################################################################################################################
 
+# method to find elevation at given lat/lon
 def get_elevation(lon, lat):
 
     SAMPLES = 1201  # Change this to 3601 for SRTM1
@@ -524,6 +459,7 @@ def get_endpoint(data=None, run=None, filename=None, params=None):
 
 #################################################################################################################
 
+# method to calculate std and mean from the GEFS ensemble forecasts
 def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only=False):
 
     indir = p.path + p.weather_data_folder + p.GEFS_folder
@@ -624,6 +560,7 @@ def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only
 
 #################################################################################################################
 
+# method to add error data to main weather data
 def add_uv_errs(main_data=None, err_data=None):
 
     print('Adding u/v wind errors...\n')
