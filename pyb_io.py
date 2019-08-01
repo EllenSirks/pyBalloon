@@ -414,7 +414,7 @@ def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, des
 #################################################################################################################
 
 # method to save given trajectories as KML files.
-def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, params=None, radius=5):
+def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, params=None, balloon=None, radius=5):
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
