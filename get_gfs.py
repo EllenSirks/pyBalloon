@@ -67,7 +67,11 @@ def get_latest_gfs_file(resolution=0.5):
 # method to find & download weather files needed for interpolation (3)
 def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5):
 
-	print('Getting interpolation files...')
+	sys.stdout.write('\r')
+	sys.stdout.flush()
+	sys.stdout.write('Finding interpolation files...'.ljust(60) + '\r')
+	sys.stdout.flush()
+	time.sleep(0.4)
 
 	res = str(int(-4*resolution + 6))
 	left_hr, left_hhh, right_hr, right_hhh = get_interval(utc_hour=utc_hour)
@@ -85,7 +89,7 @@ def get_closest_gfs_file(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0)
 	sys.stdout.flush()
 	sys.stdout.write('Finding closest gfs file...'.ljust(60) + '\r')
 	sys.stdout.flush()
-	time.sleep(1)
+	time.sleep(0.4)
 
 	res = str(int((-4*resolution + 6)))
 
