@@ -850,3 +850,7 @@ def search_info(run=None, print_verbose=True):
 		return index
 
 #################################################################################################################
+
+if __name__ == '__main__':
+
+	read_gfs_file('/home/ellen/Desktop/SuperBIT_DRS/Weather_data/GFS/gfs_4_20180303_0600_006.grb2', alt0=26091, descent_only=True, step=100)

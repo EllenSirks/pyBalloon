@@ -70,7 +70,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 		files = get_gfs.get_closest_gfs_file(datestr=datestr, utc_hour=utc_hour, resolution=resolution, hr_diff=hr_diff)
 
 	# calculate the trajectory of the balloon
-	trajectories, fig_dicts = pyb_traj.run_traj(weather_files=files, datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon, output_figs=output_figs)
+	trajectories, fig_dicts, used_weather_files = pyb_traj.run_traj(weather_files=files, datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon, output_figs=output_figs)
 
 	############################################################################################################ <---- create/write output 
 
@@ -119,6 +119,26 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 		for i in range(len(fig_dicts)-1):
 			for key in fig_dicts[i].keys():
 				fig_dicts[i][key].savefig(fig_dir + datestr + '_' + key + '_check' + str(i) + '.png')
+
+	# write out the weather files used for this run
+	if not os.path.exists(base_dir + 'used_weather_files.txt'):
+		f = open(base_dir + 'used_weather_files.txt', 'w')
+		f.write('time file\n------------------------------------------\n')
+		f.close()
+
+	keys = list(used_weather_files.keys())
+	keys.sort()
+
+	f = open(base_dir + 'used_weather_files.txt', 'a+')
+	for key in keys:
+		if type(used_weather_files[key]) == type(list()):
+			for file in used_weather_files[key]:
+				f.write(str(key) + ' ' + str(file) + '\n')
+		else:
+			f.write(str(key) + ' ' + str(used_weather_files[key]) + '\n')
+	f.write(str(utc_hour + trajectories['times'][-1]/60.) + ' -\n')
+	f.write('------------------------------------------\n')
+	f.close()
 
 #################################################################################################################
 
