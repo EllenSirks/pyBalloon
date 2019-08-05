@@ -157,7 +157,7 @@ def calc_displacements(data=None, balloon=None, descent_only=False, vz_correct=F
 #################################################################################################################
 
 # method to update weather files to newest available
-def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None, balloon=None, datestr=None, utc_hour=None, loc0=None, \
+def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lon_rad=None, all_alts=None, balloon=None, datestr=None, utc_hour=None, loc0=None, \
 	total_time=[0], index=0, params=None, output_figs=False):
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
@@ -196,13 +196,23 @@ def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None
 
 			data[new_hhhh + new_hhh1], figs_dict = prepare_data(weather_file=new_weather_file, loc0=loc0, current_time=current_time, balloon=balloon, descent_only=descent_only, vz_correct=vz_correct, output_figs=output_figs)
 			figs.append(figs_dict)
+			used_weather_files[current_time] = new_weather_file
 
 			keys = list(data.keys())
 
 	############################################################################################################
 
 	# add new weather file if current time is past 'latest' weather file
-	if current_time > (max(keys) % 24) + 1.5 or (interpolate and current_time > max(keys)):
+
+	if max(keys) % 24 == 0:
+
+		check = max(keys) - ((max(keys) / 24) - 1) * 24
+
+	else:
+
+		check = max(keys) % 24
+
+	if current_time > check + 1.5 or (interpolate and current_time > max(keys) % 24):
 
 		sys.stdout.write('\r')
 		sys.stdout.flush()
@@ -227,17 +237,18 @@ def update_files(figs=None, data=None, lat_rad=None, lon_rad=None, all_alts=None
 
 		data[new_hhhh + new_hhh1], figs_dict = prepare_data(weather_file=new_weather_files[-1], loc0=loc0, current_time=current_time, balloon=balloon, descent_only=descent_only, vz_correct=vz_correct, output_figs=output_figs)
 		figs.append(figs_dict)
+		used_weather_files[current_time] = new_weather_files
 
 		keys = list(data.keys())
 
-		index += 1
+		index = np.where(np.array(keys) == new_hhhh + new_hhh1)[0][0]
 
-	return data, keys, index, figs
+	return data, keys, index, figs, used_weather_files
 
 #################################################################################################################
 
 # method to calculate the trajectory of the balloon/parachute given a start position & other input parameters
-def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, alt_change_fit=10, output_figs=False):
+def calc_movements(data=None, used_weather_files=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, alt_change_fit=10, output_figs=False):
 
 	time0 = time.time()
 
@@ -273,7 +284,7 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 		if not (stage == 1 and descent_only):
 
 			# update weather files
-			data, keys, index, figs = update_files(figs=figs, data=data, lat_rad=lat_rad, lon_rad=lon_rad, all_alts=all_alts, balloon=balloon, datestr=datestr, utc_hour=utc_hour, \
+			data, keys, index, figs, used_weather_files = update_files(figs=figs, used_weather_files=used_weather_files, data=data, lat_rad=lat_rad, lon_rad=lon_rad, all_alts=all_alts, balloon=balloon, datestr=datestr, utc_hour=utc_hour, \
 				loc0=loc0, total_time=total_time, index=index, params=params, output_figs=output_figs)
 
 		# Find the closest grid point
@@ -474,6 +485,11 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 				# sigma_u = (data[keys[index]]['u_wind_errs'][grid_i_err, i])*dt
 				# sigma_v = (data[keys[index]]['v_wind_errs'][grid_i_err, i])*dt
 
+				# print(keys, len(keys), keys[index],  index, grid_i, i)
+				# print(len(data[keys[index]]['dxs_down']))
+				# print(len(data[keys[index]]['dxs_down'][grid_i]))
+
+
 			elevation = pyb_aux.get_elevation(lat=np.degrees(lat_rad[-1]), lon=np.degrees(lon_rad[-1]))
 			if i == 0 or alts[i] <= elevation:
 				break
@@ -561,7 +577,7 @@ def calc_movements(data=None, datestr=None, utc_hour=None, loc0=None, params=Non
 	print('Landing location: (%.6f, %.6f)' % (output['lats'][-1], output['lons'][-1]))
 	print('Flight time: %d min' % (int(output['times'][-1])) + ', distance travelled: %.1f' % output['distance'] + ' km\n')
 
-	return output, figs
+	return output, figs, used_weather_files
 
 #################################################################################################################
 
@@ -581,6 +597,9 @@ def prepare_data(weather_file=None, loc0=None, current_time=None, balloon=None, 
 # method to pull everything together and return the trajectory
 def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, output_figs=False):
 
+	used_weather_files = {}
+	used_weather_files[utc_hour] = weather_files
+
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	data_array = {}
@@ -591,11 +610,11 @@ def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=
 		data_array[int(int(weather_file[15:19])/100.) + int(weather_file[20:23])] = model_data
 		figs1.append(figs_dict)
 
-	trajectories, figs2 = calc_movements(data=data_array, datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon, output_figs=output_figs)
+	trajectories, figs2, used_weather_files = calc_movements(data=data_array, used_weather_files=used_weather_files, datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon, output_figs=output_figs)
 
 	for fig_dict in figs2:
 		figs1.append(fig_dict)
 
-	return trajectories, figs1
+	return trajectories, figs1, used_weather_files
 
 #################################################################################################################
