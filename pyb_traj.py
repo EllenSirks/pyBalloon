@@ -158,7 +158,7 @@ def calc_displacements(data=None, balloon=None, descent_only=False, vz_correct=F
 
 # method to update weather files to newest available
 def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lon_rad=None, all_alts=None, balloon=None, datestr=None, utc_hour=None, loc0=None, \
-	total_time=[0], index=0, params=None, output_figs=False):
+	total_time=[0], params=None, output_figs=False):
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
@@ -183,13 +183,13 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 	# update from e.g. 0600_006 to 1200_000
 	for j in range(len(keys)):
 		key = keys[j]
-		if int(current_time) == (key % 24)  and current_time >= (key % 24) and old_hhhh != new_hhhh:
+		if int(current_time) == (key % 24)  and current_time >= (key % 24) and old_hhhh != new_hhhh and hr_diff == 0:
 
 			sys.stdout.write('\r')
 			sys.stdout.flush()
 			sys.stdout.write('Updating current weather file...'.ljust(60) + '\r')
 			sys.stdout.flush()
-			time.sleep(0.4)
+			time.sleep(0.2)
 
 			new_weather_file = 'gfs_' + res + '_' + datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh1).zfill(3) + '.grb2'
 			new_weather_file = get_gfs.get_gfs_files(weather_files=[new_weather_file])[0]
@@ -218,7 +218,7 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 		sys.stdout.flush()
 		sys.stdout.write('Adding new weather file...'.ljust(60) + '\r')
 		sys.stdout.flush()
-		time.sleep(0.4)
+		time.sleep(0.2)
 
 		if not interpolate:
 
@@ -285,7 +285,7 @@ def calc_movements(data=None, used_weather_files=None, datestr=None, utc_hour=No
 
 			# update weather files
 			data, keys, index, figs, used_weather_files = update_files(figs=figs, used_weather_files=used_weather_files, data=data, lat_rad=lat_rad, lon_rad=lon_rad, all_alts=all_alts, balloon=balloon, datestr=datestr, utc_hour=utc_hour, \
-				loc0=loc0, total_time=total_time, index=index, params=params, output_figs=output_figs)
+				loc0=loc0, total_time=total_time, params=params, output_figs=output_figs)
 
 		# Find the closest grid point
 		diff = np.sqrt((data_lats - lat_rad[-1])**2 + (data_lons - lon_rad[-1])**2)
@@ -311,7 +311,7 @@ def calc_movements(data=None, used_weather_files=None, datestr=None, utc_hour=No
 				sys.stdout.flush()
 				sys.stdout.write('Calculating ascent...'.ljust(60) + '\r')
 				sys.stdout.flush()
-				time.sleep(0.4)
+				time.sleep(0.2)
 
 			if descent_only:
 
@@ -385,7 +385,7 @@ def calc_movements(data=None, used_weather_files=None, datestr=None, utc_hour=No
 				sys.stdout.flush()
 				sys.stdout.write('Calculating drift trajectory...'.ljust(60) + '\r')
 				sys.stdout.flush()
-				time.sleep(0.4)
+				time.sleep(0.2)
 
 			dt = 5 # seconds
 
@@ -444,7 +444,7 @@ def calc_movements(data=None, used_weather_files=None, datestr=None, utc_hour=No
 				sys.stdout.flush()
 				sys.stdout.write('Calculating descent...'.ljust(60) + '\r')
 				sys.stdout.flush()
-				time.sleep(0.4)
+				time.sleep(0.2)
 
 			# calculate change in latitude & longitude, and distance travelled
 			if interpolate:
@@ -488,7 +488,6 @@ def calc_movements(data=None, used_weather_files=None, datestr=None, utc_hour=No
 				# print(keys, len(keys), keys[index],  index, grid_i, i)
 				# print(len(data[keys[index]]['dxs_down']))
 				# print(len(data[keys[index]]['dxs_down'][grid_i]))
-
 
 			elevation = pyb_aux.get_elevation(lat=np.degrees(lat_rad[-1]), lon=np.degrees(lon_rad[-1]))
 			if i == 0 or alts[i] <= elevation:
@@ -588,7 +587,7 @@ def prepare_data(weather_file=None, loc0=None, current_time=None, balloon=None, 
 	# err_data = pyb_aux.calc_gefs_errs(weather_file=weather_file, loc0=loc0, current_time=current_time, descent_only=descent_only)
 	model_data2, figs_dict = calc_properties(data=model_data1, weather_file=weather_file, loc0=loc0, balloon=balloon, descent_only=descent_only, output_figs=output_figs)
 	# model_data2 = pyb_aux.add_uv_errs(main_data=model_data2, err_data=err_data)
-	model_data3 = calc_displacements(data=model_data2, balloon=balloon, descent_only=descent_only)
+	model_data3 = calc_displacements(data=model_data2, balloon=balloon, descent_only=descent_only, vz_correct=vz_correct)
 
 	return model_data3, figs_dict
 

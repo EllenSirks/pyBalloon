@@ -71,7 +71,7 @@ def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5):
 	sys.stdout.flush()
 	sys.stdout.write('Finding interpolation files...'.ljust(60) + '\r')
 	sys.stdout.flush()
-	time.sleep(0.4)
+	time.sleep(0.2)
 
 	res = str(int(-4*resolution + 6))
 	left_hr, left_hhh, right_hr, right_hhh = get_interval(utc_hour=utc_hour)
@@ -89,7 +89,7 @@ def get_closest_gfs_file(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0)
 	sys.stdout.flush()
 	sys.stdout.write('Finding closest gfs file...'.ljust(60) + '\r')
 	sys.stdout.flush()
-	time.sleep(0.4)
+	time.sleep(0.2)
 
 	res = str(int((-4*resolution + 6)))
 
@@ -314,8 +314,10 @@ def date_check(datestr=None):
 
 if __name__ == '__main__':
 
-	file = sys.argv[1]
+	# file = sys.argv[1]
 
-	get_gfs_files(weather_files=[file])
+	closest_model, hhh3, hhh6, datestr = get_closest_hr(datestr='20180616', utc_hour=12.5, hr_diff=36)
+	print(closest_model, hhh3, hhh6, datestr)
+	# get_gfs_files(weather_files=[file])
 
 #################################################################################################################
