@@ -146,11 +146,29 @@ if __name__ == "__main__":
 
 	time0 = time.time()
 
+	############################################################################################################ <--- any run
+
 	datestr = sys.argv[1]
 	utc_hour = float(sys.argv[2])
 	loc0 = float(sys.argv[3]), float(sys.argv[4]), float(sys.argv[5])
+	# params = None
 
-	runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, print_verbose=True, write_verbose=True)
+	############################################################################################################ <--- run right now
+
+	# now = dt.datetime.now()
+
+	# datestr = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
+	# utc_hour = float(now.hour + now.minute/60.)
+	# loc0 = float(sys.argv[1]), float(sys.argv[2]), float(sys.argv[3])
+
+	# hr_diff = 6
+	# params = [bool(p.descent_only), str(p.next_point), bool(p.interpolate), float(p.drift_time), float(p.resolution), bool(p.vz_correct), hr_diff]
+
+	############################################################################################################
+
+	runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, print_verbose=True, write_verbose=True)
+
+	############################################################################################################
 
 	sys.stdout.write('\r')
 	sys.stdout.flush()
