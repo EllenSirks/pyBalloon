@@ -118,7 +118,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	if output_figs:
 		for i in range(len(fig_dicts)-1):
 			for key in fig_dicts[i].keys():
-				fig_dicts[i][key].savefig(fig_dir + datestr + '_' + key + '_check' + str(i) + '.png')
+				fig_dicts[i][key].savefig(fig_dir + datestr + '_' + key + '_check' + str(i+1) + '.png')
 
 	# write out the weather files used for this run
 	if not os.path.exists(base_dir + 'used_weather_files.txt'):
@@ -151,11 +151,11 @@ if __name__ == "__main__":
 	datestr = sys.argv[1]
 	utc_hour = float(sys.argv[2])
 	loc0 = float(sys.argv[3]), float(sys.argv[4]), float(sys.argv[5])
-	# params = None
+	params = None
 
 	############################################################################################################ <--- run right now
 
-	# now = dt.datetime.now()
+	# now = dt.datetime.utcnow()
 
 	# datestr = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
 	# utc_hour = float(now.hour + now.minute/60.)
