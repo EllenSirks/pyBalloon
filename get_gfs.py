@@ -16,7 +16,7 @@ def get_latest_gfs_file(resolution=0.5):
 	res1 = 'pgrb2.0p' + str(int(resolution*100))
 	res2 = str(int(-4*resolution + 6))
 
-	now = dt.datetime.now()
+	now = dt.datetime.utcnow()
 	now_hour = int(round(now.hour - 1 + now.minute/60.)) ### using UTC time
 	now_date_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
 
@@ -115,7 +115,7 @@ def get_closest_gfs_file(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0)
 def get_gfs_files(weather_files=None): # files should be formatted like; gfs_x_datestr_hhhh_hhh.grb2
 
 	out_dir = p.path + p.weather_data_folder + p.GFS_folder
-	now = dt.datetime.now()
+	now = dt.datetime.utcnow()
 
 	for file in weather_files:
 
