@@ -149,25 +149,6 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 			if key in list(omega.keys()):
 				omg.append(omega[key])
 
-			# Add extra data to complement the currently read data, ie. 1, 2, 3, 5 and 7 hPa levels from GFS main run to ensembles. 
-			# Data are expected to be in the same format as returned by this function.
-
-			j = 0
-			if extra_data is not None:
-
-				for level in extra_data['pressures'][:, 0]/100:
-
-					if level < min(pressures):
-
-						for idx in range(0, len(extra_data['u_winds'][0, :])):
-
-							uwnd.append(extra_data['u_winds'][j, idx])
-							vwnd.append(extra_data['v_winds'][j, idx])
-							temp.append(extra_data['temperatures'][j, idx])
-							alt.append(extra_data['altitudes'][j, idx])
-							omg.append(extra_data['omegas'][j, idx])
-					j += 1
-
 			u_winds.append(np.hstack(uwnd))
 			v_winds.append(np.hstack(vwnd))
 			temperatures.append(np.hstack(temp))
@@ -287,7 +268,6 @@ def read_gfs_single(directory=None, area=None, alt0=None, descent_only=False, st
 	all_data = []
 
 	fname = os.path.join(directory, (directory + '.grb2'))
-	# print('Reading GFS data from ' + fname[-28:])
 	main_run_data = read_gfs_file(fname, area=area, alt0=alt0, descent_only=descent_only, step=step)
 	all_data.append(main_run_data)
 
@@ -422,7 +402,11 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 	kml_str += '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">\n'
 	kml_str += '<Document id="feat_2">\n'
 	kml_str += '<name>pyballoon trajectory</name>\n'
-	kml_str += '<description>' + str(fname[52:69]) + '</description>\n'
+
+	ind = fname.find(')')
+	description = str(fname[62:ind+1])
+	description = 'Initial condition:\n' + description.replace('_', ', ')
+	kml_str += '<description>' + description + '</description>\n'
 
 	kml_str += '<Style id="stylesel_362">\n'
 	kml_str += '<LineStyle id="substyle_363">\n'
@@ -523,9 +507,7 @@ def create_circle(lon=None, lat=None, radius=5):
 
 	coords = np.array(geodesic_point_buffer(lat, lon, radius))
 
-	kml_str = '<name>error circle</name>'
-	kml_str += '<description>error circle</description>'
-	kml_str += '<Style id="stylesel_362">'
+	kml_str = '<Style id="stylesel_362">'
 	kml_str += '<LineStyle id="substyle_363">'
 	kml_str += '<color>BF0000DF</color>'
 	kml_str += '<colorMode>normal</colorMode>'
