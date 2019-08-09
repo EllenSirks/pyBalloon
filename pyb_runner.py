@@ -33,7 +33,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 		alt0 = pyb_aux.get_elevation(lon0, lat0)
 
 	# general parameters
-	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	# print out parameters to terminal
 	if print_verbose:
@@ -88,9 +88,14 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 		kml_fname += '_' + str(no + 1) + '.kml'
 
 	# write out trajectory file
-	ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds'], trajectories['z_speeds'], \
-		trajectories['omegas'], trajectories['temperatures'], trajectories['grid_spreads_u'], trajectories['grid_spreads_v']], traj_file, names=['lats', 'lons', 'alts', 'dists',\
-		 'times', 'speeds', 'z_speeds', 'omegas', 'temps', 'u_spread', 'v_spread'], overwrite=True)
+	if check_sigmas:
+		ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds'], trajectories['z_speeds'], \
+			trajectories['omegas'], trajectories['temperatures'], trajectories['grid_spreads_u'], trajectories['grid_spreads_v'], trajectories['sigmas_u'], trajectories['sigmas_v']], \
+			traj_file, names=['lats', 'lons', 'alts', 'dists', 'times', 'speeds', 'z_speeds', 'omegas', 'temps', 'u_spread', 'v_spread', 'sigmas_u', 'sigmas_v'], overwrite=True)
+	else:
+		ascii.write([trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds'], trajectories['z_speeds'], \
+			trajectories['omegas'], trajectories['temperatures'], trajectories['grid_spreads_u'], trajectories['grid_spreads_v']], traj_file, names=['lats', 'lons', 'alts', 'dists',\
+			 'times', 'speeds', 'z_speeds', 'omegas', 'temps', 'u_spread', 'v_spread'], overwrite=True)		
 
 	# write parameters of this run to file
 	if write_verbose:

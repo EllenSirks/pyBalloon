@@ -278,7 +278,9 @@ def read_gfs_single(directory=None, area=None, alt0=None, descent_only=False):
 # method to read a GEFS file
 def read_gefs_file(fname=None, area=None, alt0=0, descent_only=False):
 
-	indir = p.path + p.weather_data_folder + p.GFS_folder
+	import param_file as p
+
+	indir = p.path + p.weather_data_folder + p.GEFS_folder
 
 	if area is not None:
 		tlat, llon, blat, rlon = area
@@ -396,7 +398,7 @@ def read_gefs_file(fname=None, area=None, alt0=0, descent_only=False):
 # method to save given trajectories as KML files.
 def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, params=None, balloon=None, radius=5):
 
-	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	kml_str = '<?xml version="1.0" encoding="UTF-8"?>\n'
 	kml_str += '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">\n'
@@ -666,7 +668,7 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 # method to print out the parameters being used to the terminal
 def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=None):
 
-	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff = params
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas = params
 
 	print('General Parameters')
 	print('----------')
@@ -680,6 +682,7 @@ def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=N
 	print('correct for vertical winds: ' + str(vz_correct))
 	if hr_diff is not None:
 		print('difference in hrs for forecasts: ' + str(hr_diff) + ' hours')
+	print('check sigmas: ' + str(check_sigmas))
 	print('\nBalloon/Parachute Parameters')
 	print('----------')
 	print('altitude step: ' + str(balloon['altitude_step']) + ' m')
@@ -700,7 +703,7 @@ def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=N
 # method to write the parameters used of run to file
 def write_verbose(params_dir, params, balloon):
 
-	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff = params
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas = params
 
 	f = open(params_dir + 'params.txt', 'w+')
 	f.write('General parameters\n')
@@ -713,6 +716,7 @@ def write_verbose(params_dir, params, balloon):
 	f.write('resolution of forecasts: ' + str(resolution) + ' degrees\n')
 	f.write('correct for vertical winds: ' + str(vz_correct) + '\n')
 	f.write('difference in hrs for forecasts: ' + str(hr_diff) + ' hours\n')
+	f.write('check sigmas: ' + str(check_sigmas) + '\n')
 	f.write('----------------------\n')
 	f.write('\n')
 	f.write('Balloon/Parachute parameters\n')
@@ -745,8 +749,9 @@ def set_params(params=None, balloon=None):
 		resolution = float(p.resolution)
 		vz_correct = bool(p.vz_correct)
 		hr_diff = int(p.hr_diff)
+		check_sigmas = bool(p.check_sigmas)
 
-		params = [descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff]
+		params = [descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas]
 		
 	else:
 
@@ -758,15 +763,16 @@ def set_params(params=None, balloon=None):
 		resolution = float(params[4])
 		vz_correct = bool(params[5])
 		hr_diff = int(params[6])
+		check_sigmas = bool(params[7])
 
-	return descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon
+	return descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon
 
 #################################################################################################################
 
 # method to write the parameters being used to the runs_info.txt file which contains the info for all runs run
 def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 
-	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff = params
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas = params
 
 	if add_run_info:
 
@@ -775,7 +781,7 @@ def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 		if not os.path.isfile(run_info_file):
 
 			f = open(run_info_file, 'w+')
-			f.write('run descent_only next_point interpolate drift_time resolution vz_correct hr_diff Cd_parachute parachute_area altitude_step equip_mass balloon_mass fill_radius radius_empty burst_radius\
+			f.write('run descent_only next_point interpolate drift_time resolution vz_correct hr_diff check_sigmas Cd_parachute parachute_area altitude_step equip_mass balloon_mass fill_radius radius_empty burst_radius\
 			 thickness_empty Cd_balloon simple_ascent_rate parachute_change_altitude')
 
 		lines = [line.rstrip('\n').split(' ') for line in open(run_info_file)]
@@ -784,7 +790,7 @@ def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 		f = open(run_info_file, 'a+')
 		if run not in runs:
 			f.write('\n' + str(run) + ' ' + str(descent_only) + ' ' + str(next_point) + ' ' +  str(interpolate) + ' ' + str(drift_time) + ' ' + str(resolution) + ' '  + str(vz_correct) \
-				+ ' ' + str(hr_diff)  + ' ' + str(balloon['Cd_parachute']) + ' ' + str(balloon['parachute_areas'][0]) + ' ' + str(balloon['altitude_step'])  + ' ' + str(balloon['equip_mass']) \
+				+ ' ' + str(hr_diff) + ' ' + str(check_sigmas)  + ' ' + str(balloon['Cd_parachute']) + ' ' + str(balloon['parachute_areas'][0]) + ' ' + str(balloon['altitude_step'])  + ' ' + str(balloon['equip_mass']) \
 				+ ' ' + str(balloon['balloon_mass']) + ' ' + str(balloon['fill_radius']) + ' ' + str(balloon['radius_empty']) + ' ' + str(balloon['burst_radius']) + ' ' + str(balloon['thickness_empty']) \
 				+ ' ' + str(balloon['Cd_balloon']) + ' ' + str(balloon['simple_ascent_rate']) + ' ' + str(balloon['parachute_change_altitude']))
 		f.close()
@@ -820,6 +826,7 @@ def search_info(run=None, print_verbose=True):
 			print('resolution of forecasts: ' + str(data['resolution'][index]) + ' degrees')
 			print('correct for vertical winds: ' + str(data['vz_correct'][index]))
 			print('difference in hrs for forecasts: ' + str(data['hr_diff'][index]) + ' hours')
+			print('check sigmas: ' + str(data['check_sigmas'][index]))
 			print('----------')
 			print('\nBalloon/Parachute Parameters')
 			print('----------')
