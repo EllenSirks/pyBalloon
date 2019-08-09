@@ -581,7 +581,10 @@ def calc_movements(data=None, used_weather_files=None, datestr=None, utc_hour=No
 
 	print('Maximum altitude: ' + str(np.max(all_alts)) + ' m')
 	print('Landing location: (%.6f, %.6f)' % (output['lats'][-1], output['lons'][-1]))
-	print('Flight time: %d min' % (int(output['times'][-1])) + ', distance travelled: %.1f' % output['distance'] + ' km\n')
+	print('Flight time: %d min' % (int(output['times'][-1])) + ', distance travelled: %.1f' % output['distance'] + ' km')
+	if check_sigmas:
+		total_sigma = np.sqrt(np.sqrt(np.sum(output['sigmas_u']**2))**2 + np.sqrt(np.sum(output['sigmas_v']**2))**2)/1000.
+		print('Sigma from ensemble forecasts: %.3f km' % total_sigma)
 
 	return output, figs, used_weather_files
 

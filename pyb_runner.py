@@ -178,6 +178,6 @@ if __name__ == "__main__":
 
 	sys.stdout.write('\r')
 	sys.stdout.flush()
-	sys.stdout.write(('Program finished in ' + str(round((time.time() - time0), 1)) + ' s').ljust(60) + '\n')
+	sys.stdout.write(('\nProgram finished in ' + str(round((time.time() - time0), 1)) + ' s').ljust(60) + '\n')
 
 #################################################################################################################
