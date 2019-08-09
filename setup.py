@@ -2,7 +2,7 @@ import sys, os
 
 import param_file as p
 
-print('Have you changed to path and folder names in param_file.py?')
+print('Have you changed the path and folder names in param_file.py?')
 answer = raw_input('y or n: ')
 
 if answer == 'y':
