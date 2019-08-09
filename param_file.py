@@ -19,10 +19,11 @@ check_figs_folder = 'Checks/'
 descent_only = True
 next_point = '1'
 interpolate = False
-drift_time = 0.
-resolution = 0.5
+drift_time = 0. # minutes
+resolution = 0.5 # 0.25 or 0.5
 vz_correct = False
-hr_diff = 0
+hr_diff = 0 # hrs, multiples of 6
+check_sigmas = False
 
 # balloon parameters
 balloon = {}
@@ -38,7 +39,7 @@ balloon['simple_ascent_rate'] = 5.0 # m/s
 
 # parachute parameters
 balloon['Cd_parachute'] = 0.97
-balloon['parachute_areas'] = [1.62] # meters
+balloon['parachute_areas'] = [1.4] # meters
 balloon['parachute_change_altitude'] = None # meters
 
 # constants
