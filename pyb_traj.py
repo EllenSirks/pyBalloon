@@ -44,7 +44,7 @@ def calc_time_frac(current_time=None, weather_times=None, weather_files=None):
 #################################################################################################################
 
 # method to read in model data
-def read_data(loc0=None, weather_file=None, balloon=None, descent_only=False):
+def read_data(loc0=None, weather_file=None, descent_only=False):
 
 	lat0, lon0, alt0 = loc0
 
@@ -58,7 +58,7 @@ def read_data(loc0=None, weather_file=None, balloon=None, descent_only=False):
 	sys.stdout.write('Reading GFS data from ' + str(weather_file) + '.grb2...'.ljust(20))
 	sys.stdout.flush()
 
-	model_data = pyb_io.read_gfs_single(directory=in_dir + weather_file, area=area, alt0=alt0, descent_only=descent_only, step=balloon['altitude_step'])[0]
+	model_data = pyb_io.read_gfs_single(directory=in_dir + weather_file, area=area, alt0=alt0, descent_only=descent_only)[0]
 
 	return model_data
 
@@ -158,7 +158,7 @@ def calc_displacements(data=None, balloon=None, descent_only=False, vz_correct=F
 
 # method to update weather files to newest available
 def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lon_rad=None, all_alts=None, balloon=None, datestr=None, utc_hour=None, loc0=None, \
-	total_time=[0], params=None, output_figs=False):
+	total_time=[0], index=0, params=None, output_figs=False):
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
@@ -205,11 +205,8 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 	# add new weather file if current time is past 'latest' weather file
 
 	if max(keys) % 24 == 0:
-
 		check = max(keys) - ((max(keys) / 24) - 1) * 24
-
 	else:
-
 		check = max(keys) % 24
 
 	if current_time > check + 1.5 or (interpolate and current_time > max(keys) % 24):
@@ -285,7 +282,7 @@ def calc_movements(data=None, used_weather_files=None, datestr=None, utc_hour=No
 
 			# update weather files
 			data, keys, index, figs, used_weather_files = update_files(figs=figs, used_weather_files=used_weather_files, data=data, lat_rad=lat_rad, lon_rad=lon_rad, all_alts=all_alts, balloon=balloon, datestr=datestr, utc_hour=utc_hour, \
-				loc0=loc0, total_time=total_time, params=params, output_figs=output_figs)
+				loc0=loc0, total_time=total_time, index=index, params=params, output_figs=output_figs)
 
 		# Find the closest grid point
 		diff = np.sqrt((data_lats - lat_rad[-1])**2 + (data_lons - lon_rad[-1])**2)
@@ -485,10 +482,6 @@ def calc_movements(data=None, used_weather_files=None, datestr=None, utc_hour=No
 				# sigma_u = (data[keys[index]]['u_wind_errs'][grid_i_err, i])*dt
 				# sigma_v = (data[keys[index]]['v_wind_errs'][grid_i_err, i])*dt
 
-				# print(keys, len(keys), keys[index],  index, grid_i, i)
-				# print(len(data[keys[index]]['dxs_down']))
-				# print(len(data[keys[index]]['dxs_down'][grid_i]))
-
 			elevation = pyb_aux.get_elevation(lat=np.degrees(lat_rad[-1]), lon=np.degrees(lon_rad[-1]))
 			if i == 0 or alts[i] <= elevation:
 				break
@@ -583,7 +576,7 @@ def calc_movements(data=None, used_weather_files=None, datestr=None, utc_hour=No
 # method to prepare the data for the calculations of the trajectory
 def prepare_data(weather_file=None, loc0=None, current_time=None, balloon=None, descent_only=False, drift_time=0, vz_correct=False, output_figs=False):
 
-	model_data1 = read_data(loc0=loc0, weather_file=weather_file, balloon=balloon, descent_only=descent_only)
+	model_data1 = read_data(loc0=loc0, weather_file=weather_file, descent_only=descent_only)
 	# err_data = pyb_aux.calc_gefs_errs(weather_file=weather_file, loc0=loc0, current_time=current_time, descent_only=descent_only)
 	model_data2, figs_dict = calc_properties(data=model_data1, weather_file=weather_file, loc0=loc0, balloon=balloon, descent_only=descent_only, output_figs=output_figs)
 	# model_data2 = pyb_aux.add_uv_errs(main_data=model_data2, err_data=err_data)

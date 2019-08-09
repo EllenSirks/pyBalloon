@@ -18,7 +18,7 @@ import param_file as p
 #################################################################################################################
 
 # method to collect relevant data from GFS file
-def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
+def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False):
 
 	if area is not None:
 		tlat, llon, blat, rlon = area
@@ -263,12 +263,12 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 #################################################################################################################
 
 # method to read a single GFS file
-def read_gfs_single(directory=None, area=None, alt0=None, descent_only=False, step=100.):
+def read_gfs_single(directory=None, area=None, alt0=None, descent_only=False):
 
 	all_data = []
 
 	fname = os.path.join(directory, (directory + '.grb2'))
-	main_run_data = read_gfs_file(fname, area=area, alt0=alt0, descent_only=descent_only, step=step)
+	main_run_data = read_gfs_file(fname, area=area, alt0=alt0, descent_only=descent_only)
 	all_data.append(main_run_data)
 
 	return all_data
@@ -276,7 +276,7 @@ def read_gfs_single(directory=None, area=None, alt0=None, descent_only=False, st
 #################################################################################################################
 
 # method to read a GEFS file
-def read_gefs_file(fname=None, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False, step=100):
+def read_gefs_file(fname=None, area=None, alt0=0, descent_only=False):
 
 	indir = p.path + p.weather_data_folder + p.GFS_folder
 
