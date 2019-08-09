@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 from scipy import interpolate
 from astropy.io import ascii
 import numpy as np
-import os
+import sys, os
+import time
 
 import get_gfs
 import pyb_io
@@ -103,8 +104,6 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False, outp
                     if x > 0:
                         for i in range(0, y):
                             ok_idxs = altitudes[:, i] <= alt0
-                            # ok_idxs = altitudes[:, i] <= alt0 + 500
-                            # ok_idxs = altitudes[:, i] <= 60000
                             tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
                             arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
                     else:
@@ -462,6 +461,8 @@ def get_endpoint(data=None, run=None, filename=None, params=None):
 # method to calculate std and mean from the GEFS ensemble forecasts
 def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only=False):
 
+    import param_file as p
+
     indir = p.path + p.weather_data_folder + p.GEFS_folder
 
     tile_size = 10.0
@@ -485,7 +486,11 @@ def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only
 
         if 'gespr_4_' + datestr + '_' + str(hhhh * 100).zfill(4) + '_' + str(hhh).zfill(3) + '.grb2' in files and 'geavg_4_' + datestr + '_' + str(hhhh * 100).zfill(4) + '_' + str(hhh).zfill(3) + '.grb2' in files:
 
-            print('Reading GEFS file...')
+            sys.stdout.write('\r')
+            sys.stdout.flush()
+            sys.stdout.write('Reading GEFS file...'.ljust(60) + '\r')
+            sys.stdout.flush()
+            time.sleep(0.2)
 
             data1 = pyb_io.read_gefs_file(fname='gespr_4_' + datestr + '_' + str(hhhh * 100).zfill(4) + '_' + str(hhh).zfill(3) + '.grb2', area=area, alt0=alt0, descent_only=descent_only)
             data2 = pyb_io.read_gefs_file(fname='geavg_4_' + datestr + '_' + str(hhhh * 100).zfill(4) + '_' + str(hhh).zfill(3) + '.grb2', area=area, alt0=alt0, descent_only=descent_only)
@@ -506,7 +511,11 @@ def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only
 
             u_winds, v_winds, altitudes = {}, {}, {}
 
-            print('Reading 20 GEFS files...')
+            sys.stdout.write('\r')
+            sys.stdout.flush()
+            sys.stdout.write('Reading 20 GEFS files...'.ljust(60) + '\r')
+            sys.stdout.flush()
+            time.sleep(0.2)
 
             for no in range(0, 20):
 
@@ -563,7 +572,11 @@ def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only
 # method to add error data to main weather data
 def add_uv_errs(main_data=None, err_data=None):
 
-    print('Adding u/v wind errors...\n')
+    sys.stdout.write('\r')
+    sys.stdout.flush()
+    sys.stdout.write('Adding u/v wind errors...'.ljust(60) + '\r')
+    sys.stdout.flush()
+    time.sleep(0.2)
 
     main_data['u_wind_errs'] = err_data['u_winds']
     main_data['v_wind_errs'] = err_data['u_winds']
