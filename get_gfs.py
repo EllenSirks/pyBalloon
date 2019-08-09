@@ -301,17 +301,6 @@ def get_interval(utc_hour=None):
 
 #################################################################################################################
 
-# method to iterate date by 1 day and return new datestr
-def date_check(datestr=None):
-
-	year, month, day = int(datestr[:4]), int(datestr[4:6]), int(datestr[6:])
-	date = dt.datetime(year, month, day) + dt.timedelta(days=1)
-	new_datestr = str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2)
-
-	return new_datestr
-
-#################################################################################################################
-
 if __name__ == '__main__':
 
 	file = sys.argv[1]
