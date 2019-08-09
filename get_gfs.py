@@ -96,7 +96,7 @@ def get_closest_gfs_file(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0)
 	out_dir = p.path + p.weather_data_folder + p.GFS_folder
 	now = dt.datetime.now()
 
-	hrs = get_closest_hr(datestr=datestr, utc_hour=utc_hour, hr_diff=hr_diff) ### change here!!
+	hrs = get_closest_hr(datestr=datestr, utc_hour=utc_hour, hr_diff=hr_diff)
 	h1, h2, h3, datestr = hrs[0], hrs[1], hrs[2], hrs[3]
 
 	month = datestr[0:6]
@@ -314,10 +314,8 @@ def date_check(datestr=None):
 
 if __name__ == '__main__':
 
-	# file = sys.argv[1]
+	file = sys.argv[1]
 
-	closest_model, hhh3, hhh6, datestr = get_closest_hr(datestr='20180616', utc_hour=12.5, hr_diff=36)
-	print(closest_model, hhh3, hhh6, datestr)
-	# get_gfs_files(weather_files=[file])
+	get_gfs_files(weather_files=[file])
 
 #################################################################################################################
