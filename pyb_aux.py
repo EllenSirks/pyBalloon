@@ -68,7 +68,7 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False, outp
     if descent_only:
         new_data['altitudes'] = np.arange(alt0 % step,  alt0 + step, step)
     else:
-        new_data['altitudes'] = np.arange(alt0, altitudes.max(), step)
+        new_data['altitudes'] = np.arange(alt0, altitudes.max() + step, step)
 
     new_data['lats'] = data['lats']
     new_data['lons'] = data['lons']
@@ -585,4 +585,75 @@ def add_uv_errs(main_data=None, err_data=None):
 
     return main_data
 
-################################################################################################################# 
+#################################################################################################################
+
+def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, data, prop):
+
+    curr_lat, curr_lon = data_lats[grid_i], data_lons[grid_i]
+
+    lat_diff = curr_lat - lat_rad
+    lon_diff = curr_lon - lon_rad
+
+    if lat_diff < 0 and lon_diff < 0:
+        grid1, grid2, grid3 = np.where((np.isclose(data_lats, curr_lat + np.radians(0.5))) & (np.isclose(data_lons, curr_lon + np.radians(0.5))))[0][0], \
+        np.where((np.isclose(data_lats, curr_lat)) & (np.isclose(data_lons, curr_lon + np.radians(0.5))))[0][0], np.where((np.isclose(data_lats, curr_lat + np.radians(0.5))) & (np.isclose(data_lons, curr_lon)))[0][0]
+
+        top_lat, top_lon = data_lats[grid1], data_lons[grid1]
+        bottom_lat, bottom_lon = data_lats[grid2], data_lons[grid3]
+
+        up_left, low_left, up_right, low_right = grid3, grid_i, grid1, grid2 
+
+    elif lat_diff < 0 and lon_diff > 0:
+        grid1, grid2, grid3 = np.where((np.isclose(data_lats, curr_lat + np.radians(0.5))) & (np.isclose(data_lons, curr_lon - np.radians(0.5))))[0][0], \
+        np.where((np.isclose(data_lats, curr_lat)) & (np.isclose(data_lons, curr_lon - np.radians(0.5))))[0][0], np.where((np.isclose(data_lats, curr_lat + np.radians(0.5))) & (np.isclose(data_lons, curr_lon)))[0][0]
+
+        top_lat, top_lon = data_lats[grid1], data_lons[grid3]
+        bottom_lat, bottom_lon = data_lats[grid2], data_lons[grid1]
+
+        up_left, low_left, up_right, low_right = grid1, grid2, grid3, grid_i
+
+    elif lat_diff > 0 and lon_diff < 0:
+        grid1, grid2, grid3 = np.where((np.isclose(data_lats, curr_lat - np.radians(0.5))) & (np.isclose(data_lons, curr_lon + np.radians(0.5))))[0][0], \
+        np.where((np.isclose(data_lats, curr_lat)) & (np.isclose(data_lons, curr_lon + np.radians(0.5))))[0][0], np.where((np.isclose(data_lats, curr_lat - np.radians(0.5))) & (np.isclose(data_lons, curr_lon)))[0][0]
+
+        top_lat, top_lon = data_lats[grid2], data_lons[grid1]
+        bottom_lat, bottom_lon = data_lats[grid1], data_lons[grid3]
+
+        up_left, low_left, up_right, low_right = grid_i, grid3, grid2, grid1
+
+    else:
+        grid1, grid2, grid3 = np.where((np.isclose(data_lats, curr_lat - np.radians(0.5))) & (np.isclose(data_lons, curr_lon - np.radians(0.5))))[0][0], \
+        np.where((np.isclose(data_lats, curr_lat)) & (np.isclose(data_lons, curr_lon - np.radians(0.5))))[0][0], np.where((np.isclose(data_lats, curr_lat - np.radians(0.5))) & (np.isclose(data_lons, curr_lon)))[0][0]
+
+        top_lat, top_lon = data_lats[grid2], data_lons[grid3]
+        bottom_lat, bottom_lon = data_lats[grid1], data_lons[grid1]
+
+        up_left, low_left, up_right, low_right = grid2, grid1, grid_i, grid3
+
+    x1, y1, x2, y2 = data_lons[low_left], data_lats[low_left], data_lons[up_right], data_lats[up_right]
+    q11, q12, q21, q22 = data[prop][low_left, i], data[prop][up_left, i], data[prop][low_right, i], data[prop][up_right, i]
+
+    return (x1, y1, q11), (x1, y2, q12), (x2, y1, q21), (x2, y2, q22)
+
+# method to interpolate (x,y) from values associated with four points
+def bilinear_interpolation(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, data, prop):
+
+    x = lon_rad
+    y = lat_rad
+
+    points = find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, data, prop)
+    points = sorted(points)
+    (x1, y1, q11), (_x1, y2, q12), (x2, _y1, q21), (_x2, _y2, q22) = points
+
+    if x1 != _x1 or x2 != _x2 or y1 != _y1 or y2 != _y2:
+        raise ValueError('points do not form a rectangle')
+    if not x1 <= x <= x2 or not y1 <= y <= y2:
+        raise ValueError('(x, y) not within the rectangle')
+
+    return (q11 * (x2 - x) * (y2 - y) +
+            q21 * (x - x1) * (y2 - y) +
+            q12 * (x2 - x) * (y - y1) +
+            q22 * (x - x1) * (y - y1)
+           ) / ((x2 - x1) * (y2 - y1) + 0.0)
+
+#################################################################################################################
