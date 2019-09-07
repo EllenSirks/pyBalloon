@@ -587,61 +587,53 @@ def add_uv_errs(main_data=None, err_data=None):
 
 #################################################################################################################
 
-def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, data, prop):
+def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats,  prop):
 
     curr_lat, curr_lon = data_lats[grid_i], data_lons[grid_i]
 
     lat_diff = curr_lat - lat_rad
     lon_diff = curr_lon - lon_rad
 
-    if lat_diff < 0 and lon_diff < 0:
-        grid1, grid2, grid3 = np.where((np.isclose(data_lats, curr_lat + np.radians(0.5))) & (np.isclose(data_lons, curr_lon + np.radians(0.5))))[0][0], \
-        np.where((np.isclose(data_lats, curr_lat)) & (np.isclose(data_lons, curr_lon + np.radians(0.5))))[0][0], np.where((np.isclose(data_lats, curr_lat + np.radians(0.5))) & (np.isclose(data_lons, curr_lon)))[0][0]
+    lon_add = np.radians(-0.5*np.sign(lon_diff))
+    lat_add = np.radians(-0.5*np.sign(lat_diff))
 
-        top_lat, top_lon = data_lats[grid1], data_lons[grid1]
-        bottom_lat, bottom_lon = data_lats[grid2], data_lons[grid3]
-
-        up_left, low_left, up_right, low_right = grid3, grid_i, grid1, grid2 
-
-    elif lat_diff < 0 and lon_diff > 0:
-        grid1, grid2, grid3 = np.where((np.isclose(data_lats, curr_lat + np.radians(0.5))) & (np.isclose(data_lons, curr_lon - np.radians(0.5))))[0][0], \
-        np.where((np.isclose(data_lats, curr_lat)) & (np.isclose(data_lons, curr_lon - np.radians(0.5))))[0][0], np.where((np.isclose(data_lats, curr_lat + np.radians(0.5))) & (np.isclose(data_lons, curr_lon)))[0][0]
-
-        top_lat, top_lon = data_lats[grid1], data_lons[grid3]
-        bottom_lat, bottom_lon = data_lats[grid2], data_lons[grid1]
-
-        up_left, low_left, up_right, low_right = grid1, grid2, grid3, grid_i
-
-    elif lat_diff > 0 and lon_diff < 0:
-        grid1, grid2, grid3 = np.where((np.isclose(data_lats, curr_lat - np.radians(0.5))) & (np.isclose(data_lons, curr_lon + np.radians(0.5))))[0][0], \
-        np.where((np.isclose(data_lats, curr_lat)) & (np.isclose(data_lons, curr_lon + np.radians(0.5))))[0][0], np.where((np.isclose(data_lats, curr_lat - np.radians(0.5))) & (np.isclose(data_lons, curr_lon)))[0][0]
-
-        top_lat, top_lon = data_lats[grid2], data_lons[grid1]
-        bottom_lat, bottom_lon = data_lats[grid1], data_lons[grid3]
-
-        up_left, low_left, up_right, low_right = grid_i, grid3, grid2, grid1
-
+    if lon_diff != 0 and lat_diff != 0:
+        lons = [curr_lon, curr_lon, curr_lon + lon_add, curr_lon + lon_add]
+        lats = [curr_lat, curr_lat + lat_add, curr_lat, curr_lat + lat_add]
     else:
-        grid1, grid2, grid3 = np.where((np.isclose(data_lats, curr_lat - np.radians(0.5))) & (np.isclose(data_lons, curr_lon - np.radians(0.5))))[0][0], \
-        np.where((np.isclose(data_lats, curr_lat)) & (np.isclose(data_lons, curr_lon - np.radians(0.5))))[0][0], np.where((np.isclose(data_lats, curr_lat - np.radians(0.5))) & (np.isclose(data_lons, curr_lon)))[0][0]
+        if lon_diff == 0 and lat_diff != 0:
+            lon_add += np.radians(0.5)
+            lons = [curr_lon - lon_add, curr_lon - lon_add, curr_lon + lon_add, curr_lon + lon_add]
+            lats = [curr_lat, curr_lat + lat_add, curr_lat, curr_lat + lat_add]
+        elif lon_diff != 0 and lat_diff == 0:
+            lat_add += np.radians(0.5)
+            lons = [curr_lon, curr_lon + lon_add, curr_lon, curr_lon + lon_add]
+            lats = [curr_lat - lat_add, curr_lat - lat_add, curr_lat + lat_add, curr_lat + lat_add]
+        else:
+            lon_add += np.radians(0.5)
+            lat_add += np.radians(0.5)
+            lons = [curr_lon - lon_add, curr_lon - lon_add, curr_lon + lon_add, curr_lon + lon_add]
+            lats = [curr_lat - lat_add, curr_lat + lat_add, curr_lat - lat_add, curr_lat + lat_add]
 
-        top_lat, top_lon = data_lats[grid2], data_lons[grid3]
-        bottom_lat, bottom_lon = data_lats[grid1], data_lons[grid1]
+    bottom_lat, bottom_lon, top_lat, top_lon = min(lats), min(lons), max(lats), max(lons)
 
-        up_left, low_left, up_right, low_right = grid2, grid1, grid_i, grid3
+    up_left = np.where((np.isclose(data_lats, top_lat)) & (np.isclose(data_lons, bottom_lon)))[0][0]
+    low_left = np.where((np.isclose(data_lats, bottom_lat)) & (np.isclose(data_lons, bottom_lon)))[0][0]
+    up_right = np.where((np.isclose(data_lats, top_lat)) & (np.isclose(data_lons, top_lon)))[0][0]
+    low_right = np.where((np.isclose(data_lats, bottom_lat)) & (np.isclose(data_lons, top_lon)))[0][0]
 
     x1, y1, x2, y2 = data_lons[low_left], data_lats[low_left], data_lons[up_right], data_lats[up_right]
-    q11, q12, q21, q22 = data[prop][low_left, i], data[prop][up_left, i], data[prop][low_right, i], data[prop][up_right, i]
+    q11, q12, q21, q22 = prop[low_left, i], prop[up_left, i], prop[low_right, i], prop[up_right, i]
 
     return (x1, y1, q11), (x1, y2, q12), (x2, y1, q21), (x2, y2, q22)
 
 # method to interpolate (x,y) from values associated with four points
-def bilinear_interpolation(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, data, prop):
+def bilinear_interpolation(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop):
 
     x = lon_rad
     y = lat_rad
 
-    points = find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, data, prop)
+    points = find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop)
     points = sorted(points)
     (x1, y1, q11), (_x1, y2, q12), (x2, _y1, q21), (_x2, _y2, q22) = points
 
