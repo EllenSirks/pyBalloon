@@ -281,9 +281,9 @@ def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_
     t0 = thickness_empty # in meters
     M = gas_molar_mass / 1000. # convert to kg/mol
     ps = data['pressures']
-    p0 = p[0]
+    p0 = ps[0]
     Ts = data['temperatures']
-    T0 = T[0]
+    T0 = Ts[0]
 
     mu = 300000. # balloon shear modulus in Pascals
     alfa = 10./11.
@@ -303,7 +303,7 @@ def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_
     all_radii = []
 
     try:
-        x, y = p.shape
+        x, y = ps.shape
         
         for i in range(0, x):
             radii = []
@@ -311,10 +311,10 @@ def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_
                 a4 = -3*n[j]*p.R0/(4*np.pi)
                 # 8th degree polynomial
                 poly = [a8,        # r^8
-                        p[i,j],    # r^7
+                        ps[i,j],    # r^7
                         a6,        # r^6
                         0,         # r^5
-                        a4*T[i,j], # r^4
+                        a4*Ts[i,j], # r^4
                         0,         # r^3
                         a2,        # r^2
                         0,         # r^1
@@ -333,10 +333,10 @@ def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_
             a4 = -3*n*p.R0/(4*np.pi)
             # 8th degree polynomial
             poly = [a8,        # r^8
-                    p[i],    # r^7
+                    ps[i],    # r^7
                     a6,        # r^6
                     0,         # r^5
-                    a4*T[i], # r^4
+                    a4*Ts[i], # r^4
                     0,         # r^3
                     a2,        # r^2
                     0,         # r^1
@@ -587,31 +587,31 @@ def add_uv_errs(main_data=None, err_data=None):
 
 #################################################################################################################
 
-def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats,  prop):
+def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats,  prop, resolution):
 
     curr_lat, curr_lon = data_lats[grid_i], data_lons[grid_i]
 
     lat_diff = curr_lat - lat_rad
     lon_diff = curr_lon - lon_rad
 
-    lon_add = np.radians(-0.5*np.sign(lon_diff))
-    lat_add = np.radians(-0.5*np.sign(lat_diff))
+    lon_add = np.radians(-resolution*np.sign(lon_diff))
+    lat_add = np.radians(-resolution*np.sign(lat_diff))
 
     if lon_diff != 0 and lat_diff != 0:
         lons = [curr_lon, curr_lon, curr_lon + lon_add, curr_lon + lon_add]
         lats = [curr_lat, curr_lat + lat_add, curr_lat, curr_lat + lat_add]
     else:
         if lon_diff == 0 and lat_diff != 0:
-            lon_add += np.radians(0.5)
+            lon_add += np.radians(resolution)
             lons = [curr_lon - lon_add, curr_lon - lon_add, curr_lon + lon_add, curr_lon + lon_add]
             lats = [curr_lat, curr_lat + lat_add, curr_lat, curr_lat + lat_add]
         elif lon_diff != 0 and lat_diff == 0:
-            lat_add += np.radians(0.5)
+            lat_add += np.radians(resolution)
             lons = [curr_lon, curr_lon + lon_add, curr_lon, curr_lon + lon_add]
             lats = [curr_lat - lat_add, curr_lat - lat_add, curr_lat + lat_add, curr_lat + lat_add]
         else:
-            lon_add += np.radians(0.5)
-            lat_add += np.radians(0.5)
+            lon_add += np.radians(resolution)
+            lat_add += np.radians(resolution)
             lons = [curr_lon - lon_add, curr_lon - lon_add, curr_lon + lon_add, curr_lon + lon_add]
             lats = [curr_lat - lat_add, curr_lat + lat_add, curr_lat - lat_add, curr_lat + lat_add]
 
@@ -628,12 +628,12 @@ def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats,  pro
     return (x1, y1, q11), (x1, y2, q12), (x2, y1, q21), (x2, y2, q22)
 
 # method to interpolate (x,y) from values associated with four points
-def bilinear_interpolation(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop):
+def bilinear_interpolation(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop, resolution):
 
     x = lon_rad
     y = lat_rad
 
-    points = find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop)
+    points = find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop, resolution)
     points = sorted(points)
     (x1, y1, q11), (_x1, y2, q12), (x2, _y1, q21), (_x2, _y2, q22) = points
 

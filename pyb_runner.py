@@ -65,12 +65,12 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 
 	# get weather files depending on if we want interpolation
 	if interpolate:
-		files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour, resolution=resolution)
+		files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour, resolution=resolution, hr_diff=hr_diff)
 	else:
 		files = get_gfs.get_closest_gfs_file(datestr=datestr, utc_hour=utc_hour, resolution=resolution, hr_diff=hr_diff)
 
 	# calculate the trajectory of the balloon
-	trajectories, fig_dicts, used_weather_files = pyb_traj.run_traj(weather_files=files, datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon, output_figs=output_figs)
+	trajectories, fig_dicts, used_weather_files, time_diffs = pyb_traj.run_traj(weather_files=files, datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon, output_figs=output_figs)
 
 	############################################################################################################ <---- create/write output 
 
@@ -88,13 +88,17 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 		kml_fname += '_' + str(no + 1) + '.kml'
 
 	# write out trajectory file
-	out_list = [trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['speeds'], trajectories['z_speeds'],\
+	out_list = [trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['loc_diffs'], trajectories['speeds'], trajectories['z_speeds'],\
 	 trajectories['omegas'], trajectories['temperatures'], trajectories['grid_spreads_u'], trajectories['grid_spreads_v']]
-	names = ['lats', 'lons', 'alts', 'dists', 'times', 'speeds', 'z_speeds', 'omegas', 'temps', 'u_spread', 'v_spread']
+	names = ['lats', 'lons', 'alts', 'dists', 'times', 'loc_diffs', 'speeds', 'z_speeds', 'omegas', 'temps', 'u_spread', 'v_spread']
 	
 	if check_sigmas:
 		out_list += [trajectories['sigmas_u'], trajectories['sigmas_v']]
 		names += ['sigmas_u', 'sigmas_v']
+
+	if not interpolate:
+		out_list = out_list[:5] + [trajectories['delta_ts']] + out_list[5:]
+		names = names[:5] + ['delta_t'] + names[5:]
 
 	ascii.write(out_list, traj_file, names=names, overwrite=True)		
 
@@ -105,20 +109,8 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	# add run info to run_info.txt file
 	pyb_io.write_run_info(add_run_info=add_run_info, run=run, params=params, balloon=balloon)
 
-	# highest point in main-run trajectory (bit redundant for descent only)
-	if descent_only:
-		idx, = np.where(trajectories['alts'] == np.max(trajectories['alts']))
-	else:
-		idx, = np.where(trajectories['alts'] == trajectories['alts'][0])
-
-	latx = trajectories['lats'][idx][0]
-	lonx = trajectories['lons'][idx][0]
-	altx = trajectories['alts'][idx][0]
-	timex = trajectories['times'][idx][0]
-
-	# write out file for google-earth
-	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
-	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, radius=5)
+	# save weather files used
+	pyb_io.save_used_weather_files(utc_hour=utc_hour, save_dir=base_dir, used_weather_files=used_weather_files, trajectories=trajectories)
 
 	# save figs with interpolation checks
 	if output_figs:
@@ -126,25 +118,20 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 			for key in fig_dicts[i].keys():
 				fig_dicts[i][key].savefig(fig_dir + datestr + '_' + key + '_check' + str(i+1) + '.png')
 
-	# write out the weather files used for this run
-	if not os.path.exists(base_dir + 'used_weather_files.txt'):
-		f = open(base_dir + 'used_weather_files.txt', 'w')
-		f.write('time file\n------------------------------------------\n')
-		f.close()
+	# determine error
+	err = pyb_io.determine_error(utc_hour=utc_hour, used_weather_files=used_weather_files, trajectories=trajectories, params=params)
 
-	keys = list(used_weather_files.keys())
-	keys.sort()
+	# highest point in main-run trajectory (bit redundant for descent only)
+	if descent_only:
+		idx, = np.where(trajectories['alts'] == np.max(trajectories['alts']))
+	else:
+		idx, = np.where(trajectories['alts'] == trajectories['alts'][0])
 
-	f = open(base_dir + 'used_weather_files.txt', 'a+')
-	for key in keys:
-		if type(used_weather_files[key]) == type(list()):
-			for file in used_weather_files[key]:
-				f.write(str(key) + ' ' + str(file) + '\n')
-		else:
-			f.write(str(key) + ' ' + str(used_weather_files[key]) + '\n')
-	f.write(str(utc_hour + trajectories['times'][-1]/60.) + ' -\n')
-	f.write('------------------------------------------\n')
-	f.close()
+	latx, lonx, altx, timex = trajectories['lats'][idx][0], trajectories['lons'][idx][0], trajectories['alts'][idx][0], trajectories['times'][idx][0]
+
+	# write out file for google-earth
+	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
+	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, radius=err)
 
 #################################################################################################################
 
@@ -159,18 +146,7 @@ if __name__ == "__main__":
 	loc0 = float(sys.argv[3]), float(sys.argv[4]), float(sys.argv[5])
 	params = None
 
-	############################################################################################################ <--- run right now
-
-	# now = dt.datetime.utcnow()
-
-	# datestr = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
-	# utc_hour = float(now.hour + now.minute/60.)
-	# loc0 = float(sys.argv[1]), float(sys.argv[2]), float(sys.argv[3])
-
-	# hr_diff = 6
-	# params = [bool(p.descent_only), str(p.next_point), bool(p.interpolate), float(p.drift_time), float(p.resolution), bool(p.vz_correct), hr_diff]
-
-	############################################################################################################
+	print('Is the initial time for the UTC zone?')
 
 	runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, print_verbose=True, write_verbose=True)
 
@@ -178,6 +154,6 @@ if __name__ == "__main__":
 
 	sys.stdout.write('\r')
 	sys.stdout.flush()
-	sys.stdout.write(('\nProgram finished in ' + str(round((time.time() - time0), 1)) + ' s').ljust(60) + '\n')
+	sys.stdout.write(('Program finished in ' + str(round((time.time() - time0), 1)) + ' s').ljust(60) + '\n')
 
 #################################################################################################################

@@ -65,7 +65,7 @@ def get_latest_gfs_file(resolution=0.5):
 #################################################################################################################
 
 # method to find & download weather files needed for interpolation (3)
-def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5):
+def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0):
 
 	sys.stdout.write('\r')
 	sys.stdout.flush()
@@ -74,8 +74,11 @@ def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5):
 	time.sleep(0.2)
 
 	res = str(int(-4*resolution + 6))
-	left_hr, left_hhh, right_hr, right_hhh = get_interval(utc_hour=utc_hour)
-	weather_files = ['gfs_' + res + '_' + datestr + '_' + str(left_hr*100).zfill(4) + '_' + str(left_hhh).zfill(3) + '.grb2', 'gfs_' + res + '_' + datestr + '_' + str(right_hr*100).zfill(4) + '_' + str(right_hhh).zfill(3) + '.grb2']
+
+	left_hr, left_hhh, right_hr, right_hhh, left_datestr, right_datestr = get_interval(datestr=datestr, utc_hour=utc_hour, hr_diff=hr_diff)
+	weather_files = ['gfs_' + res + '_' + left_datestr + '_' + str(left_hr*100).zfill(4) + '_' + str(left_hhh).zfill(3) + '.grb2', \
+	'gfs_' + res + '_' + right_datestr + '_' + str(right_hr*100).zfill(4) + '_' + str(right_hhh).zfill(3) + '.grb2']
+
 	file = get_gfs_files(weather_files=weather_files)
 
 	return [weather_files[i][:-5] for i in range(len(weather_files))]
@@ -89,7 +92,7 @@ def get_closest_gfs_file(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0)
 	sys.stdout.flush()
 	sys.stdout.write('Finding closest gfs file...'.ljust(60) + '\r')
 	sys.stdout.flush()
-	time.sleep(0.2)
+	time.sleep(0.1)
 
 	res = str(int((-4*resolution + 6)))
 
@@ -145,7 +148,6 @@ def get_gfs_files(weather_files=None): # files should be formatted like; gfs_x_d
 		second_file = 'gfs_' + res2 + '_' + datestr + '_' + hhhh + '_' + hhh + '.grb2'
 
 		if os.path.isfile(out_dir + second_file) and float(os.stat(out_dir + second_file).st_size) > 40000000.:
-			# print(file + ' already downloaded!')
 			continue
 
 		download_file(path_file=filename, out_dir=out_dir)
@@ -235,7 +237,7 @@ def check_file_status(filepath=None, filesize=None):
 	sys.stdout.flush()
 	size = float(os.stat(filepath).st_size)
 	percent_complete = (size/filesize)*100.
-	sys.stdout.write(('Downloading ' + os.path.basename(filepath) + ', %.1f %s ' % (percent_complete, '% Completed')).ljust(40) + '\r')
+	sys.stdout.write(('Downloading ' + os.path.basename(filepath) + ', %.1f %s ' % (percent_complete, '% Completed')).ljust(45) + '\r')
 	sys.stdout.flush()
 
 #################################################################################################################
@@ -244,9 +246,9 @@ def check_file_status(filepath=None, filesize=None):
 # hr_diff needs to be a multiple of 6
 def get_closest_hr(datestr=None, utc_hour=None, hr_diff=0): 
 
-	hrs_6 = [0., 6., 12., 18., 24.]
+	hrs_6 = [0., 6., 12., 18.]
 
-	if utc_hour in hrs_6 and hr_diff == 0:
+	if float(utc_hour) in hrs_6 and hr_diff == 0:
 
 		closest_model = int(utc_hour)
 		hhh3 = 0
@@ -255,7 +257,7 @@ def get_closest_hr(datestr=None, utc_hour=None, hr_diff=0):
 	else:
 
 		for hr in hrs_6:
-			if hr < utc_hour:
+			if hr <= utc_hour:
 				closest_model = int(hr)
 
 		diffs = np.array([np.abs(utc_hour - (closest_model + 3.*i)) for i in range(0, 129)])
@@ -284,27 +286,45 @@ def get_closest_hr(datestr=None, utc_hour=None, hr_diff=0):
 #################################################################################################################
 
 # method to find time & date left & right of time of ascent/descent
-def get_interval(utc_hour=None):
+def get_interval(datestr=None, utc_hour=None, hr_diff=0):
 
-	hrs = get_closest_hr(utc_hour=utc_hour)
-	left_hr, left_hhh, hhh6 = hrs[0], hrs[1], hrs[2]
+	times = np.array([0., 6., 12., 18., 24.])
 
-	if float(left_hr) == utc_hour and left_hhh == 0:
-		left_hr, left_hhh = int(utc_hour), 0
+	if utc_hour in times:
+		left_hr, left_hhh, left_hhh6, left_datestr = get_closest_hr(datestr=datestr, utc_hour=utc_hour, hr_diff=hr_diff)
+		right_hr, right_hhh, right_datestr = left_hr, left_hhh + 3, left_datestr
 	else:
-		if left_hr + left_hhh > utc_hour:
-			left_hhh -= 3
+		times = np.array([0., 3., 6., 9., 12., 15., 18., 21., 24.])
+		for i in range(len(times)):
+			if utc_hour >= times[i] and times[i+1] > utc_hour:
+				left_hour = times[i]
+				right_hour = times[i+1]
+				break
+		left_hr, left_hhh, left_hhh6, left_datestr = get_closest_hr(datestr=datestr, utc_hour=left_hour, hr_diff=hr_diff)
+		right_hr, right_hhh, right_hhh6, right_datestr = get_closest_hr(datestr=datestr, utc_hour=right_hour, hr_diff=hr_diff)
 
-	right_hr, right_hhh = left_hr, left_hhh + 3
+		if right_hr != left_hr:
+			right_hr, right_hhh, right_hhh6, right_datestr = get_closest_hr(datestr=datestr, utc_hour=right_hour, hr_diff=hr_diff+6)
 
-	return left_hr, left_hhh, right_hr, right_hhh
+		if right_hr > utc_hour:
+			right_hr -= 6
+			right_hhh += 6
+			if right_hr < 0:
+				right_hr += 24
+				year, month, day = int(right_datestr[:4]), int(right_datestr[4:6]), int(right_datestr[6:])
+				date = dt.datetime(year, month, day) - dt.timedelta(days=1)
+				right_datestr = str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2)
+
+	return left_hr, left_hhh, right_hr, right_hhh, left_datestr, right_datestr
 
 #################################################################################################################
 
 if __name__ == '__main__':
 
-	file = sys.argv[1]
+	# file = sys.argv[1]
 
-	get_gfs_files(weather_files=[file])
+	# get_gfs_files(weather_files=[file])
+
+	get_latest_gfs_file(resolution=0.25)
 
 #################################################################################################################

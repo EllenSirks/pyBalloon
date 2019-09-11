@@ -12,6 +12,7 @@ import pyproj
 
 import pyb_aux
 import pyb_io
+import pyb_traj
 
 import param_file as p
 
@@ -405,8 +406,13 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 	kml_str += '<Document id="feat_2">\n'
 	kml_str += '<name>pyballoon trajectory</name>\n'
 
-	ind = fname.find(')')
-	description = str(fname[62:ind+1])
+	ind = fname.find(')') + 1
+	if fname[61] != '/':
+		ind0 = 61
+	else:
+		ind0 = 62
+
+	description = str(fname[ind0:ind])
 	description = 'Initial condition:\n' + description.replace('_', ', ')
 	kml_str += '<description>' + description + '</description>\n'
 
@@ -457,7 +463,8 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 		kml_str += '<description>End-point based on GFS ensemble member %d</description>\n' % (num-1)
 
 	kml_str += '<Point>\n'
-	kml_str += '<coordinates>%f,%f</coordinates>\n' % (data['lons'][-1], data['lats'][-1])
+	kml_str += '<altitudeMode>absolute</altitudeMode>\n'
+	kml_str += '<coordinates>%f,%f,%f</coordinates>\n' % (data['lons'][-1], data['lats'][-1], data['alts'][-1])
 	kml_str += '</Point>\n'
 	kml_str += '</Placemark>\n'
 	num += 1
@@ -475,9 +482,17 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 			kml_str += '</Point>\n'
 			kml_str += '</Placemark>\n'
 
- 	end_lat, end_lon = data['lats'][-1], data['lons'][-1]
-	kml_str_add = create_circle(lon = end_lon, lat = end_lat, radius=radius)
-	kml_str += kml_str_add
+ 	end_lat, end_lon, end_alt = data['lats'][-1], data['lons'][-1], data['alts'][-1]
+
+	kml_str_add1 = create_circle(lon = end_lon, lat = end_lat, radius=radius, color='ff0080ff') # 95th percentile
+	kml_str_add2 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt((radius**2 - 2.46**2) + 1.23*2), color='ff0000ff') # 68th percentile
+	kml_str_add3 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt((radius**2 - 2.46**2) + 3.68**2), color='ff00ffff') # 99th percentile
+	kml_str_add4 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(radius**2 - 2.46**2), color='ff336699')
+
+	kml_str += kml_str_add1
+	kml_str += kml_str_add2
+	kml_str += kml_str_add3
+	kml_str += kml_str_add4
 
 	kml_str += '</Document>\n'
 	kml_str += '</kml>\n'
@@ -505,18 +520,18 @@ def geodesic_point_buffer(lat, lon, radius):
 #################################################################################################################
 
 # method to create a circle of given radius around the landing point in the kml files.
-def create_circle(lon=None, lat=None, radius=5):
+def create_circle(lon=None, lat=None, radius=5, color='BF0000DF'):
 
 	coords = np.array(geodesic_point_buffer(lat, lon, radius))
 
 	kml_str = '<Style id="stylesel_362">'
 	kml_str += '<LineStyle id="substyle_363">'
-	kml_str += '<color>BF0000DF</color>'
+	kml_str += '<color>'+color+'</color>'
 	kml_str += '<colorMode>normal</colorMode>'
 	kml_str += '<width>5</width>'
 	kml_str += '</LineStyle>'
 	kml_str += '<PolyStyle id="substyle_364">'
-	kml_str += '<color>BF0000DF</color>'
+	kml_str += '<color>'+color+'</color>'
 	kml_str += '<colorMode>normal</colorMode>'
 	kml_str += '<fill>1</fill>'
 	kml_str += '<outline>1</outline>'
@@ -544,7 +559,7 @@ def create_circle(lon=None, lat=None, radius=5):
 # method to merge the kml files output by the pyb_drifter script
 def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=None):
 
-	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	dir_base = p.path + p.output_folder + str(run) + '/'
 
@@ -758,12 +773,12 @@ def set_params(params=None, balloon=None):
 		descent_only = bool(params[0])
 		if descent_only:
 			next_point = str(params[1])
-		interpolate = bool(params[2])
-		drift_time = float(params[3])
-		resolution = float(params[4])
-		vz_correct = bool(params[5])
-		hr_diff = int(params[6])
-		check_sigmas = bool(params[7])
+		interpolate = bool(params[-6])
+		drift_time = float(params[-5])
+		resolution = float(params[-4])
+		vz_correct = bool(params[-3])
+		hr_diff = int(params[-2])
+		check_sigmas = bool(params[-1])
 
 	return descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon
 
@@ -837,6 +852,63 @@ def search_info(run=None, print_verbose=True):
 			print('----------\n')
 
 		return index
+
+#################################################################################################################
+
+# method to write out the weather files used for a run
+def save_used_weather_files(save_dir=None, used_weather_files=None, trajectories=None, utc_hour=None):
+
+	if not os.path.exists(save_dir + 'used_weather_files.txt'):
+		f = open(save_dir + 'used_weather_files.txt', 'w')
+		f.write('time file \n------------------------------------------\n')
+		f.close()
+
+	keys = list(used_weather_files.keys())
+	keys.sort()
+
+	f = open(save_dir + 'used_weather_files.txt', 'a+')
+	for key in keys:
+		if type(used_weather_files[key]) == type(list()):
+			for file in range(len(used_weather_files[key])):
+				f.write(str(key) + ' ' + str(used_weather_files[key][file]) + '\n')
+		else:
+			f.write(str(key) + ' ' + str(used_weather_files[key]) + '\n')
+	f.write(str((utc_hour + trajectories['times'][-1]/60.) % 24) + ' -\n')
+	f.write('------------------------------------------\n')
+	f.close()
+
+#################################################################################################################
+
+def determine_error(utc_hour=None, used_weather_files=None, trajectories=None, params=None):
+
+	if params == None:
+		interpolate = bool(p.interpolate)
+	else:
+		interpolate = params[-6]
+
+	times = list(used_weather_files.keys())
+	times.sort()
+	indices = [np.where(np.isclose((utc_hour + trajectories['times']/60) % 24, times[i]))[0][0] for i in range(len(times))]
+
+	j = 0
+	time_list = []
+	for i in range(len(trajectories['times'])):
+		if j != len(indices) - 1:
+			if i == indices[j+1]:
+				j += 1
+		if type(used_weather_files[times[j]]) == type(list()):
+			i1 = 0
+			i2 = len(used_weather_files[times[j]]) - 1
+			time_list.append(trajectories['f1s'][i]*int(used_weather_files[times[j]][i1][-3:]) + trajectories['f2s'][i]*int(used_weather_files[times[j]][i2][-3:]))
+		else:
+			time_list.append(int(used_weather_files[times[j]][-3:]))
+
+	err = np.sqrt(2.46**2 + (np.mean(time_list)*(3.5/24))**2)
+	if not interpolate:
+		time_diff_err = np.mean(np.abs(trajectories['delta_ts']))*2.4 + -0.3
+		err = np.sqrt(time_diff_err**2 + err**2)
+
+	return err
 
 #################################################################################################################
 
