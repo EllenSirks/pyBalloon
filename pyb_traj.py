@@ -387,7 +387,6 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 			delta_t = current_time - (int(int(t1[15:19])/100.) + int(t1[20:23]))
 
 			if stage != 2:
-
 				# dt = f1*data[t1][t_prop][grid_i, i] + f2*data[t2][t_prop][grid_i, i]
 
 				dt = f1*pyb_aux.bilinear_interpolation(grid_i, i, lon_rad[-1], lat_rad[-1], data_lons, data_lats, data[t1][t_prop], resolution) \
@@ -433,9 +432,10 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 					continue
 				i += 1
 		elif stage == 2:
+			timer += dt
 			if timer == drift_time*60:
 				stage += 1
-			continue
+				continue
 		elif stage == 3:
 			elevation = pyb_aux.get_elevation(lat=np.degrees(lat_rad[-1]), lon=np.degrees(lon_rad[-1]))
 			if i == 0 or alts[i] <= elevation:
@@ -449,6 +449,7 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 			lat, lon, dist = movement2ll(lat_rad=lat_rad[-1], lon_rad=lon_rad[-1], alt=alts[i], dx=dx, dy=dy)
 			alt = alts[i]
 
+		if not (descent_only and stage == 1):
 			speeds.append(speed)
 			z_speeds.append(z_speed)
 			omegas.append(omega)
@@ -472,8 +473,6 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 
 			f1s.append(f1)
 			f2s.append(f2)
-
-	# print(len(lat_rad), len(lon_rad), len(all_alts), len(total_time), len(dists), len(speeds), len(z_speeds), len(omegas), len(temperatures), len(loc_diffs), len(grid_spreads_u))
 
 	# get more accurate end-point based on elevation data
 	new_end_point, new_alt = pyb_aux.get_endpoint(data=(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), np.array(all_alts), np.array(dists)))
