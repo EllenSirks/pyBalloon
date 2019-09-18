@@ -1,5 +1,6 @@
 """Functions used by pyBalloon to calculate balloon trajectories"""
 
+from haversine import haversine
 import numpy as np
 import datetime
 import time
@@ -27,29 +28,18 @@ def calc_time_frac(current_time=None, weather_times=None, weather_files=None):
 	earlier_time = times[-2]
 	later_time = times[-1]
 
-	# if weather_times == None:
-	# 	weather_times = []
-	# 	for file in weather_files:
-	# 		weather_times.append(int(int(file[15:19])/100.) + int(file[20:23]))
-
-	# weather_times.sort()
-
-	# for time in weather_times:
-	# 	if float(time % 24) < current_time or (float(time % 24) == current_time and time == min(weather_times)):
-	# 		earlier_time = time
-	# 	elif float(time % 24) > current_time or (float(time % 24) == current_time and time == max(weather_times)):
-	# 		later_time = time
-	# 		break
-
-	dt1 = current_time - (earlier_time % 24)
-	dt2 = (later_time % 24) - current_time
+	if later_time % 24 == 0:
+		dt1 = current_time - (earlier_time % 24)
+		dt2 = (later_time % 24) - current_time
+	else:
+		dt1 = current_time - (earlier_time % 24)
+		dt2 = later_time - current_time		
 
 	dt_total = later_time - earlier_time
 
 	frac1 = 1. - dt1/dt_total
 	frac2 = 1. - dt2/dt_total
 
-	# return (earlier_time, frac1), (later_time, frac2)
 	return (earlier_file, frac1), (later_file, frac2)
 
 #################################################################################################################
@@ -186,7 +176,6 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 
 	############################################################################################################
 
-	# update if
 	if (datestr == max_datestr and current_time > max_time and interpolate) or (not interpolate and datestr == max_datestr and current_time > max_time and (current_time - max_time) > 1.5) or (diff_days > 0 and hr_diff == 0):
 
 		sys.stdout.write('\r')
@@ -297,7 +286,6 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 
 	speeds, z_speeds, omegas, temperatures, sigmas_u, sigmas_v, grid_spreads_u, grid_spreads_v, figs, f1s, f2s = [], [], [], [], [], [], [], [], [], [], []
 
-	# delta_ts, total_time, dists, dists_u, dists_v = [utc_hour - keys[0]], [0], [0], [0], [0]
 	delta_ts, total_time, dists, dists_u, dists_v = [utc_hour - time_key0], [0], [0], [0], [0]
 
 	index, i, timer = 0, 0, 0
@@ -366,9 +354,9 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 				grid_i_err, = np.where(diff == diff.min())
 				grid_i_err = grid_i_err[0]
 
+			# bilinear interpolation or not
 			# dx = f1*data[t1][x_prop][grid_i, i] + f2*data[t2][x_prop][grid_i, i]
 			# dy = f1*data[t1][y_prop][grid_i, i] + f2*data[t2][y_prop][grid_i, i]
-
 			dx = f1*pyb_aux.bilinear_interpolation(grid_i, i, lon_rad[-1], lat_rad[-1], data_lons, data_lats, data[t1][x_prop], resolution) \
 			 + f2*pyb_aux.bilinear_interpolation(grid_i, i, lon_rad[-1], lat_rad[-1], data_lons, data_lats, data[t2][x_prop], resolution)
 			dy = f1*pyb_aux.bilinear_interpolation(grid_i, i, lon_rad[-1], lat_rad[-1], data_lons, data_lats, data[t1][y_prop], resolution) \
@@ -387,8 +375,8 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 			delta_t = current_time - (int(int(t1[15:19])/100.) + int(t1[20:23]))
 
 			if stage != 2:
+				# bilinear interpolation or not
 				# dt = f1*data[t1][t_prop][grid_i, i] + f2*data[t2][t_prop][grid_i, i]
-
 				dt = f1*pyb_aux.bilinear_interpolation(grid_i, i, lon_rad[-1], lat_rad[-1], data_lons, data_lats, data[t1][t_prop], resolution) \
 				 + f2*pyb_aux.bilinear_interpolation(grid_i, i, lon_rad[-1], lat_rad[-1], data_lons, data_lats, data[t2][t_prop], resolution)
 
@@ -525,6 +513,20 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 	output['f1s'] = np.array(f1s)
 	output['f2s'] = np.array(f2s)
 
+	start_lat, start_lon = lat0, lon0
+	end_lat, end_lon = float(output['lats'][-1]), float(output['lons'][-1])
+
+	dx_end = haversine((start_lat, start_lon), (start_lat, end_lon))
+	if end_lon < start_lon:
+		dx_end *= -1
+	dy_end = haversine((start_lat, start_lon), (end_lat, start_lon))
+	if end_lat < start_lat:
+		dy_end *= -1
+
+	mean_theta = np.degrees(np.arctan2(dy_end, dx_end))
+
+	output['mean_direction'] = mean_theta
+
 	# print out relevant quantities
 	sys.stdout.write('\r')
 	sys.stdout.flush()
@@ -537,7 +539,6 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 	if check_sigmas:
 		total_sigma = np.sqrt(np.sqrt(np.sum(output['sigmas_u']**2))**2 + np.sqrt(np.sum(output['sigmas_v']**2))**2)/1000.
 		print('Sigma from ensemble forecasts: %.3f km' % total_sigma)
-
 	print('')
 
 	return output, figs, used_weather_files, time_diffs
@@ -581,7 +582,6 @@ def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=
 	for weather_file in weather_files:
 
 		model_data, figs_dict = prepare_data(weather_file=weather_file, loc0=loc0, current_time=utc_hour, balloon=balloon, descent_only=descent_only, vz_correct=vz_correct, check_sigmas=check_sigmas, output_figs=output_figs)
-		# data_array[int(int(weather_file[15:19])/100.) + int(weather_file[20:23])] = model_data
 		data_array[weather_file] = model_data
 		figs1.append(figs_dict)
 

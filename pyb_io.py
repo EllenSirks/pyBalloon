@@ -1,14 +1,17 @@
 """Input and output functions used by pyBalloon"""
-
+from itertools import permutations, repeat
 from shapely.geometry import Point
 from shapely.ops import transform
 from functools import partial
 from scipy import interpolate
+from functools import reduce
 from astropy.io import ascii
 import pygrib as pg
 import numpy as np
+import operator
 import sys, os
 import pyproj
+import math
 
 import pyb_aux
 import pyb_io
@@ -397,7 +400,7 @@ def read_gefs_file(fname=None, area=None, alt0=0, descent_only=False):
 #################################################################################################################
 
 # method to save given trajectories as KML files.
-def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, params=None, balloon=None, radius=5):
+def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, params=None, balloon=None, radius=5, mean_direction=None):
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
@@ -463,8 +466,14 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 		kml_str += '<description>End-point based on GFS ensemble member %d</description>\n' % (num-1)
 
 	kml_str += '<Point>\n'
-	kml_str += '<altitudeMode>absolute</altitudeMode>\n'
-	kml_str += '<coordinates>%f,%f,%f</coordinates>\n' % (data['lons'][-1], data['lats'][-1], data['alts'][-1])
+	kml_str += '<altitudeMode>clampToGround</altitudeMode>\n'
+
+	if data['lons'][-1] >= 180.0:
+		rem = 360
+	else:
+		rem = 0
+
+	kml_str += '<coordinates>%f,%f,%f</coordinates>\n' % (data['lons'][-1] - rem, data['lats'][-1], data['alts'][-1])
 	kml_str += '</Point>\n'
 	kml_str += '</Placemark>\n'
 	num += 1
@@ -484,10 +493,17 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 
  	end_lat, end_lon, end_alt = data['lats'][-1], data['lons'][-1], data['alts'][-1]
 
-	kml_str_add1 = create_circle(lon = end_lon, lat = end_lat, radius=radius, color='ff0080ff') # 95th percentile
-	kml_str_add2 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt((radius**2 - 2.46**2) + 1.23*2), color='ff0000ff') # 68th percentile
-	kml_str_add3 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt((radius**2 - 2.46**2) + 3.68**2), color='ff00ffff') # 99th percentile
-	kml_str_add4 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(radius**2 - 2.46**2), color='ff336699')
+ 	err = np.sqrt(radius**2 - 3.35**2)
+
+	# kml_str_add1 = create_circle(lon = end_lon, lat = end_lat, radius=radius, color='ff0080ff') # 95th percentile
+	# kml_str_add2 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + 1.68**2), color='ff0000ff') # 68th percentile
+	# kml_str_add3 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + 5.03**2), color='ff00ffff') # 99th percentile
+	# kml_str_add4 = create_circle(lon = end_lon, lat = end_lat, radius=err, color='ff336699')
+
+	kml_str_add1 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=2, theta=mean_direction, color='ff0080ff') # 95th percentile
+	kml_str_add2 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=1, theta=mean_direction, color='ff0000ff') # 68th percentile
+	kml_str_add3 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=3, theta=mean_direction, color='ff00ffff') # 99th percentile
+	kml_str_add4 = create_ellips(lon = end_lon, lat = end_lat, add=0, times=1, theta=mean_direction, color='ff336699')
 
 	kml_str += kml_str_add1
 	kml_str += kml_str_add2
@@ -516,6 +532,42 @@ def geodesic_point_buffer(lat, lon, radius):
 		proj_wgs84)
 	buf = Point(0, 0).buffer(radius * 1000)  # distance in metres
 	return transform(project, buf).exterior.coords[:]
+
+#################################################################################################################
+
+# method to find all latslons to create a ellips of a given minor/major axis (km) around a lat/lon point
+def get_ellips_coords(lat=None, lon=None, x_extent=1.87, y_extent=1.47, theta=0):
+
+	minor_axis = min([x_extent, y_extent])
+	major_axis = max([x_extent, y_extent])
+
+	if major_axis == y_extent:
+		theta += np.radians(90.)
+
+	coords = np.array(geodesic_point_buffer(lat, lon, 0.5))
+	lons = coords[:, 0] # check
+	lats = coords[:, 1]
+
+	min_lon, max_lon = min(lons), max(lons)
+	min_lat, max_lat = min(lats), max(lats)
+
+	lon_deg_per_km =  max_lon - min_lon
+	lat_deg_per_km =  max_lat - min_lat
+
+	cart_coords = make_ellipse(theta_num=100, phi=theta, x_cent=0, y_cent=0, semimaj=major_axis, semimin=minor_axis)
+
+	x_coords = cart_coords[0]
+	y_coords = cart_coords[1]
+
+	new_coords = []
+	for i in range(len(x_coords)):
+
+		new_lon = lon + lon_deg_per_km*x_coords[i]
+		new_lat = lat + lat_deg_per_km*y_coords[i]
+
+		new_coords.append((new_lon, new_lat))
+
+	return new_coords
 
 #################################################################################################################
 
@@ -548,7 +600,51 @@ def create_circle(lon=None, lat=None, radius=5, color='BF0000DF'):
 	kml_str += '</coordinates>\n'
 	kml_str += '<extrude>1</extrude>\n'
 	kml_str += '<tessellate>1</tessellate>\n'
-	kml_str += '<altitudeMode>relativeToGround</altitudeMode>\n'
+	kml_str += '<altitudeMode>clampToGround</altitudeMode>\n'
+	kml_str += '</LineString>\n'
+	kml_str += '</Placemark>\n'
+
+	return kml_str
+
+#################################################################################################################
+
+# method to create a circle of given radius around the landing point in the kml files.
+def create_ellips(lon=None, lat=None, x_extent=1.858, y_extent=1.474, theta=0, add=0, times=1, color='BF0000DF'):
+
+	x_extent *= times
+	y_extent *= times
+
+	x_extent += add
+	y_extent += add
+
+	# coords = np.array(geodesic_point_buffer(lat, lon, radius))
+	coords = np.array(get_ellips_coords(lat=lat, lon=lon, x_extent=x_extent, y_extent=y_extent, theta=theta))
+
+	kml_str = '<Style id="stylesel_362">'
+	kml_str += '<LineStyle id="substyle_363">'
+	kml_str += '<color>'+color+'</color>'
+	kml_str += '<colorMode>normal</colorMode>'
+	kml_str += '<width>5</width>'
+	kml_str += '</LineStyle>'
+	kml_str += '<PolyStyle id="substyle_364">'
+	kml_str += '<color>'+color+'</color>'
+	kml_str += '<colorMode>normal</colorMode>'
+	kml_str += '<fill>1</fill>'
+	kml_str += '<outline>1</outline>'
+	kml_str += '</PolyStyle>'
+	kml_str += '</Style>'
+	kml_str += '<Placemark id="feat_91">'
+	kml_str += '<styleUrl>#stylesel_362</styleUrl>'
+	kml_str += '<LineString id="geom_86">'
+	kml_str += '<coordinates>'
+
+	for i in range(len(coords)):
+		kml_str += str(coords[i][0]) + ',' + str(coords[i][1]) + ',' +  '0' +'\n'
+
+	kml_str += '</coordinates>\n'
+	kml_str += '<extrude>1</extrude>\n'
+	kml_str += '<tessellate>1</tessellate>\n'
+	kml_str += '<altitudeMode>clampToGround</altitudeMode>\n'
 	kml_str += '</LineString>\n'
 	kml_str += '</Placemark>\n'
 
@@ -574,6 +670,9 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 
 	fnames1 = [f for f in os.listdir(dir1) if datestr in f]
 	fnames2 = [f for f in os.listdir(dir2) if datestr in f]
+
+	fnames1.sort()
+	fnames2.sort()
 
 	for f in range(len(fnames1)):
 
@@ -656,20 +755,24 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 	kml_str2 += '</coordinates>\n'
 	kml_str2 += '<extrude>1</extrude>\n'
 	kml_str2 += '<tessellate>1</tessellate>\n'
-	kml_str2 += '<altitudeMode>relativeToGround</altitudeMode>\n'
+	kml_str2 += '<altitudeMode>clampToGround</altitudeMode>\n'
 	kml_str2 += '</LineString>\n'
 	kml_str2 += '</Placemark>\n'
 
 	for f in range(len(fnames1)):
 		kml_str2 += '<Placemark>\n'
-		kml_str2 += '<name>End, drift = '+ str(drift_times[f]) + ' min.</name>\n'
+		kml_str2 += '<name>End, drift: '+ str(drift_times[f]) + ' min.</name>\n'
 		kml_str2 += '<Point>\n'
-		kml_str2 += '<coordinates>' + str(endpoints[f][1]) + ',' + str(endpoints[f][0]) + '</coordinates>' + '\n'
+
+		if endpoints[f][1] >= 180.:
+			endpoints[f][1] -= 360
+
+		kml_str2 += '<coordinates>' + str(endpoints[f][1]) + ',' + str(endpoints[f][0])  + ',' + str(endpoints[f][2]) + '</coordinates>' + '\n'
 		kml_str2 += '</Point>\n'
 		kml_str2 += '</Placemark>\n'
 
-		kml_str_add = create_circle(lon = endpoints[f][1], lat = endpoints[f][0])
-		kml_str2 += kml_str_add
+		# kml_str_add = create_circle(lon = endpoints[f][1], lat = endpoints[f][0])
+		# kml_str2 += kml_str_add
 
 	kml_str2 += '</Document>\n'
 	kml_str2 += '</kml>'
@@ -903,15 +1006,92 @@ def determine_error(utc_hour=None, used_weather_files=None, trajectories=None, p
 		else:
 			time_list.append(int(used_weather_files[times[j]][-3:]))
 
-	err = np.sqrt(2.46**2 + (np.mean(time_list)*(3.5/24))**2)
+	err = np.sqrt(3.35**2 + (np.mean(time_list)*(3.5/24))**2) ## change percentiles here
 	if not interpolate:
 		time_diff_err = np.mean(np.abs(trajectories['delta_ts']))*2.4 + -0.3
 		err = np.sqrt(time_diff_err**2 + err**2)
 
 	return err
 
+def create_trajectory_files(traj_dir=None, kml_dir=None, datestr=None, utc_hour=None, loc0=None, trajectories=None, params=None):
+
+	if params == None:
+		interpolate = bool(p.interpolate)
+		check_sigmas = bool(p.check_sigmas)
+	else:
+		interpolate = params[-6]
+		check_sigmas = bool(params[-1])
+
+	traj_file = traj_dir + 'trajectory_' + datestr + '_' + str(utc_hour) + '_' + str(loc0)
+	kml_fname = kml_dir + datestr + '_' + str(utc_hour) + '_' + str(loc0)
+
+	# determine number of files already in folder (with the same starting params)
+	no = len([filename for filename in os.listdir(traj_dir) if os.path.basename(traj_file) in filename])
+	if no == 0:
+		traj_file += '.dat'
+		kml_fname += '.kml'
+	else:
+		traj_file += '_' + str(no + 1) + '.dat'
+		kml_fname += '_' + str(no + 1) + '.kml'
+
+	# write out trajectory file
+	out_list = [trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['loc_diffs'], trajectories['speeds'],\
+	 trajectories['z_speeds'], trajectories['omegas'], trajectories['temperatures'], trajectories['grid_spreads_u'], trajectories['grid_spreads_v']]
+	names = ['lats', 'lons', 'alts', 'dists', 'times', 'loc_diffs', 'speeds', 'z_speeds', 'omegas', 'temps', 'u_spread', 'v_spread']
+	
+	if check_sigmas:
+		out_list += [trajectories['sigmas_u'], trajectories['sigmas_v']]
+		names += ['sigmas_u', 'sigmas_v']
+
+	if not interpolate:
+		out_list = out_list[:5] + [trajectories['delta_ts']] + out_list[5:]
+		names = names[:5] + ['delta_t'] + names[5:]
+
+	ascii.write(out_list, traj_file, names=names, overwrite=True)
+
+	return kml_fname	
+
+#################################################################################################################
+
+def make_ellipse(theta_num=100, phi=0, x_cent=0, y_cent=0, semimaj=3.0, semimin=1.5):
+
+    theta = np.linspace(0,2*np.pi, theta_num)
+    r = 1 / np.sqrt((np.cos(theta))**2 + (np.sin(theta))**2)
+    x = r*np.cos(theta)
+    y = r*np.sin(theta)
+    data = np.array([x, y])
+    S = np.array([[semimaj, 0], [0, semimin]])
+    R = np.array([[np.cos(phi), -np.sin(phi)], [np.sin(phi), np.cos(phi)]])
+    T = np.dot(R, S)
+    data = np.dot(T, data)
+    data[0] += x_cent
+    data[1] += y_cent
+
+    return data
+
 #################################################################################################################
 
 if __name__ == '__main__':
 
-	read_gfs_file('/home/ellen/Desktop/SuperBIT_DRS/Weather_data/GFS/gfs_4_20180303_0600_006.grb2', alt0=26091, descent_only=True, step=100)
+	angle = np.radians(3)
+	linelength = 4
+
+	data = make_ellipse(100, angle, 0, 0, 1.858, 1.474)
+	import matplotlib.pyplot as plt
+
+	fig = plt.figure(figsize=(8,8))
+	plt.axvline(0, linewidth=1, linestyle='--')
+	plt.axhline(0, linewidth=1, linestyle='--')
+
+	x = [-linelength*np.cos(angle), +linelength*np.cos(angle)]
+	y = [-linelength*np.sin(angle), +linelength*np.sin(angle)]
+
+	plt.plot(x, y, '-')
+	plt.plot(data[0], data[1], '--')
+	plt.grid(True)
+	plt.tight_layout()
+	plt.xlim([-4, 4])
+	plt.ylim([-4, 4])
+	plt.show()
+
+	# read_gfs_file('/home/ellen/Desktop/SuperBIT_DRS/Weather_data/GFS/gfs_4_20190914_1200_003.grb2', alt0=26091, descent_only=True, step=100)

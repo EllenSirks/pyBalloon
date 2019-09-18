@@ -74,33 +74,8 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 
 	############################################################################################################ <---- create/write output 
 
-	# initialise trajectory and kml file names
-	traj_file = traj_dir + 'trajectory_' + datestr + '_' + str(utc_hour) + '_' + str(loc0)
-	kml_fname = kml_dir + datestr + '_' + str(utc_hour) + '_' + str(loc0)
-
-	# determine number of files already in folder (with the same starting params)
-	no = len([filename for filename in os.listdir(traj_dir) if os.path.basename(traj_file) in filename])
-	if no == 0:
-		traj_file += '.dat'
-		kml_fname += '.kml'
-	else:
-		traj_file += '_' + str(no + 1) + '.dat'
-		kml_fname += '_' + str(no + 1) + '.kml'
-
-	# write out trajectory file
-	out_list = [trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['loc_diffs'], trajectories['speeds'], trajectories['z_speeds'],\
-	 trajectories['omegas'], trajectories['temperatures'], trajectories['grid_spreads_u'], trajectories['grid_spreads_v']]
-	names = ['lats', 'lons', 'alts', 'dists', 'times', 'loc_diffs', 'speeds', 'z_speeds', 'omegas', 'temps', 'u_spread', 'v_spread']
-	
-	if check_sigmas:
-		out_list += [trajectories['sigmas_u'], trajectories['sigmas_v']]
-		names += ['sigmas_u', 'sigmas_v']
-
-	if not interpolate:
-		out_list = out_list[:5] + [trajectories['delta_ts']] + out_list[5:]
-		names = names[:5] + ['delta_t'] + names[5:]
-
-	ascii.write(out_list, traj_file, names=names, overwrite=True)		
+	# write out trajectories and create kml file name based on trajectory file
+	kml_fname = pyb_io.create_trajectory_files(traj_dir=traj_dir, kml_dir=kml_dir, datestr=datestr, utc_hour=utc_hour, loc0=loc0, trajectories=trajectories, params=params)
 
 	# write parameters of this run to file
 	if write_verbose:
@@ -126,12 +101,11 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 		idx, = np.where(trajectories['alts'] == np.max(trajectories['alts']))
 	else:
 		idx, = np.where(trajectories['alts'] == trajectories['alts'][0])
-
 	latx, lonx, altx, timex = trajectories['lats'][idx][0], trajectories['lons'][idx][0], trajectories['alts'][idx][0], trajectories['times'][idx][0]
 
 	# write out file for google-earth
 	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
-	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, radius=err)
+	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, radius=err, mean_direction=np.radians(trajectories['mean_direction']))
 
 #################################################################################################################
 

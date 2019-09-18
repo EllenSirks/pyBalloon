@@ -26,7 +26,7 @@ def drifter(datestr=None, utc_hour=None, loc0=None, params=None, run=None, ballo
 		run = now_str + '_' + str(len(files))
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
-	drift_times = np.arange(0., 90., 30.)
+	drift_times = np.arange(0., 70., 10.)
 	params[3] = drift_times
 
 	if print_verbose:
