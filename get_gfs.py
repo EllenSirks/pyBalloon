@@ -325,6 +325,6 @@ if __name__ == '__main__':
 
 	# get_gfs_files(weather_files=[file])
 
-	get_latest_gfs_file(resolution=0.25)
+	get_latest_gfs_file(resolution=0.5)
 
 #################################################################################################################
