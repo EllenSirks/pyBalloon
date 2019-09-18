@@ -788,7 +788,7 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 # method to print out the parameters being used to the terminal
 def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=None):
 
-	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas = params
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = set_params(params=params, balloon=balloon)
 
 	print('General Parameters')
 	print('----------')
@@ -821,9 +821,9 @@ def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=N
 #################################################################################################################
 
 # method to write the parameters used of run to file
-def write_verbose(params_dir, params, balloon):
+def write_verbose(params_dir=None, params=None, balloon=None):
 
-	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas = params
+	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = set_params(params=params, balloon=balloon)
 
 	f = open(params_dir + 'params.txt', 'w+')
 	f.write('General parameters\n')
@@ -1103,7 +1103,7 @@ def make_ellipse(theta_num=100, phi=0, x_cent=0, y_cent=0, semimaj=3.0, semimin=
     T = np.dot(R, S)
 
     data = np.dot(T, data)
-    
+
     data[0] += x_cent
     data[1] += y_cent
 
