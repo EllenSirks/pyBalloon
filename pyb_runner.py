@@ -28,12 +28,13 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	# starting location
 	lat0, lon0, alt0 = loc0
 
-	# change altitude if it is underground (not always accurate)
-	if pyb_aux.get_elevation(lon0, lat0) > alt0:
-		alt0 = pyb_aux.get_elevation(lon0, lat0)
-
 	# general parameters
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+
+	# change altitude if it is underground (not always accurate)
+	if not descent_only:
+		if pyb_aux.get_elevation(lon0, lat0) > alt0:
+			alt0 = pyb_aux.get_elevation(lon0, lat0)
 
 	# print out parameters to terminal
 	if print_verbose:
@@ -92,6 +93,9 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 		for i in range(len(fig_dicts)-1):
 			for key in fig_dicts[i].keys():
 				fig_dicts[i][key].savefig(fig_dir + datestr + '_' + key + '_check' + str(i+1) + '.png')
+
+	# save descent rate figure
+	pyb_io.make_descent_rate_plot(directory=fig_dir, data=trajectories)
 
 	# determine error
 	err = pyb_io.determine_error(utc_hour=utc_hour, used_weather_files=used_weather_files, trajectories=trajectories, params=params)

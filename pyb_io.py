@@ -1,17 +1,19 @@
 """Input and output functions used by pyBalloon"""
-from itertools import permutations, repeat
+
 from shapely.geometry import Point
 from shapely.ops import transform
 from functools import partial
 from scipy import interpolate
-from functools import reduce
 from astropy.io import ascii
 import pygrib as pg
 import numpy as np
-import operator
 import sys, os
 import pyproj
 import math
+
+import matplotlib.pyplot as plt
+
+plt.rcParams["font.family"] = "serif"
 
 import pyb_aux
 import pyb_io
@@ -468,12 +470,12 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 	kml_str += '<Point>\n'
 	kml_str += '<altitudeMode>clampToGround</altitudeMode>\n'
 
-	if data['lons'][-1] >= 180.0:
-		rem = 360
-	else:
-		rem = 0
+	# if data['lons'][-1] >= 180.0:
+	# 	rem = 360
+	# else:
+	# 	rem = 0
 
-	kml_str += '<coordinates>%f,%f,%f</coordinates>\n' % (data['lons'][-1] - rem, data['lats'][-1], data['alts'][-1])
+	kml_str += '<coordinates>%f,%f,%f</coordinates>\n' % (data['lons'][-1], data['lats'][-1], data['alts'][-1])
 	kml_str += '</Point>\n'
 	kml_str += '</Placemark>\n'
 	num += 1
@@ -495,15 +497,15 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 
  	err = np.sqrt(radius**2 - 3.35**2)
 
-	# kml_str_add1 = create_circle(lon = end_lon, lat = end_lat, radius=radius, color='ff0080ff') # 95th percentile
-	# kml_str_add2 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + 1.68**2), color='ff0000ff') # 68th percentile
-	# kml_str_add3 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + 5.03**2), color='ff00ffff') # 99th percentile
-	# kml_str_add4 = create_circle(lon = end_lon, lat = end_lat, radius=err, color='ff336699')
+	kml_str_add1 = create_circle(lon = end_lon, lat = end_lat, radius=radius, color='ff0080ff') # 95th percentile
+	kml_str_add2 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + 1.68**2), color='ff0000ff') # 68th percentile
+	kml_str_add3 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + 5.03**2), color='ff00ffff') # 99th percentile
+	kml_str_add4 = create_circle(lon = end_lon, lat = end_lat, radius=err, color='ff336699')
 
-	kml_str_add1 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=2, theta=mean_direction, color='ff0080ff') # 95th percentile
-	kml_str_add2 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=1, theta=mean_direction, color='ff0000ff') # 68th percentile
-	kml_str_add3 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=3, theta=mean_direction, color='ff00ffff') # 99th percentile
-	kml_str_add4 = create_ellips(lon = end_lon, lat = end_lat, add=0, times=1, theta=mean_direction, color='ff336699')
+	# kml_str_add1 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=2, theta=mean_direction, color='ff0080ff') # 95th percentile
+	# kml_str_add2 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=1, theta=mean_direction, color='ff0000ff') # 68th percentile
+	# kml_str_add3 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=3, theta=mean_direction, color='ff00ffff') # 99th percentile
+	# kml_str_add4 = create_ellips(lon = end_lon, lat = end_lat, add=0, times=1, theta=mean_direction, color='ff336699')
 
 	kml_str += kml_str_add1
 	kml_str += kml_str_add2
@@ -1013,6 +1015,8 @@ def determine_error(utc_hour=None, used_weather_files=None, trajectories=None, p
 
 	return err
 
+#################################################################################################################
+
 def create_trajectory_files(traj_dir=None, kml_dir=None, datestr=None, utc_hour=None, loc0=None, trajectories=None, params=None):
 
 	if params == None:
@@ -1053,17 +1057,53 @@ def create_trajectory_files(traj_dir=None, kml_dir=None, datestr=None, utc_hour=
 
 #################################################################################################################
 
+def make_descent_rate_plot(directory=None, data=None):
+
+	alts = np.array(data['alts'])
+	times = np.array(data['times'])
+	descent_speeds = np.array(data['speeds'])
+
+	fig = plt.figure()
+
+	plt.plot(times, descent_speeds, 'o', markersize=1)
+
+	plt.xlabel('Time since drop [hr]', fontsize=15)
+	plt.ylabel('Descent speed [m/s]', fontsize=15)
+
+	plt.grid(True)
+	plt.tight_layout()
+
+	fig.savefig(directory + 'descent_rate_vs_time.png')
+
+	plt.clf()
+
+	plt.plot(alts, descent_speeds, 'o', markersize=1)
+
+	plt.xlabel('Altitude [m]', fontsize=15)
+	plt.ylabel('Descent speed [m/s]', fontsize=15)
+
+	plt.grid(True)
+	plt.tight_layout()
+
+	fig.savefig(directory + 'descent_rate_vs_alt.png')	
+
+#################################################################################################################
+
 def make_ellipse(theta_num=100, phi=0, x_cent=0, y_cent=0, semimaj=3.0, semimin=1.5):
 
-    theta = np.linspace(0,2*np.pi, theta_num)
-    r = 1 / np.sqrt((np.cos(theta))**2 + (np.sin(theta))**2)
+    theta = np.linspace(0, 2*np.pi, theta_num)
+    r = 1/np.sqrt((np.cos(theta))**2 + (np.sin(theta))**2)
     x = r*np.cos(theta)
     y = r*np.sin(theta)
+
     data = np.array([x, y])
+
     S = np.array([[semimaj, 0], [0, semimin]])
     R = np.array([[np.cos(phi), -np.sin(phi)], [np.sin(phi), np.cos(phi)]])
     T = np.dot(R, S)
+
     data = np.dot(T, data)
+    
     data[0] += x_cent
     data[1] += y_cent
 
@@ -1073,25 +1113,4 @@ def make_ellipse(theta_num=100, phi=0, x_cent=0, y_cent=0, semimaj=3.0, semimin=
 
 if __name__ == '__main__':
 
-	angle = np.radians(3)
-	linelength = 4
-
-	data = make_ellipse(100, angle, 0, 0, 1.858, 1.474)
-	import matplotlib.pyplot as plt
-
-	fig = plt.figure(figsize=(8,8))
-	plt.axvline(0, linewidth=1, linestyle='--')
-	plt.axhline(0, linewidth=1, linestyle='--')
-
-	x = [-linelength*np.cos(angle), +linelength*np.cos(angle)]
-	y = [-linelength*np.sin(angle), +linelength*np.sin(angle)]
-
-	plt.plot(x, y, '-')
-	plt.plot(data[0], data[1], '--')
-	plt.grid(True)
-	plt.tight_layout()
-	plt.xlim([-4, 4])
-	plt.ylim([-4, 4])
-	plt.show()
-
-	# read_gfs_file('/home/ellen/Desktop/SuperBIT_DRS/Weather_data/GFS/gfs_4_20190914_1200_003.grb2', alt0=26091, descent_only=True, step=100)
+	read_gfs_file('/home/ellen/Desktop/SuperBIT_DRS/Weather_data/GFS/gfs_4_20190914_1200_003.grb2', alt0=26091, descent_only=True, step=100)

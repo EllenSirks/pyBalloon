@@ -28,7 +28,7 @@ def calc_time_frac(current_time=None, weather_times=None, weather_files=None):
 	earlier_time = times[-2]
 	later_time = times[-1]
 
-	if later_time % 24 == 0:
+	if later_time !=  24:
 		dt1 = current_time - (earlier_time % 24)
 		dt2 = (later_time % 24) - current_time
 	else:
