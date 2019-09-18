@@ -1067,7 +1067,7 @@ def make_descent_rate_plot(directory=None, data=None):
 
 	plt.plot(times, descent_speeds, 'o', markersize=1)
 
-	plt.xlabel('Time since drop [hr]', fontsize=15)
+	plt.xlabel('Time since drop [min]', fontsize=15)
 	plt.ylabel('Descent speed [m/s]', fontsize=15)
 
 	plt.grid(True)
