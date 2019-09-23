@@ -1,4 +1,6 @@
-"""Functions used by pyBalloon to calculate balloon trajectories"""
+"""
+Functions used by pyBalloon to calculate balloon trajectories
+"""
 
 from haversine import haversine
 import numpy as np

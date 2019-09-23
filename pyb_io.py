@@ -1,4 +1,6 @@
-"""Input and output functions used by pyBalloon"""
+"""
+Input and output functions used by pyBalloon
+"""
 
 from shapely.geometry import Point
 from shapely.ops import transform
@@ -39,7 +41,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 	t_0 : float
 		Initial temperature.
 	descent_only : bool
-        Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+		Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
 	"""
 
 	if area is not None:
@@ -298,7 +300,7 @@ def read_gfs_single(directory=None, area=None, alt0=None, descent_only=False):
 	alt0 : float
 		Initial temperature.
 	descent_only : bool
-        Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+		Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
 	"""
 
 	all_data = []
@@ -324,7 +326,7 @@ def read_gefs_file(fname=None, area=None, alt0=0, descent_only=False):
 	alt0 : float
 		Initial temperature.
 	descent_only : bool
-        Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+		Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
 	"""
 
 	import param_file as p
@@ -959,10 +961,10 @@ def search_info(run=None, print_verbose=True):
 
 	Arguments
 	=========	
-    run : string
-    	String indicating which run we wish to know the parameters of
-    print_verbose : bool
-    	If True, the parameters will be printed to the command line
+	run : string
+		String indicating which run we wish to know the parameters of
+	print_verbose : bool
+		If True, the parameters will be printed to the command line
 	"""
 
 	data = ascii.read(p.path + p.output_folder + 'runs_info.txt')
@@ -1100,12 +1102,12 @@ def create_trajectory_files(traj_dir=None, kml_dir=None, datestr=None, utc_hour=
 		Directory where the trajectory files will be saved
 	kml_dir : string 
 		Directory where the kml files will be saved
-    datestr : string
-        Date of initial point
+	datestr : string
+		Date of initial point
 	utc_hour : float
 		Initial time of trajectory
-    loc0 : floats in tuple
-    	(latitude in degrees, longitude in degrees, altitude in km) of initial point
+	loc0 : floats in tuple
+		(latitude in degrees, longitude in degrees, altitude in km) of initial point
 	trajectories : dict
 		Dictionary containing trajectory data
 	params : list

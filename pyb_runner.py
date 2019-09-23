@@ -1,4 +1,6 @@
-"""Script for running a single trajectory. Certain can be manually fed in or read from the param_file."""
+"""
+Script for running a single trajectory. Certain can be manually fed in or read from the param_file.
+"""
 
 from astropy.io import ascii
 import datetime as dt
@@ -15,10 +17,33 @@ import param_file as p
 
 #################################################################################################################
 
-# method to run entire simulation of flight
-# requires the starting location & starting point (0 for highest), whether or not its descent only, and the date & time of the starting point
-# if parameters are not supplied, it takes it from the param file
 def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, run=None, print_verbose=False, write_verbose=False, add_run_info=True, output_figs=False):
+	"""
+	Method to run entire simulation of flight and write out calculated trajectories and predicted endpoint
+
+	Arguments
+	=========
+	datestr : string
+		Date of initial point
+	utc_hour : float
+		Time of initial point
+	loc0 : floats in tuple
+		(latitude in degrees, longitude in degrees, altitude in km) of initial point
+	balloon : dict
+		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+	params : list
+		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+	run : string
+		String indicating which run folder the results are to be stored in
+	print_verbose : bool
+		If True, the parameters used will be printed to the command line
+	write_verbose : bool
+		If True, the parameters used are written to a file
+	add_run_info : bool 
+		If True, the parameters used are appended to the run_info.txt file in the Output folder
+	output_figs : bool
+		If True, figures showing the grib data before and after interpolation between altitude steps are created and saved
+	"""
 
 	print('')
 	now = dt.datetime.now()
@@ -28,7 +53,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	# starting location
 	lat0, lon0, alt0 = loc0
 
-	# general parameters
+	# general parameters, if balloon/parachute and other parameters are not supplied, they are read from param_file.py
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	# change altitude if it is underground (not always accurate)
@@ -109,7 +134,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 
 	# write out file for google-earth
 	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
-	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, radius=err, mean_direction=np.radians(trajectories['mean_direction']))
+	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, shape='ellips', radius=err, mean_direction=np.radians(trajectories['mean_direction']))
 
 #################################################################################################################
 
@@ -117,7 +142,7 @@ if __name__ == "__main__":
 
 	time0 = time.time()
 
-	############################################################################################################ <--- any run
+	############################################################################################################
 
 	datestr = sys.argv[1]
 	utc_hour = float(sys.argv[2])

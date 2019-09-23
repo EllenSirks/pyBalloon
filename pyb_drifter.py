@@ -21,22 +21,22 @@ def drifter(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, r
 
 	Arguments
 	=========
-    datestr : string
-        Date of initial point
-    utc_hour : float
-    	Time of initial point
-    loc0 : floats in tuple
-    	(latitude in degrees, longitude in degrees, altitude in km) of initial point
-    balloon : dict
-    	Dictionary of balloon parameters, e.g. burtsradius, mass etc.
-    params : list
-    	List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
-    run : string
-    	String indicating which run folder the results are to be stored in
-    print_verbose : bool
-    	If True, the parameters used will be printed to the command line
-    write_verbose : bool
-    	If True, the parameters used are written to a file
+	datestr : string
+		Date of initial point
+	utc_hour : float
+		Time of initial point
+	loc0 : floats in tuple
+		(latitude in degrees, longitude in degrees, altitude in km) of initial point
+	balloon : dict
+		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+	params : list
+		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+	run : string
+		String indicating which run folder the results are to be stored in
+	print_verbose : bool
+		If True, the parameters used will be printed to the command line
+	write_verbose : bool
+		If True, the parameters used are written to a file
 	"""
 
 	out_dir = p.path + p.output_folder

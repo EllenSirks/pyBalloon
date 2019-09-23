@@ -1,3 +1,7 @@
+"""
+Functions for finding and downloading GFS and GEFS files.
+"""
+
 from shutil import copyfile
 import datetime as dt
 import numpy as np
