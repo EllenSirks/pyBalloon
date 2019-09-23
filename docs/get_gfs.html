@@ -1,0 +1,129 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module get_gfs</title>
+<meta charset="utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>get_gfs</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/ellen/Desktop/SuperBIT_DRS/pyBalloon/get_gfs.py">/home/ellen/Desktop/SuperBIT_DRS/pyBalloon/get_gfs.py</a></font></td></tr></table>
+    <p><tt>Functions&nbsp;for&nbsp;finding&nbsp;and&nbsp;downloading&nbsp;GFS&nbsp;and&nbsp;GEFS&nbsp;files.</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="datetime.html">datetime</a><br>
+<a href="math.html">math</a><br>
+</td><td width="25%" valign=top><a href="numpy.html">numpy</a><br>
+<a href="os.html">os</a><br>
+</td><td width="25%" valign=top><a href="param_file.html">param_file</a><br>
+<a href="requests.html">requests</a><br>
+</td><td width="25%" valign=top><a href="sys.html">sys</a><br>
+<a href="time.html">time</a><br>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-check_file_status"><strong>check_file_status</strong></a>(filepath<font color="#909090">=None</font>, filesize<font color="#909090">=None</font>)</dt><dd><tt>Check&nbsp;what&nbsp;percentage&nbsp;of&nbsp;a&nbsp;file&nbsp;has&nbsp;been&nbsp;downloaded<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+filepath&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String&nbsp;containing&nbsp;the&nbsp;path&nbsp;to&nbsp;the&nbsp;file&nbsp;and&nbsp;the&nbsp;file&nbsp;name<br>
+filesize&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Total&nbsp;size&nbsp;of&nbsp;file&nbsp;to&nbsp;be&nbsp;downloaded</tt></dd></dl>
+ <dl><dt><a name="-download_file"><strong>download_file</strong></a>(path_file<font color="#909090">=None</font>, out_dir<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;download&nbsp;0.25&nbsp;resolution&nbsp;weather&nbsp;forecast&nbsp;data<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+path_file&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String&nbsp;containing&nbsp;the&nbsp;path&nbsp;to&nbsp;the&nbsp;file&nbsp;and&nbsp;the&nbsp;file&nbsp;name<br>
+out_dir&nbsp;:&nbsp;strings<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Directory&nbsp;file&nbsp;is&nbsp;to&nbsp;be&nbsp;saved&nbsp;in</tt></dd></dl>
+ <dl><dt><a name="-get_closest_gfs_file"><strong>get_closest_gfs_file</strong></a>(datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, resolution<font color="#909090">=0.5</font>, hr_diff<font color="#909090">=0</font>)</dt><dd><tt>Find&nbsp;&amp;&nbsp;download&nbsp;weather_file&nbsp;nearest&nbsp;in&nbsp;time&nbsp;to&nbsp;current&nbsp;time&nbsp;of&nbsp;trajectory<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+datestr&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;current&nbsp;date&nbsp;of&nbsp;the&nbsp;trajectory&nbsp;(yyyymmdd)<br>
+utc_hour&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;time&nbsp;of&nbsp;trajectory<br>
+resolution&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Resolution&nbsp;of&nbsp;weather&nbsp;forecast&nbsp;model&nbsp;(GFS)<br>
+hr_diff&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Number&nbsp;of&nbsp;hours&nbsp;in&nbsp;the&nbsp;past&nbsp;we&nbsp;wish&nbsp;the&nbsp;forecasts&nbsp;to&nbsp;be&nbsp;from&nbsp;(e.g.&nbsp;when&nbsp;we&nbsp;wish&nbsp;to&nbsp;download&nbsp;them&nbsp;in&nbsp;the&nbsp;morning&nbsp;for&nbsp;later&nbsp;in&nbsp;the&nbsp;day)&nbsp;needs&nbsp;to&nbsp;be&nbsp;a&nbsp;multiple&nbsp;of&nbsp;6.<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Weather&nbsp;file&nbsp;name&nbsp;(without&nbsp;.grb2&nbsp;at&nbsp;the&nbsp;end)&nbsp;in&nbsp;list&nbsp;([])</tt></dd></dl>
+ <dl><dt><a name="-get_closest_hr"><strong>get_closest_hr</strong></a>(datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, hr_diff<font color="#909090">=0</font>)</dt><dd><tt>Find&nbsp;time&nbsp;&amp;&nbsp;date&nbsp;that&nbsp;is&nbsp;nearest&nbsp;to&nbsp;the&nbsp;current&nbsp;time&nbsp;of&nbsp;trajectory<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+datestr&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;current&nbsp;date&nbsp;of&nbsp;the&nbsp;trajectory&nbsp;(yyyymmdd)<br>
+utc_hour&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;time&nbsp;of&nbsp;trajectory<br>
+hr_diff&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Number&nbsp;of&nbsp;hours&nbsp;in&nbsp;the&nbsp;past&nbsp;we&nbsp;wish&nbsp;the&nbsp;forecasts&nbsp;to&nbsp;be&nbsp;from&nbsp;(e.g.&nbsp;when&nbsp;we&nbsp;wish&nbsp;to&nbsp;download&nbsp;them&nbsp;in&nbsp;the&nbsp;morning&nbsp;for&nbsp;later&nbsp;in&nbsp;the&nbsp;day)&nbsp;needs&nbsp;to&nbsp;be&nbsp;a&nbsp;multiple&nbsp;of&nbsp;6.<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Time&nbsp;and&nbsp;date&nbsp;of&nbsp;determined&nbsp;closest&nbsp;hour</tt></dd></dl>
+ <dl><dt><a name="-get_gefs_files"><strong>get_gefs_files</strong></a>(datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>)</dt><dd><tt>Download&nbsp;ensemble&nbsp;weather&nbsp;forecasts&nbsp;for&nbsp;current&nbsp;date&nbsp;and&nbsp;time&nbsp;of&nbsp;trajectory<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+datestr&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;current&nbsp;date&nbsp;of&nbsp;the&nbsp;trajectory&nbsp;(yyyymmdd)<br>
+utc_hour&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;time&nbsp;of&nbsp;trajectory</tt></dd></dl>
+ <dl><dt><a name="-get_gfs_files"><strong>get_gfs_files</strong></a>(weather_files<font color="#909090">=None</font>)</dt><dd><tt>Download&nbsp;specified&nbsp;weather&nbsp;forecasts<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+weather_files&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;containing&nbsp;weather&nbsp;file&nbsp;from&nbsp;which&nbsp;we&nbsp;wish&nbsp;to&nbsp;use&nbsp;the&nbsp;data.&nbsp;File&nbsp;names&nbsp;should&nbsp;be&nbsp;formatted&nbsp;as:&nbsp;gfs_x_datestr_hhhh_hhh.grb2<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;weather&nbsp;file&nbsp;names&nbsp;(without&nbsp;.grb2&nbsp;at&nbsp;the&nbsp;end)</tt></dd></dl>
+ <dl><dt><a name="-get_interpolation_gfs_files"><strong>get_interpolation_gfs_files</strong></a>(datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, resolution<font color="#909090">=0.5</font>, hr_diff<font color="#909090">=0</font>)</dt><dd><tt>Find&nbsp;and&nbsp;download&nbsp;weather&nbsp;forecast&nbsp;files&nbsp;to&nbsp;be&nbsp;used&nbsp;for&nbsp;interpolation<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+datestr&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;current&nbsp;date&nbsp;of&nbsp;the&nbsp;trajectory&nbsp;(yyyymmdd)<br>
+utc_hour&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;time&nbsp;of&nbsp;trajectory<br>
+resolution&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Resolution&nbsp;of&nbsp;weather&nbsp;forecast&nbsp;model&nbsp;(GFS)<br>
+hr_diff&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Number&nbsp;of&nbsp;hours&nbsp;in&nbsp;the&nbsp;past&nbsp;we&nbsp;wish&nbsp;the&nbsp;forecasts&nbsp;to&nbsp;be&nbsp;from&nbsp;(e.g.&nbsp;when&nbsp;we&nbsp;wish&nbsp;to&nbsp;download&nbsp;them&nbsp;in&nbsp;the&nbsp;morning&nbsp;for&nbsp;later&nbsp;in&nbsp;the&nbsp;day)&nbsp;needs&nbsp;to&nbsp;be&nbsp;a&nbsp;multiple&nbsp;of&nbsp;6.<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;weather_file&nbsp;names&nbsp;(without&nbsp;.grb2&nbsp;at&nbsp;the&nbsp;end)</tt></dd></dl>
+ <dl><dt><a name="-get_interval"><strong>get_interval</strong></a>(datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, hr_diff<font color="#909090">=0</font>)</dt><dd><tt>Find&nbsp;closest&nbsp;time&nbsp;&amp;&nbsp;date&nbsp;left&nbsp;&amp;&nbsp;right&nbsp;of&nbsp;current&nbsp;time&nbsp;of&nbsp;trajectory<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+datestr&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;current&nbsp;date&nbsp;of&nbsp;the&nbsp;trajectory&nbsp;(yyyymmdd)<br>
+utc_hour&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;time&nbsp;of&nbsp;trajectory<br>
+hr_diff&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Number&nbsp;of&nbsp;hours&nbsp;in&nbsp;the&nbsp;past&nbsp;we&nbsp;wish&nbsp;the&nbsp;forecasts&nbsp;to&nbsp;be&nbsp;from&nbsp;(e.g.&nbsp;when&nbsp;we&nbsp;wish&nbsp;to&nbsp;download&nbsp;them&nbsp;in&nbsp;the&nbsp;morning&nbsp;for&nbsp;later&nbsp;in&nbsp;the&nbsp;day)&nbsp;needs&nbsp;to&nbsp;be&nbsp;a&nbsp;multiple&nbsp;of&nbsp;6<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Times&nbsp;and&nbsp;dates&nbsp;of&nbsp;determined&nbsp;interval</tt></dd></dl>
+ <dl><dt><a name="-get_latest_gfs_file"><strong>get_latest_gfs_file</strong></a>(resolution<font color="#909090">=0.5</font>)</dt><dd><tt>Find&nbsp;and&nbsp;download&nbsp;latest&nbsp;weather&nbsp;file&nbsp;available<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+resolution&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Resolution&nbsp;of&nbsp;weather&nbsp;forecast&nbsp;model&nbsp;(GFS)<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Weather&nbsp;file&nbsp;name&nbsp;in&nbsp;list&nbsp;([])</tt></dd></dl>
+</td></tr></table>
+</body></html>

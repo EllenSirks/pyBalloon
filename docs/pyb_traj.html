@@ -1,0 +1,210 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module pyb_traj</title>
+<meta charset="utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>pyb_traj</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/ellen/Desktop/SuperBIT_DRS/pyBalloon/pyb_traj.py">/home/ellen/Desktop/SuperBIT_DRS/pyBalloon/pyb_traj.py</a></font></td></tr></table>
+    <p><tt>Functions&nbsp;used&nbsp;by&nbsp;pyBalloon&nbsp;to&nbsp;calculate&nbsp;balloon&nbsp;trajectories</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="datetime.html">datetime</a><br>
+<a href="get_gfs.html">get_gfs</a><br>
+</td><td width="25%" valign=top><a href="numpy.html">numpy</a><br>
+<a href="param_file.html">param_file</a><br>
+</td><td width="25%" valign=top><a href="pyb_aux.html">pyb_aux</a><br>
+<a href="pyb_io.html">pyb_io</a><br>
+</td><td width="25%" valign=top><a href="sys.html">sys</a><br>
+<a href="time.html">time</a><br>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-calc_displacements"><strong>calc_displacements</strong></a>(data<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, descent_only<font color="#909090">=False</font>, vz_correct<font color="#909090">=False</font>)</dt><dd><tt>&nbsp;&nbsp;&nbsp;&nbsp;Calculate&nbsp;the&nbsp;displacements&nbsp;in&nbsp;the&nbsp;x/y&nbsp;directions&nbsp;for&nbsp;all&nbsp;possible&nbsp;locations&nbsp;(lon/lat/alt)&nbsp;in&nbsp;weather&nbsp;data<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Arguments<br>
+&nbsp;&nbsp;&nbsp;&nbsp;=========<br>
+&nbsp;&nbsp;&nbsp;&nbsp;data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;weather&nbsp;forecast&nbsp;data&nbsp;plus&nbsp;properties&nbsp;calculated&nbsp;using&nbsp;the&nbsp;<a href="#-calc_properties">calc_properties</a>()&nbsp;function<br>
+&nbsp;&nbsp;&nbsp;&nbsp;balloon&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;descent_only&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Option&nbsp;to&nbsp;start&nbsp;the&nbsp;trajectory&nbsp;at&nbsp;its&nbsp;highest&nbsp;point.&nbsp;If&nbsp;True,&nbsp;the&nbsp;trajectory&nbsp;only&nbsp;has&nbsp;a&nbsp;descent&nbsp;phase<br>
+vz_correct&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;correct&nbsp;for&nbsp;vertical&nbsp;winds&nbsp;in&nbsp;forecast&nbsp;model&nbsp;using&nbsp;the&nbsp;'omega'&nbsp;property<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Data&nbsp;appended&nbsp;with&nbsp;additional&nbsp;calculated&nbsp;properties</tt></dd></dl>
+ <dl><dt><a name="-calc_movements"><strong>calc_movements</strong></a>(data<font color="#909090">=None</font>, used_weather_files<font color="#909090">=None</font>, time_diffs<font color="#909090">=None</font>, datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, params<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, output_figs<font color="#909090">=False</font>)</dt><dd><tt>&nbsp;&nbsp;&nbsp;&nbsp;Calculate&nbsp;the&nbsp;trajectory&nbsp;of&nbsp;the&nbsp;balloon/parachute&nbsp;given&nbsp;a&nbsp;start&nbsp;position&nbsp;&amp;&nbsp;other&nbsp;input&nbsp;parameters<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Arguments<br>
+&nbsp;&nbsp;&nbsp;&nbsp;=========<br>
+&nbsp;&nbsp;&nbsp;&nbsp;used_weather_files&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;initial&nbsp;weather&nbsp;files&nbsp;used.&nbsp;The&nbsp;keys&nbsp;represent&nbsp;the&nbsp;times&nbsp;at&nbsp;which&nbsp;the&nbsp;weather&nbsp;files&nbsp;started&nbsp;being&nbsp;used&nbsp;(i.e.&nbsp;here&nbsp;the&nbsp;starting&nbsp;time)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;time_diffs&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;containing&nbsp;difference&nbsp;in&nbsp;time&nbsp;between&nbsp;trajectory&nbsp;time&nbsp;and&nbsp;weather&nbsp;forecasts&nbsp;used&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+datestr&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Date&nbsp;of&nbsp;initial&nbsp;point<br>
+utc_hour&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Time&nbsp;of&nbsp;initial&nbsp;point<br>
+loc0&nbsp;:&nbsp;floats&nbsp;in&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point<br>
+params&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
+balloon&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.<br>
+output_figs&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;figures&nbsp;showing&nbsp;the&nbsp;grib&nbsp;data&nbsp;before&nbsp;and&nbsp;after&nbsp;interpolation&nbsp;between&nbsp;altitude&nbsp;steps&nbsp;are&nbsp;created&nbsp;and&nbsp;saved&nbsp;&nbsp;&nbsp;&nbsp;<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Output&nbsp;trajectory&nbsp;data,&nbsp;list&nbsp;of&nbsp;fig&nbsp;dictionaries&nbsp;for&nbsp;each&nbsp;used&nbsp;weather&nbsp;files,&nbsp;dictionary&nbsp;of&nbsp;used_weather_files,&nbsp;list&nbsp;time_diffs</tt></dd></dl>
+ <dl><dt><a name="-calc_properties"><strong>calc_properties</strong></a>(data<font color="#909090">=None</font>, weather_file<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, descent_only<font color="#909090">=False</font>, output_figs<font color="#909090">=False</font>)</dt><dd><tt>&nbsp;&nbsp;&nbsp;&nbsp;Calculate&nbsp;necessary&nbsp;properties,&nbsp;e.g.&nbsp;air&nbsp;densities&nbsp;and&nbsp;descent&nbsp;speeds,&nbsp;and&nbsp;carry&nbsp;the&nbsp;interpolation&nbsp;to&nbsp;more&nbsp;altitudes&nbsp;than&nbsp;in&nbsp;forecast&nbsp;data<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Arguments<br>
+&nbsp;&nbsp;&nbsp;&nbsp;=========<br>
+&nbsp;&nbsp;&nbsp;&nbsp;data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;data&nbsp;from&nbsp;forecast&nbsp;model&nbsp;read&nbsp;in&nbsp;by&nbsp;<a href="#-read_data">read_data</a>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;weather_file&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;weather&nbsp;file&nbsp;from&nbsp;which&nbsp;the&nbsp;data&nbsp;is&nbsp;to&nbsp;be&nbsp;read&nbsp;(if&nbsp;data&nbsp;is&nbsp;None)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;loc0&nbsp;:&nbsp;floats&nbsp;in&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point<br>
+&nbsp;&nbsp;&nbsp;&nbsp;balloon&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;descent_only&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Option&nbsp;to&nbsp;start&nbsp;the&nbsp;trajectory&nbsp;at&nbsp;its&nbsp;highest&nbsp;point.&nbsp;If&nbsp;True,&nbsp;the&nbsp;trajectory&nbsp;only&nbsp;has&nbsp;a&nbsp;descent&nbsp;phase<br>
+&nbsp;&nbsp;&nbsp;&nbsp;output_figs&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;figures&nbsp;showing&nbsp;the&nbsp;grib&nbsp;data&nbsp;before&nbsp;and&nbsp;after&nbsp;interpolation&nbsp;between&nbsp;altitude&nbsp;steps&nbsp;are&nbsp;created&nbsp;and&nbsp;saved<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Data&nbsp;appended&nbsp;with&nbsp;new&nbsp;properties&nbsp;and&nbsp;dictionary&nbsp;containing&nbsp;figures&nbsp;(can&nbsp;be&nbsp;empty&nbsp;if&nbsp;output_figs&nbsp;is&nbsp;False)</tt></dd></dl>
+ <dl><dt><a name="-calc_time_frac"><strong>calc_time_frac</strong></a>(current_time<font color="#909090">=None</font>, weather_files<font color="#909090">=None</font>)</dt><dd><tt>Calculate&nbsp;how&nbsp;far&nbsp;the&nbsp;current&nbsp;time&nbsp;is&nbsp;from&nbsp;each&nbsp;interpolation&nbsp;file&nbsp;as&nbsp;fractions&nbsp;of&nbsp;difference&nbsp;in&nbsp;time&nbsp;over&nbsp;total&nbsp;time.<br>
+&nbsp;<br>
+E.g.&nbsp;if&nbsp;the&nbsp;current&nbsp;time&nbsp;is&nbsp;10&nbsp;then&nbsp;on&nbsp;the&nbsp;lhs&nbsp;we&nbsp;have&nbsp;6&nbsp;and&nbsp;on&nbsp;the&nbsp;rhs&nbsp;we&nbsp;have&nbsp;12,&nbsp;10&nbsp;is&nbsp;then&nbsp;2/3&nbsp;of&nbsp;the&nbsp;way&nbsp;away&nbsp;from&nbsp;6&nbsp;and&nbsp;1/3&nbsp;away&nbsp;from&nbsp;12.<br>
+the&nbsp;fractions&nbsp;needed&nbsp;are&nbsp;then&nbsp;1-2/3&nbsp;for&nbsp;6&nbsp;and&nbsp;1&nbsp;-&nbsp;1/3&nbsp;for&nbsp;12<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+current_time&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;time&nbsp;of&nbsp;trajectory<br>
+weather_files&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;the&nbsp;interpolation&nbsp;files&nbsp;currently&nbsp;being&nbsp;used<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Two&nbsp;tuples&nbsp;containing&nbsp;the&nbsp;interpolation&nbsp;file&nbsp;name&nbsp;and&nbsp;corresponding&nbsp;fraction</tt></dd></dl>
+ <dl><dt><a name="-movement2ll"><strong>movement2ll</strong></a>(lat_rad<font color="#909090">=None</font>, lon_rad<font color="#909090">=None</font>, alt<font color="#909090">=None</font>, dx<font color="#909090">=None</font>, dy<font color="#909090">=None</font>)</dt><dd><tt>Calculate&nbsp;new&nbsp;lat/lon&nbsp;coordinates&nbsp;given&nbsp;original&nbsp;location&nbsp;and&nbsp;Cartesian&nbsp;displacements.<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+lat_rad&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;latitude&nbsp;in&nbsp;radians<br>
+lon_rad&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;longitude&nbsp;in&nbsp;radians<br>
+alt&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;altitude&nbsp;in&nbsp;meters<br>
+dx&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;East&nbsp;-&nbsp;west&nbsp;movement&nbsp;in&nbsp;meters&nbsp;(East&nbsp;is&nbsp;positive)<br>
+dy&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;North&nbsp;-&nbsp;south&nbsp;movement&nbsp;in&nbsp;meters&nbsp;(North&nbsp;is&nbsp;positive)<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;coordinates:&nbsp;latitude&nbsp;[radians],&nbsp;longitude&nbsp;[radians],&nbsp;and&nbsp;distance&nbsp;traveled&nbsp;[km]</tt></dd></dl>
+ <dl><dt><a name="-prepare_data"><strong>prepare_data</strong></a>(weather_file<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, current_time<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, descent_only<font color="#909090">=False</font>, vz_correct<font color="#909090">=False</font>, check_sigmas<font color="#909090">=False</font>, output_figs<font color="#909090">=False</font>)</dt><dd><tt>&nbsp;&nbsp;&nbsp;&nbsp;Prepare&nbsp;the&nbsp;data&nbsp;from&nbsp;a&nbsp;weather&nbsp;file&nbsp;for&nbsp;calculating&nbsp;the&nbsp;trajectory<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Arguments<br>
+&nbsp;&nbsp;&nbsp;&nbsp;=========<br>
+&nbsp;&nbsp;&nbsp;&nbsp;weather_file&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;weather&nbsp;file&nbsp;to&nbsp;be&nbsp;used&nbsp;and&nbsp;read<br>
+loc0&nbsp;:&nbsp;floats&nbsp;in&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point<br>
+current_time&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;time&nbsp;of&nbsp;the&nbsp;trajectory&nbsp;&nbsp;<br>
+balloon&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;descent_only&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Option&nbsp;to&nbsp;start&nbsp;the&nbsp;trajectory&nbsp;at&nbsp;its&nbsp;highest&nbsp;point.&nbsp;If&nbsp;True,&nbsp;the&nbsp;trajectory&nbsp;only&nbsp;has&nbsp;a&nbsp;descent&nbsp;phase<br>
+vz_correct&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;correct&nbsp;for&nbsp;vertical&nbsp;winds&nbsp;in&nbsp;forecast&nbsp;model&nbsp;using&nbsp;the&nbsp;'omega'&nbsp;property<br>
+check_sigmas&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;use&nbsp;ensemble&nbsp;forecasts&nbsp;to&nbsp;keep&nbsp;track&nbsp;of&nbsp;standard&nbsp;deviations&nbsp;for&nbsp;winds&nbsp;in&nbsp;weather&nbsp;forecast&nbsp;data<br>
+output_figs&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;figures&nbsp;showing&nbsp;the&nbsp;grib&nbsp;data&nbsp;before&nbsp;and&nbsp;after&nbsp;interpolation&nbsp;between&nbsp;altitude&nbsp;steps&nbsp;are&nbsp;created&nbsp;and&nbsp;saved&nbsp;&nbsp;&nbsp;&nbsp;<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;data&nbsp;ready&nbsp;for&nbsp;starting&nbsp;the&nbsp;trajectory&nbsp;calculations,&nbsp;and&nbsp;dictionary&nbsp;containing&nbsp;figures&nbsp;for&nbsp;interpolation&nbsp;checks&nbsp;(empty&nbsp;if&nbsp;output_figs&nbsp;is&nbsp;False)</tt></dd></dl>
+ <dl><dt><a name="-read_data"><strong>read_data</strong></a>(loc0<font color="#909090">=None</font>, weather_file<font color="#909090">=None</font>, descent_only<font color="#909090">=False</font>)</dt><dd><tt>&nbsp;&nbsp;&nbsp;&nbsp;Read&nbsp;in&nbsp;model&nbsp;forecast&nbsp;data<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Arguments<br>
+&nbsp;&nbsp;&nbsp;&nbsp;=========<br>
+loc0&nbsp;:&nbsp;floats&nbsp;in&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point<br>
+&nbsp;&nbsp;&nbsp;&nbsp;weather_file&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;weather&nbsp;file&nbsp;from&nbsp;data&nbsp;is&nbsp;to&nbsp;be&nbsp;read<br>
+&nbsp;&nbsp;&nbsp;&nbsp;descent_only&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Option&nbsp;to&nbsp;start&nbsp;the&nbsp;trajectory&nbsp;at&nbsp;its&nbsp;highest&nbsp;point.&nbsp;If&nbsp;True,&nbsp;the&nbsp;trajectory&nbsp;only&nbsp;has&nbsp;a&nbsp;descent&nbsp;phase<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;the&nbsp;forecast&nbsp;data</tt></dd></dl>
+ <dl><dt><a name="-run_traj"><strong>run_traj</strong></a>(weather_files<font color="#909090">=None</font>, datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, params<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, output_figs<font color="#909090">=False</font>)</dt><dd><tt>&nbsp;&nbsp;&nbsp;&nbsp;Run&nbsp;all&nbsp;functions&nbsp;to&nbsp;calculate&nbsp;the&nbsp;trajectory<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Arguments<br>
+&nbsp;&nbsp;&nbsp;&nbsp;=========<br>
+&nbsp;&nbsp;&nbsp;&nbsp;weather_files&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;weather&nbsp;files&nbsp;used&nbsp;at&nbsp;the&nbsp;start<br>
+&nbsp;&nbsp;&nbsp;&nbsp;datestr&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Date&nbsp;of&nbsp;initial&nbsp;point<br>
+utc_hour&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Time&nbsp;of&nbsp;initial&nbsp;point<br>
+loc0&nbsp;:&nbsp;floats&nbsp;in&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point<br>
+balloon&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.<br>
+params&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;calculated&nbsp;trajectories,&nbsp;list&nbsp;of&nbsp;fig&nbsp;dicionaries&nbsp;for&nbsp;each&nbsp;weather&nbsp;file,&nbsp;dictionary&nbsp;of&nbsp;used_weather_files,&nbsp;and&nbsp;list&nbsp;of&nbsp;time&nbsp;differences&nbsp;between&nbsp;trajectiry&nbsp;times&nbsp;and&nbsp;weather&nbsp;forecast&nbsp;files</tt></dd></dl>
+ <dl><dt><a name="-update_files"><strong>update_files</strong></a>(figs<font color="#909090">=None</font>, used_weather_files<font color="#909090">=None</font>, data<font color="#909090">=None</font>, lat_rad<font color="#909090">=None</font>, lon_rad<font color="#909090">=None</font>, all_alts<font color="#909090">=None</font>, current_time<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, total_time<font color="#909090">=[0]</font>, time_diffs<font color="#909090">=[]</font>, index<font color="#909090">=0</font>, params<font color="#909090">=None</font>, output_figs<font color="#909090">=False</font>)</dt><dd><tt>&nbsp;&nbsp;&nbsp;&nbsp;Update&nbsp;weather&nbsp;files&nbsp;to&nbsp;newest&nbsp;and&nbsp;best&nbsp;available&nbsp;(closest&nbsp;in&nbsp;time&nbsp;to&nbsp;current&nbsp;time)<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Arguments<br>
+&nbsp;&nbsp;&nbsp;&nbsp;=========<br>
+&nbsp;&nbsp;&nbsp;&nbsp;figs&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;dictionaries&nbsp;containing&nbsp;figures&nbsp;showing&nbsp;the&nbsp;grib&nbsp;data&nbsp;before&nbsp;and&nbsp;after&nbsp;interpolation&nbsp;between&nbsp;altitude&nbsp;steps.&nbsp;Each&nbsp;dict&nbsp;corresponds&nbsp;to&nbsp;one&nbsp;weather&nbsp;file.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;used_weather_files&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;weather&nbsp;files&nbsp;that&nbsp;have&nbsp;been&nbsp;used&nbsp;so&nbsp;far.&nbsp;The&nbsp;keys&nbsp;represent&nbsp;the&nbsp;times&nbsp;at&nbsp;which&nbsp;the&nbsp;weather&nbsp;files&nbsp;started&nbsp;being&nbsp;used.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;weather&nbsp;forecast&nbsp;data&nbsp;plus&nbsp;properties&nbsp;calculated&nbsp;using&nbsp;the&nbsp;<a href="#-calc_properties">calc_properties</a>()&nbsp;function<br>
+&nbsp;&nbsp;&nbsp;&nbsp;lon_rad&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;longitude&nbsp;in&nbsp;radians<br>
+lat_rad&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;latitude&nbsp;in&nbsp;radians<br>
+all_alts&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;containing&nbsp;altitudes&nbsp;of&nbsp;trajectory&nbsp;so&nbsp;far<br>
+current_time&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;time&nbsp;of&nbsp;the&nbsp;trajectory<br>
+&nbsp;&nbsp;&nbsp;&nbsp;balloon&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.<br>
+datestr&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Date&nbsp;of&nbsp;initial&nbsp;point<br>
+utc_hour&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Time&nbsp;of&nbsp;initial&nbsp;point<br>
+loc0&nbsp;:&nbsp;floats&nbsp;in&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point<br>
+&nbsp;&nbsp;&nbsp;&nbsp;total_time&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;increments&nbsp;in&nbsp;time&nbsp;for&nbsp;steps&nbsp;in&nbsp;trajectory&nbsp;so&nbsp;far<br>
+&nbsp;&nbsp;&nbsp;&nbsp;time_diffs&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;containing&nbsp;difference&nbsp;in&nbsp;time&nbsp;between&nbsp;trajectory&nbsp;time&nbsp;and&nbsp;weather&nbsp;forecasts&nbsp;used<br>
+&nbsp;&nbsp;&nbsp;&nbsp;index&nbsp;:&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Index&nbsp;corresponding&nbsp;to&nbsp;current&nbsp;weather&nbsp;file&nbsp;being&nbsp;used&nbsp;(only&nbsp;when&nbsp;not&nbsp;interpolating)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;params&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
+output_figs&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;figures&nbsp;showing&nbsp;the&nbsp;grib&nbsp;data&nbsp;before&nbsp;and&nbsp;after&nbsp;interpolation&nbsp;between&nbsp;altitude&nbsp;steps&nbsp;are&nbsp;created&nbsp;and&nbsp;saved<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Data&nbsp;of&nbsp;new&nbsp;weather&nbsp;file(s),&nbsp;updated&nbsp;weather&nbsp;file&nbsp;keys,&nbsp;updated&nbsp;index,&nbsp;updated&nbsp;figs,&nbsp;updated&nbsp;used_weather_files&nbsp;and&nbsp;updated&nbsp;time_diffs.</tt></dd></dl>
+</td></tr></table>
+</body></html>

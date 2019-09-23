@@ -1,0 +1,259 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module pyb_aux</title>
+<meta charset="utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>pyb_aux</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/ellen/Desktop/SuperBIT_DRS/pyBalloon/pyb_aux.py">/home/ellen/Desktop/SuperBIT_DRS/pyBalloon/pyb_aux.py</a></font></td></tr></table>
+    <p><tt>Auxiliary&nbsp;functions&nbsp;used&nbsp;in&nbsp;pyBalloon</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="astropy.io.ascii.html">astropy.io.ascii</a><br>
+<a href="get_gfs.html">get_gfs</a><br>
+<a href="scipy.interpolate.html">scipy.interpolate</a><br>
+</td><td width="25%" valign=top><a href="numpy.html">numpy</a><br>
+<a href="os.html">os</a><br>
+<a href="param_file.html">param_file</a><br>
+</td><td width="25%" valign=top><a href="matplotlib.pyplot.html">matplotlib.pyplot</a><br>
+<a href="pyb_io.html">pyb_io</a><br>
+<a href="sys.html">sys</a><br>
+</td><td width="25%" valign=top><a href="time.html">time</a><br>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-add_uv_errs"><strong>add_uv_errs</strong></a>(main_data<font color="#909090">=None</font>, err_data<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;add&nbsp;error&nbsp;data&nbsp;from&nbsp;ensemble&nbsp;weather&nbsp;forecasts&nbsp;to&nbsp;main&nbsp;weather&nbsp;data<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+main_data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;the&nbsp;data&nbsp;from&nbsp;the&nbsp;main&nbsp;weather&nbsp;forecast&nbsp;model&nbsp;(GFS)<br>
+err_data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;the&nbsp;standard&nbsp;deviation&nbsp;and&nbsp;mean&nbsp;data&nbsp;from&nbsp;the&nbsp;twenty&nbsp;ensemble&nbsp;weather&nbsp;forecast&nbsp;models&nbsp;(GEFS)<br>
+Return<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;made&nbsp;out&nbsp;of&nbsp;both&nbsp;the&nbsp;main&nbsp;and&nbsp;error&nbsp;data</tt></dd></dl>
+ <dl><dt><a name="-air_density"><strong>air_density</strong></a>(data)</dt><dd><tt>Calculate&nbsp;air&nbsp;density&nbsp;from&nbsp;pressure&nbsp;and&nbsp;temperature.<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictonary&nbsp;returned&nbsp;by&nbsp;read_gfs_data()<br>
+Return<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Air&nbsp;densities&nbsp;(as&nbsp;Numpy&nbsp;array)&nbsp;for&nbsp;each&nbsp;altitude&nbsp;step&nbsp;in&nbsp;data.</tt></dd></dl>
+ <dl><dt><a name="-all_and"><strong>all_and</strong></a>(data)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;logical&nbsp;and&nbsp;for&nbsp;a&nbsp;list&nbsp;of&nbsp;arrays.<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+data&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;Numpy&nbsp;boolean&nbsp;arrays</tt></dd></dl>
+ <dl><dt><a name="-ascent_speed"><strong>ascent_speed</strong></a>(data, mass, Cd<font color="#909090">=0.47</font>)</dt><dd><tt>Calculate&nbsp;the&nbsp;rate&nbsp;of&nbsp;ascent&nbsp;(in&nbsp;m/s)&nbsp;for&nbsp;the&nbsp;inflated&nbsp;balloon&nbsp;at&nbsp;given&nbsp;levels.<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;with&nbsp;'altitudes'&nbsp;and&nbsp;corresponding&nbsp;'air_densities',&nbsp;'balloon_radii'&nbsp;and&nbsp;'balloon_volumes'<br>
+mass&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Full&nbsp;balloon&nbsp;mass&nbsp;(in&nbsp;kg)<br>
+Cd&nbsp;:&nbsp;float&nbsp;(optional)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Coefficient&nbsp;of&nbsp;drag.&nbsp;Default:&nbsp;0.47&nbsp;(sphere)<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Ascent&nbsp;speed&nbsp;(m/s)&nbsp;at&nbsp;every&nbsp;level&nbsp;in&nbsp;input&nbsp;data.</tt></dd></dl>
+ <dl><dt><a name="-balloon_volume"><strong>balloon_volume</strong></a>(data)</dt><dd><tt>Calculate&nbsp;volume&nbsp;of&nbsp;a&nbsp;sphere.<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;'balloon_radii'&nbsp;(in&nbsp;meters)<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Volume&nbsp;of&nbsp;the&nbsp;balloon&nbsp;at&nbsp;each&nbsp;level&nbsp;in&nbsp;data</tt></dd></dl>
+ <dl><dt><a name="-balloon_volume_ideal_gas"><strong>balloon_volume_ideal_gas</strong></a>(data, gas_mass, gas_molar_mass<font color="#909090">=4.002602</font>)</dt><dd><tt>Calculate&nbsp;gas&nbsp;(~balloon)&nbsp;volume&nbsp;based&nbsp;on&nbsp;ideal&nbsp;gas&nbsp;law:&nbsp;pV&nbsp;=&nbsp;nRT.<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;returned&nbsp;by&nbsp;read_gfs_data()<br>
+gas_mass&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Mass&nbsp;of&nbsp;the&nbsp;gas&nbsp;in&nbsp;question<br>
+gas_molar_mass&nbsp;:&nbsp;float&nbsp;(optional)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Gas&nbsp;molar&nbsp;mask&nbsp;(g/mol).&nbsp;Default:&nbsp;4.002602&nbsp;(Helium)<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Gas&nbsp;volume&nbsp;at&nbsp;each&nbsp;level&nbsp;in&nbsp;data</tt></dd></dl>
+ <dl><dt><a name="-bilinear_interpolation"><strong>bilinear_interpolation</strong></a>(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop, resolution)</dt><dd><tt>Calculate&nbsp;property&nbsp;at&nbsp;given&nbsp;latitude/longitude&nbsp;using&nbsp;bilinear&nbsp;interpolation<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+grid_i&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Index&nbsp;corresponding&nbsp;to&nbsp;closest&nbsp;longitude&nbsp;and&nbsp;latitude&nbsp;to&nbsp;given&nbsp;point<br>
+i&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Index&nbsp;corresponding&nbsp;to&nbsp;current&nbsp;altitude<br>
+lon_rad&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Longitude&nbsp;in&nbsp;radians&nbsp;of&nbsp;point&nbsp;at&nbsp;which&nbsp;we&nbsp;wish&nbsp;to&nbsp;know&nbsp;the&nbsp;value&nbsp;of&nbsp;the&nbsp;property<br>
+lat_rad&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Latitude&nbsp;in&nbsp;radians&nbsp;of&nbsp;point&nbsp;at&nbsp;which&nbsp;we&nbsp;wish&nbsp;to&nbsp;know&nbsp;the&nbsp;value&nbsp;of&nbsp;the&nbsp;property<br>
+data_lons&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;longitudes&nbsp;in&nbsp;weather&nbsp;forecast&nbsp;model&nbsp;(GFS)<br>
+data_lats&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;latitudes&nbsp;in&nbsp;weather&nbsp;forecast&nbsp;model&nbsp;(GFS)<br>
+prop&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;containing&nbsp;the&nbsp;data&nbsp;we&nbsp;wish&nbsp;to&nbsp;interpolate<br>
+resolution&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Resolution&nbsp;of&nbsp;weather&nbsp;forecast&nbsp;models&nbsp;(GFS)&nbsp;used<br>
+Return<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Value&nbsp;of&nbsp;data&nbsp;at&nbsp;given&nbsp;latitude&nbsp;and&nbsp;longitude&nbsp;based&nbsp;on&nbsp;bilinear&nbsp;interpolation</tt></dd></dl>
+ <dl><dt><a name="-burst_altitude"><strong>burst_altitude</strong></a>(data, burst_radius)</dt><dd><tt>Find&nbsp;the&nbsp;altitude&nbsp;where&nbsp;balloon&nbsp;radius&nbsp;gets&nbsp;greater&nbsp;than&nbsp;the&nbsp;given&nbsp;burst&nbsp;radius.<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;'altitudes'&nbsp;and&nbsp;corresponding&nbsp;'balloon_radii'<br>
+burst_radius&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Balloon&nbsp;burst&nbsp;radius<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Altitude&nbsp;of&nbsp;burst&nbsp;and&nbsp;corresponding&nbsp;array&nbsp;index</tt></dd></dl>
+ <dl><dt><a name="-calc_gefs_errs"><strong>calc_gefs_errs</strong></a>(weather_file<font color="#909090">=None</font>, current_time<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, descent_only<font color="#909090">=False</font>)</dt><dd><tt>Calculate&nbsp;std&nbsp;and&nbsp;mean&nbsp;from&nbsp;the&nbsp;GEFS&nbsp;ensemble&nbsp;forecasts<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+weather_file&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;main&nbsp;weather&nbsp;forecast&nbsp;model&nbsp;(GFS)<br>
+current_time&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;time&nbsp;of&nbsp;the&nbsp;trajectory<br>
+loc0&nbsp;:&nbsp;floats&nbsp;in&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point<br>
+descent_only&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Option&nbsp;to&nbsp;start&nbsp;the&nbsp;trajectory&nbsp;at&nbsp;its&nbsp;highest&nbsp;point.&nbsp;If&nbsp;True,&nbsp;the&nbsp;trajectory&nbsp;only&nbsp;has&nbsp;a&nbsp;descent&nbsp;phase<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;std&nbsp;and&nbsp;mean&nbsp;data&nbsp;from&nbsp;the&nbsp;GEFS&nbsp;ensemble&nbsp;forecasts</tt></dd></dl>
+ <dl><dt><a name="-data_interpolation"><strong>data_interpolation</strong></a>(data, alt0, step, mode<font color="#909090">='spline'</font>, descent_only<font color="#909090">=False</font>, output_figs<font color="#909090">=False</font>)</dt><dd><tt>Interpolate&nbsp;(and&nbsp;extrapolate&nbsp;in&nbsp;the&nbsp;low&nbsp;end,&nbsp;if&nbsp;mode='spline'&nbsp;is&nbsp;used)&nbsp;vertical&nbsp;data&nbsp;from&nbsp;alt0&nbsp;to&nbsp;maximum&nbsp;level&nbsp;present&nbsp;in&nbsp;the&nbsp;data.<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;returned&nbsp;by&nbsp;read_gfs_data()<br>
+alt0&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Starting&nbsp;altitude&nbsp;of&nbsp;the&nbsp;interpolation&nbsp;in&nbsp;meters&nbsp;from&nbsp;WGS84&nbsp;reference&nbsp;ellipsoid<br>
+step&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Interpolation&nbsp;altitude&nbsp;step<br>
+mode&nbsp;:&nbsp;string&nbsp;(optional)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Interpolation&nbsp;method.&nbsp;Supported&nbsp;methods&nbsp;are&nbsp;'spline'&nbsp;and&nbsp;'linear'.&nbsp;Default:&nbsp;'spline'<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Interpolated&nbsp;version&nbsp;of&nbsp;the&nbsp;data.</tt></dd></dl>
+ <dl><dt><a name="-descent_speed"><strong>descent_speed</strong></a>(data, mass, Cd, areas, alt_step, change_alt<font color="#909090">=None</font>)</dt><dd><tt>Calculate&nbsp;the&nbsp;rate&nbsp;of&nbsp;descent&nbsp;for&nbsp;deflated&nbsp;(burst)&nbsp;balloon&nbsp;with&nbsp;1&nbsp;or&nbsp;2&nbsp;different&nbsp;sized&nbsp;parachutes&nbsp;with&nbsp;given&nbsp;areas,&nbsp;change&nbsp;altitude&nbsp;and&nbsp;drag-coefficient.<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;with&nbsp;'altitudes',&nbsp;and&nbsp;corresponding&nbsp;'air_densities'<br>
+mass:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Mass&nbsp;of&nbsp;the&nbsp;payload&nbsp;+&nbsp;assumed&nbsp;remnants&nbsp;of&nbsp;the&nbsp;balloon<br>
+Cd&nbsp;:&nbsp;floats&nbsp;in&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Coefficients&nbsp;of&nbsp;drag&nbsp;for&nbsp;one&nbsp;or&nbsp;two&nbsp;parachutes&nbsp;in&nbsp;a&nbsp;tuple<br>
+areas:&nbsp;floats&nbsp;in&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Effective&nbsp;areas&nbsp;(in&nbsp;m^2)&nbsp;of&nbsp;one&nbsp;or&nbsp;two&nbsp;parachutes&nbsp;in&nbsp;a&nbsp;tuple<br>
+change_alt&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Altitude&nbsp;where&nbsp;first&nbsp;parachute&nbsp;is&nbsp;changed&nbsp;to&nbsp;the&nbsp;second&nbsp;one.&nbsp;If&nbsp;None,&nbsp;only&nbsp;one&nbsp;parachute&nbsp;is&nbsp;used.&nbsp;Default:&nbsp;None<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Rate&nbsp;of&nbsp;descent&nbsp;(m/s)&nbsp;for&nbsp;each&nbsp;level&nbsp;in&nbsp;input&nbsp;data</tt></dd></dl>
+ <dl><dt><a name="-earth_radius"><strong>earth_radius</strong></a>(lat_rad)</dt><dd><tt>Calculate&nbsp;Earth&nbsp;WGS84&nbsp;based&nbsp;radius&nbsp;on&nbsp;a&nbsp;given&nbsp;latitude.<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+lat_rad&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Latitude&nbsp;in&nbsp;radians</tt></dd></dl>
+ <dl><dt><a name="-find_bilinear_points"><strong>find_bilinear_points</strong></a>(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop, resolution)</dt><dd><tt>Calculate&nbsp;locations&nbsp;and&nbsp;values&nbsp;of&nbsp;points&nbsp;to&nbsp;be&nbsp;used&nbsp;for&nbsp;bilinear&nbsp;interpolation&nbsp;given&nbsp;a&nbsp;list&nbsp;of&nbsp;data&nbsp;and&nbsp;point<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+grid_i&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Index&nbsp;corresponding&nbsp;to&nbsp;closest&nbsp;longitude&nbsp;and&nbsp;latitude&nbsp;to&nbsp;given&nbsp;point<br>
+i&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Index&nbsp;corresponding&nbsp;to&nbsp;current&nbsp;altitude<br>
+lon_rad&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Longitude&nbsp;in&nbsp;radians&nbsp;of&nbsp;point&nbsp;at&nbsp;which&nbsp;we&nbsp;wish&nbsp;to&nbsp;know&nbsp;the&nbsp;value&nbsp;of&nbsp;the&nbsp;property<br>
+lat_rad&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Latitude&nbsp;in&nbsp;radians&nbsp;of&nbsp;point&nbsp;at&nbsp;which&nbsp;we&nbsp;wish&nbsp;to&nbsp;know&nbsp;the&nbsp;value&nbsp;of&nbsp;the&nbsp;property<br>
+data_lons&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;longitudes&nbsp;in&nbsp;weather&nbsp;forecast&nbsp;model&nbsp;(GFS)<br>
+data_lats&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;latitudes&nbsp;in&nbsp;weather&nbsp;forecast&nbsp;model&nbsp;(GFS)<br>
+prop&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;containing&nbsp;the&nbsp;data&nbsp;we&nbsp;wish&nbsp;to&nbsp;interpolate<br>
+resolution&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Resolution&nbsp;of&nbsp;weather&nbsp;forecast&nbsp;models&nbsp;(GFS)&nbsp;used<br>
+Return<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Four&nbsp;tuples&nbsp;containing&nbsp;the&nbsp;x&nbsp;and&nbsp;y&nbsp;coordinates&nbsp;and&nbsp;values&nbsp;of&nbsp;the&nbsp;points&nbsp;to&nbsp;be&nbsp;used&nbsp;for&nbsp;bilinear&nbsp;interpolation</tt></dd></dl>
+ <dl><dt><a name="-get_elevation"><strong>get_elevation</strong></a>(lon, lat)</dt><dd><tt>Calculate&nbsp;elevation&nbsp;at&nbsp;given&nbsp;longitude&nbsp;and&nbsp;latitude&nbsp;using&nbsp;data&nbsp;from:&nbsp;<a href="http://viewfinderpanoramas.org/">http://viewfinderpanoramas.org/</a><br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+lon&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Longitude&nbsp;of&nbsp;location<br>
+lat&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Latitude&nbsp;of&nbsp;location&nbsp;&nbsp;&nbsp;&nbsp;<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Elevation&nbsp;at&nbsp;provided&nbsp;longitude&nbsp;and&nbsp;latitude</tt></dd></dl>
+ <dl><dt><a name="-get_endpoint"><strong>get_endpoint</strong></a>(data<font color="#909090">=None</font>, run<font color="#909090">=None</font>, filename<font color="#909090">=None</font>, params<font color="#909090">=None</font>)</dt><dd><tt>Calculate&nbsp;more&nbsp;accurate&nbsp;endpoint&nbsp;using&nbsp;data&nbsp;from:&nbsp;<a href="http://viewfinderpanoramas.org/">http://viewfinderpanoramas.org/</a><br>
+PyBalloon&nbsp;does&nbsp;not&nbsp;know&nbsp;the&nbsp;elevation&nbsp;of&nbsp;given&nbsp;locations,&nbsp;so&nbsp;trajectories&nbsp;can&nbsp;continue&nbsp;underground&nbsp;untill&nbsp;i&nbsp;=&nbsp;0&nbsp;(see&nbsp;pyb_traj)<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+data:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;'latitudes',&nbsp;'longitudes',&nbsp;'altitudes',&nbsp;and&nbsp;'distances'.&nbsp;If&nbsp;None,&nbsp;read&nbsp;data&nbsp;from&nbsp;run&nbsp;and&nbsp;filename<br>
+run&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;String&nbsp;indicating&nbsp;which&nbsp;run&nbsp;folder&nbsp;the&nbsp;trajectory&nbsp;data&nbsp;is&nbsp;stored&nbsp;in,&nbsp;if&nbsp;None&nbsp;use&nbsp;last&nbsp;folder&nbsp;created<br>
+filename&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;the&nbsp;trajectory&nbsp;file&nbsp;which&nbsp;contains&nbsp;the&nbsp;'latitudes',&nbsp;'longitudes',&nbsp;'altitudes',&nbsp;and&nbsp;'distances'.<br>
+params&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;used&nbsp;for&nbsp;given&nbsp;trajectory.&nbsp;If&nbsp;None,&nbsp;use&nbsp;parameters&nbsp;from&nbsp;param_file.py<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;Latitude&nbsp;and&nbsp;longitude&nbsp;of&nbsp;new&nbsp;endpoint&nbsp;and&nbsp;elevation&nbsp;at&nbsp;this&nbsp;longitude&nbsp;and&nbsp;latitude</tt></dd></dl>
+ <dl><dt><a name="-lift"><strong>lift</strong></a>(data, mass)</dt><dd><tt>Calculate&nbsp;effective&nbsp;lift&nbsp;(force,&nbsp;in&nbsp;Newtons)&nbsp;caused&nbsp;by&nbsp;the&nbsp;balloon.<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;'altitudes'&nbsp;(meters),&nbsp;balloon&nbsp;'volumes'&nbsp;(m^3)&nbsp;and&nbsp;'air_densities'&nbsp;(kg/m^3)<br>
+mass:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Mass&nbsp;of&nbsp;the&nbsp;whole&nbsp;balloon<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Resultant&nbsp;lift&nbsp;force.</tt></dd></dl>
+ <dl><dt><a name="-mooney_rivlin"><strong>mooney_rivlin</strong></a>(data, radius_empty, radius_filled, thickness_empty, gas_molar_mass<font color="#909090">=4.002602</font>)</dt><dd><tt>Calculate&nbsp;balloon&nbsp;radii&nbsp;for&nbsp;given&nbsp;pressures/temperatures/initial&nbsp;conditions&nbsp;using&nbsp;inversion&nbsp;of&nbsp;Mooney-Rivlin&nbsp;equation.<br>
+See&nbsp;description&nbsp;of&nbsp;the&nbsp;equation&nbsp;at:&nbsp;<a href="http://www.zmatt.net/weather-balloon-physics/">http://www.zmatt.net/weather-balloon-physics/</a><br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;'pressures'&nbsp;and&nbsp;'temperatures'<br>
+radius_empty&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Radius&nbsp;of&nbsp;the&nbsp;empty&nbsp;balloon<br>
+radius_filled&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Radius&nbsp;when&nbsp;filled&nbsp;at&nbsp;ground&nbsp;level<br>
+thickness_empty&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Balloon&nbsp;rubber&nbsp;initial&nbsp;thickness<br>
+gas_molar_mass&nbsp;:&nbsp;float&nbsp;(optional)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Molar&nbsp;mass&nbsp;(g/mol)&nbsp;of&nbsp;the&nbsp;gas&nbsp;used&nbsp;to&nbsp;fill&nbsp;the&nbsp;balloon.&nbsp;Default:&nbsp;4.002602&nbsp;(Helium)<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Radius&nbsp;of&nbsp;the&nbsp;balloon&nbsp;at&nbsp;each&nbsp;level&nbsp;in&nbsp;input&nbsp;data,&nbsp;and&nbsp;the&nbsp;mass&nbsp;of&nbsp;the&nbsp;gas.</tt></dd></dl>
+ <dl><dt><a name="-neutral_buoyancy_level"><strong>neutral_buoyancy_level</strong></a>(data)</dt><dd><tt>Find&nbsp;the&nbsp;level&nbsp;of&nbsp;neutral&nbsp;buoyancy&nbsp;(or&nbsp;more&nbsp;precise,&nbsp;the&nbsp;level&nbsp;where&nbsp;effective&nbsp;lift&nbsp;is&nbsp;closest&nbsp;to&nbsp;zero).<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;'altitudes'&nbsp;and&nbsp;corresponding&nbsp;'lifts'<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Altitude&nbsp;of&nbsp;neutral&nbsp;buoyancy&nbsp;and&nbsp;corresponding&nbsp;array&nbsp;index</tt></dd></dl>
+</td></tr></table>
+</body></html>

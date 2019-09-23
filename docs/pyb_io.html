@@ -1,0 +1,292 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module pyb_io</title>
+<meta charset="utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>pyb_io</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/ellen/Desktop/SuperBIT_DRS/pyBalloon/pyb_io.py">/home/ellen/Desktop/SuperBIT_DRS/pyBalloon/pyb_io.py</a></font></td></tr></table>
+    <p><tt>Input&nbsp;and&nbsp;output&nbsp;functions&nbsp;used&nbsp;by&nbsp;pyBalloon</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="astropy.io.ascii.html">astropy.io.ascii</a><br>
+<a href="scipy.interpolate.html">scipy.interpolate</a><br>
+<a href="math.html">math</a><br>
+<a href="numpy.html">numpy</a><br>
+</td><td width="25%" valign=top><a href="os.html">os</a><br>
+<a href="param_file.html">param_file</a><br>
+<a href="pygrib.html">pygrib</a><br>
+<a href="matplotlib.pyplot.html">matplotlib.pyplot</a><br>
+</td><td width="25%" valign=top><a href="pyb_aux.html">pyb_aux</a><br>
+<a href="pyb_io.html">pyb_io</a><br>
+<a href="pyb_traj.html">pyb_traj</a><br>
+<a href="pyproj.html">pyproj</a><br>
+</td><td width="25%" valign=top><a href="sys.html">sys</a><br>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-create_circle"><strong>create_circle</strong></a>(lon<font color="#909090">=None</font>, lat<font color="#909090">=None</font>, radius<font color="#909090">=5</font>, color<font color="#909090">='BF0000DF'</font>)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;a&nbsp;circle&nbsp;of&nbsp;given&nbsp;radius&nbsp;around&nbsp;the&nbsp;landing&nbsp;point&nbsp;in&nbsp;the&nbsp;kml&nbsp;files.<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+lon&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Longitude&nbsp;in&nbsp;degrees&nbsp;of&nbsp;centre&nbsp;of&nbsp;circle&nbsp;(i.e.&nbsp;lon&nbsp;of&nbsp;landing&nbsp;point)<br>
+lat&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Latitude&nbsp;in&nbsp;degrees&nbsp;of&nbsp;centre&nbsp;of&nbsp;circle&nbsp;(i.e.&nbsp;lat&nbsp;of&nbsp;landing&nbsp;point)<br>
+radius&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Radius&nbsp;in&nbsp;km&nbsp;of&nbsp;circle<br>
+color&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Color&nbsp;of&nbsp;the&nbsp;circle&nbsp;to&nbsp;be&nbsp;drawn&nbsp;(Hex&nbsp;Color&nbsp;Code)</tt></dd></dl>
+ <dl><dt><a name="-create_ellips"><strong>create_ellips</strong></a>(lon<font color="#909090">=None</font>, lat<font color="#909090">=None</font>, x_extent<font color="#909090">=1.858</font>, y_extent<font color="#909090">=1.474</font>, theta<font color="#909090">=0</font>, add<font color="#909090">=0</font>, times<font color="#909090">=1</font>, color<font color="#909090">='BF0000DF'</font>)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;an&nbsp;ellips&nbsp;around&nbsp;the&nbsp;landing&nbsp;point&nbsp;in&nbsp;the&nbsp;kml&nbsp;files.<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+lon&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Longitude&nbsp;in&nbsp;degrees&nbsp;of&nbsp;centre&nbsp;of&nbsp;ellips&nbsp;(i.e.&nbsp;lon&nbsp;of&nbsp;landing&nbsp;point)<br>
+lat&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Latitude&nbsp;in&nbsp;degrees&nbsp;of&nbsp;centre&nbsp;of&nbsp;ellips&nbsp;(i.e.&nbsp;lat&nbsp;of&nbsp;landing&nbsp;point)<br>
+x_extent&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Extent&nbsp;in&nbsp;km&nbsp;in&nbsp;the&nbsp;x&nbsp;(longitude)&nbsp;direction,&nbsp;taken&nbsp;from&nbsp;percentile&nbsp;calculations<br>
+y_extent&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Extent&nbsp;in&nbsp;km&nbsp;in&nbsp;the&nbsp;y&nbsp;(latitude)&nbsp;direction,&nbsp;taken&nbsp;from&nbsp;percentile&nbsp;calculations<br>
+theta&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Angle&nbsp;in&nbsp;radians&nbsp;indicating&nbsp;the&nbsp;rotation&nbsp;of&nbsp;the&nbsp;ellipse.&nbsp;Calculated&nbsp;from&nbsp;the&nbsp;mean&nbsp;direction&nbsp;of&nbsp;the&nbsp;trajectory<br>
+add&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Error&nbsp;from&nbsp;trajectory&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;the&nbsp;contours<br>
+times&nbsp;:&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Times&nbsp;indicates&nbsp;which&nbsp;sigma&nbsp;limit&nbsp;the&nbsp;contour&nbsp;represents&nbsp;(i.e.&nbsp;1,&nbsp;2,&nbsp;3)<br>
+color&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Color&nbsp;of&nbsp;the&nbsp;ellips&nbsp;to&nbsp;be&nbsp;drawn&nbsp;(Hex&nbsp;Color&nbsp;Code)</tt></dd></dl>
+ <dl><dt><a name="-create_trajectory_files"><strong>create_trajectory_files</strong></a>(traj_dir<font color="#909090">=None</font>, kml_dir<font color="#909090">=None</font>, datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, trajectories<font color="#909090">=None</font>, params<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;trajectory&nbsp;files&nbsp;and&nbsp;write&nbsp;out&nbsp;the&nbsp;trajectory&nbsp;data&nbsp;to&nbsp;them<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+traj_dir&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Directory&nbsp;where&nbsp;the&nbsp;trajectory&nbsp;files&nbsp;will&nbsp;be&nbsp;saved<br>
+kml_dir&nbsp;:&nbsp;string&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Directory&nbsp;where&nbsp;the&nbsp;kml&nbsp;files&nbsp;will&nbsp;be&nbsp;saved<br>
+datestr&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Date&nbsp;of&nbsp;initial&nbsp;point<br>
+utc_hour&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial&nbsp;time&nbsp;of&nbsp;trajectory<br>
+loc0&nbsp;:&nbsp;floats&nbsp;in&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point<br>
+trajectories&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;trajectory&nbsp;data<br>
+params&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.</tt></dd></dl>
+ <dl><dt><a name="-determine_error"><strong>determine_error</strong></a>(utc_hour<font color="#909090">=None</font>, used_weather_files<font color="#909090">=None</font>, trajectories<font color="#909090">=None</font>, params<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;determine&nbsp;the&nbsp;error&nbsp;in&nbsp;the&nbsp;trajectory&nbsp;from&nbsp;the&nbsp;difference&nbsp;in&nbsp;location,&nbsp;time&nbsp;to&nbsp;forecast&nbsp;and&nbsp;how&nbsp;far&nbsp;into&nbsp;the&nbsp;future&nbsp;the&nbsp;forecast&nbsp;looks<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+utc_hour&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial&nbsp;time&nbsp;of&nbsp;trajectory<br>
+used_weather_files&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;used&nbsp;weather&nbsp;files,&nbsp;with&nbsp;the&nbsp;times&nbsp;at&nbsp;which&nbsp;the&nbsp;files&nbsp;were&nbsp;first&nbsp;used&nbsp;as&nbsp;keys<br>
+trajectories&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;trajectory&nbsp;data<br>
+params&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.</tt></dd></dl>
+ <dl><dt><a name="-geodesic_point_buffer"><strong>geodesic_point_buffer</strong></a>(lat<font color="#909090">=None</font>, lon<font color="#909090">=None</font>, radius<font color="#909090">=5</font>)</dt><dd><tt>Method&nbsp;to&nbsp;find&nbsp;all&nbsp;latslons&nbsp;to&nbsp;create&nbsp;a&nbsp;circle&nbsp;of&nbsp;a&nbsp;given&nbsp;radius&nbsp;(km)&nbsp;around&nbsp;a&nbsp;lat/lon&nbsp;point<br>
+&nbsp;<br>
+lon&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Longitude&nbsp;in&nbsp;degrees&nbsp;of&nbsp;centre&nbsp;of&nbsp;circle&nbsp;(i.e.&nbsp;lon&nbsp;of&nbsp;landing&nbsp;point)<br>
+lat&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Latitude&nbsp;in&nbsp;degrees&nbsp;of&nbsp;centre&nbsp;of&nbsp;circle&nbsp;(i.e.&nbsp;lat&nbsp;of&nbsp;landing&nbsp;point)<br>
+radius&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Radius&nbsp;in&nbsp;km&nbsp;of&nbsp;circle</tt></dd></dl>
+ <dl><dt><a name="-get_ellips_coords"><strong>get_ellips_coords</strong></a>(lat<font color="#909090">=None</font>, lon<font color="#909090">=None</font>, x_extent<font color="#909090">=1.87</font>, y_extent<font color="#909090">=1.47</font>, theta<font color="#909090">=0</font>)</dt><dd><tt>#Method&nbsp;to&nbsp;find&nbsp;all&nbsp;lats/lons&nbsp;to&nbsp;create&nbsp;a&nbsp;ellips&nbsp;of&nbsp;a&nbsp;given&nbsp;minor/major&nbsp;axis&nbsp;(km)&nbsp;around&nbsp;a&nbsp;lat/lon&nbsp;point<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+lon&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Longitude&nbsp;in&nbsp;degrees&nbsp;of&nbsp;centre&nbsp;of&nbsp;ellips&nbsp;(i.e.&nbsp;lon&nbsp;of&nbsp;landing&nbsp;point)<br>
+lat&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Latitude&nbsp;in&nbsp;degrees&nbsp;of&nbsp;centre&nbsp;of&nbsp;ellips&nbsp;(i.e.&nbsp;lat&nbsp;of&nbsp;landing&nbsp;point)<br>
+x_extent&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Extent&nbsp;in&nbsp;km&nbsp;in&nbsp;the&nbsp;x&nbsp;(longitude)&nbsp;direction,&nbsp;taken&nbsp;from&nbsp;percentile&nbsp;calculations<br>
+y_extent&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Extent&nbsp;in&nbsp;km&nbsp;in&nbsp;the&nbsp;y&nbsp;(latitude)&nbsp;direction,&nbsp;taken&nbsp;from&nbsp;percentile&nbsp;calculations<br>
+theta&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Angle&nbsp;in&nbsp;radians&nbsp;indicating&nbsp;the&nbsp;rotation&nbsp;of&nbsp;the&nbsp;ellipse.&nbsp;Calculated&nbsp;from&nbsp;the&nbsp;mean&nbsp;direction&nbsp;of&nbsp;the&nbsp;trajectory</tt></dd></dl>
+ <dl><dt><a name="-make_descent_rate_plot"><strong>make_descent_rate_plot</strong></a>(directory<font color="#909090">=None</font>, data<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;plots&nbsp;showing&nbsp;the&nbsp;descent&nbsp;rates&nbsp;of&nbsp;the&nbsp;trajectory<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+directory&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Directory&nbsp;where&nbsp;the&nbsp;figures&nbsp;will&nbsp;be&nbsp;saved<br>
+data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;the&nbsp;trajectory&nbsp;data</tt></dd></dl>
+ <dl><dt><a name="-make_ellipse"><strong>make_ellipse</strong></a>(theta_num<font color="#909090">=100</font>, phi<font color="#909090">=0</font>, x_cent<font color="#909090">=0</font>, y_cent<font color="#909090">=0</font>, semimaj<font color="#909090">=1.9</font>, semimin<font color="#909090">=1.4</font>)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;an&nbsp;ellips&nbsp;and&nbsp;get&nbsp;x/y&nbsp;coordinates&nbsp;given&nbsp;ellips&nbsp;parameters<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+theta_num&nbsp;:&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Number&nbsp;of&nbsp;coordinates&nbsp;in&nbsp;the&nbsp;ellips<br>
+phi&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Angle&nbsp;in&nbsp;radians&nbsp;indicating&nbsp;the&nbsp;rotation&nbsp;of&nbsp;the&nbsp;ellips<br>
+x_cent&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;coordinate&nbsp;of&nbsp;the&nbsp;centre&nbsp;of&nbsp;the&nbsp;ellips<br>
+y_cent&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Y&nbsp;coordinate&nbsp;of&nbsp;the&nbsp;centre&nbsp;of&nbsp;the&nbsp;ellips<br>
+semimaj&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Semimajor-axis&nbsp;of&nbsp;ellips<br>
+semimin&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Semiminor-axis&nbsp;of&nbsp;ellips</tt></dd></dl>
+ <dl><dt><a name="-merge_kml"><strong>merge_kml</strong></a>(datestr<font color="#909090">=None</font>, run<font color="#909090">=None</font>, params<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, drift_times<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;merge&nbsp;the&nbsp;kml&nbsp;files&nbsp;output&nbsp;by&nbsp;the&nbsp;pyb_drifter&nbsp;script<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+datestr&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Date&nbsp;of&nbsp;initial&nbsp;point<br>
+run&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String&nbsp;indicating&nbsp;the&nbsp;folder&nbsp;in&nbsp;which&nbsp;the&nbsp;drifted&nbsp;trajectories&nbsp;are&nbsp;stored<br>
+params&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
+balloon&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.<br>
+drift_times&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Array&nbsp;of&nbsp;driftimes&nbsp;used&nbsp;to&nbsp;created&nbsp;the&nbsp;trajectories</tt></dd></dl>
+ <dl><dt><a name="-print_verbose"><strong>print_verbose</strong></a>(datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, params<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;print&nbsp;out&nbsp;the&nbsp;parameters&nbsp;being&nbsp;used&nbsp;to&nbsp;the&nbsp;terminal<br>
+&nbsp;<br>
+Arguments<br>
+=========&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+datestr&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Date&nbsp;of&nbsp;initial&nbsp;point<br>
+utc_hour&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Time&nbsp;of&nbsp;initial&nbsp;point<br>
+loc0&nbsp;:&nbsp;floats&nbsp;in&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point<br>
+params&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
+balloon&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.</tt></dd></dl>
+ <dl><dt><a name="-read_gefs_file"><strong>read_gefs_file</strong></a>(fname<font color="#909090">=None</font>, area<font color="#909090">=None</font>, alt0<font color="#909090">=0</font>, descent_only<font color="#909090">=False</font>)</dt><dd><tt>Method&nbsp;to&nbsp;read&nbsp;am&nbsp;ensemble&nbsp;GFS&nbsp;file&nbsp;(GEFS)<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+fname&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;name&nbsp;of&nbsp;the&nbsp;grib&nbsp;file&nbsp;to&nbsp;be&nbsp;read<br>
+area&nbsp;:&nbsp;(float,&nbsp;float,&nbsp;float,&nbsp;float)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;(most&nbsp;northern&nbsp;latitude,&nbsp;most&nbsp;western&nbsp;longitude,&nbsp;most&nbsp;southern&nbsp;latitude,&nbsp;most&nbsp;eastern&nbsp;longitude)&nbsp;in&nbsp;degrees,&nbsp;indicating&nbsp;the&nbsp;area&nbsp;on&nbsp;the&nbsp;globe&nbsp;from&nbsp;which&nbsp;the&nbsp;data&nbsp;should&nbsp;be&nbsp;collected<br>
+alt0&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial&nbsp;temperature.<br>
+descent_only&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Option&nbsp;to&nbsp;start&nbsp;the&nbsp;trajectory&nbsp;at&nbsp;its&nbsp;highest&nbsp;point.&nbsp;If&nbsp;True,&nbsp;the&nbsp;trajectory&nbsp;only&nbsp;has&nbsp;a&nbsp;descent&nbsp;phase</tt></dd></dl>
+ <dl><dt><a name="-read_gfs_file"><strong>read_gfs_file</strong></a>(fname, area<font color="#909090">=None</font>, alt0<font color="#909090">=0</font>, t_0<font color="#909090">=None</font>, descent_only<font color="#909090">=False</font>)</dt><dd><tt>Method&nbsp;to&nbsp;read&nbsp;GFS&nbsp;file&nbsp;and&nbsp;collect&nbsp;relevant&nbsp;data&nbsp;(winds,&nbsp;temperatures,&nbsp;altitudes)<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+fname&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;name&nbsp;of&nbsp;the&nbsp;grib&nbsp;file&nbsp;to&nbsp;be&nbsp;read<br>
+area&nbsp;:&nbsp;(float,&nbsp;float,&nbsp;float,&nbsp;float)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;(most&nbsp;northern&nbsp;latitude,&nbsp;most&nbsp;western&nbsp;longitude,&nbsp;most&nbsp;southern&nbsp;latitude,&nbsp;most&nbsp;eastern&nbsp;longitude)&nbsp;in&nbsp;degrees,&nbsp;indicating&nbsp;the&nbsp;area&nbsp;on&nbsp;the&nbsp;globe&nbsp;from&nbsp;which&nbsp;the&nbsp;data&nbsp;should&nbsp;be&nbsp;collected<br>
+alt0&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial&nbsp;altitude&nbsp;in&nbsp;km<br>
+t_0&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial&nbsp;temperature.<br>
+descent_only&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Option&nbsp;to&nbsp;start&nbsp;the&nbsp;trajectory&nbsp;at&nbsp;its&nbsp;highest&nbsp;point.&nbsp;If&nbsp;True,&nbsp;the&nbsp;trajectory&nbsp;only&nbsp;has&nbsp;a&nbsp;descent&nbsp;phase</tt></dd></dl>
+ <dl><dt><a name="-read_gfs_single"><strong>read_gfs_single</strong></a>(directory<font color="#909090">=None</font>, area<font color="#909090">=None</font>, alt0<font color="#909090">=None</font>, descent_only<font color="#909090">=False</font>)</dt><dd><tt>Method&nbsp;to&nbsp;read&nbsp;a&nbsp;single&nbsp;GFS&nbsp;file<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+directory&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;path&nbsp;plus&nbsp;name&nbsp;of&nbsp;the&nbsp;grib&nbsp;file&nbsp;to&nbsp;be&nbsp;read&nbsp;(without&nbsp;.grb2&nbsp;at&nbsp;the&nbsp;end)<br>
+area&nbsp;:&nbsp;(float,&nbsp;float,&nbsp;float,&nbsp;float)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;(most&nbsp;northern&nbsp;latitude,&nbsp;most&nbsp;western&nbsp;longitude,&nbsp;most&nbsp;southern&nbsp;latitude,&nbsp;most&nbsp;eastern&nbsp;longitude)&nbsp;in&nbsp;degrees,&nbsp;indicating&nbsp;the&nbsp;area&nbsp;on&nbsp;the&nbsp;globe&nbsp;from&nbsp;which&nbsp;the&nbsp;data&nbsp;should&nbsp;be&nbsp;collected<br>
+alt0&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial&nbsp;temperature.<br>
+descent_only&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Option&nbsp;to&nbsp;start&nbsp;the&nbsp;trajectory&nbsp;at&nbsp;its&nbsp;highest&nbsp;point.&nbsp;If&nbsp;True,&nbsp;the&nbsp;trajectory&nbsp;only&nbsp;has&nbsp;a&nbsp;descent&nbsp;phase</tt></dd></dl>
+ <dl><dt><a name="-save_kml"><strong>save_kml</strong></a>(fname, data, other_info<font color="#909090">=None</font>, params<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, shape<font color="#909090">='circle'</font>, radius<font color="#909090">=5</font>, mean_direction<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;save&nbsp;given&nbsp;trajectory&nbsp;as&nbsp;KML&nbsp;file<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+fname&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;file&nbsp;containing&nbsp;the&nbsp;trajectory<br>
+data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;the&nbsp;trajectory&nbsp;data<br>
+other_info&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;containing&nbsp;the&nbsp;highest&nbsp;point&nbsp;in&nbsp;the&nbsp;trajectory,&nbsp;i.e.&nbsp;either&nbsp;the&nbsp;starting&nbsp;location&nbsp;if&nbsp;descent_only&nbsp;or&nbsp;the&nbsp;burst&nbsp;location&nbsp;of&nbsp;the&nbsp;balloon&nbsp;if&nbsp;not&nbsp;descent_only<br>
+params&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
+balloon&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.<br>
+shape&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Indicates&nbsp;the&nbsp;shape&nbsp;of&nbsp;the&nbsp;sigma&nbsp;contours&nbsp;drawn&nbsp;around&nbsp;the&nbsp;predicted&nbsp;landing&nbsp;point<br>
+radius&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Radius&nbsp;of&nbsp;circle,&nbsp;if&nbsp;circle&nbsp;is&nbsp;chosen&nbsp;contour&nbsp;shape<br>
+mean_direction&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Angle&nbsp;between&nbsp;starting&nbsp;point&nbsp;and&nbsp;landing&nbsp;point.&nbsp;Used&nbsp;to&nbsp;orientate&nbsp;ellips&nbsp;if&nbsp;ellips&nbsp;is&nbsp;the&nbsp;chosen&nbsp;contour&nbsp;shape</tt></dd></dl>
+ <dl><dt><a name="-save_used_weather_files"><strong>save_used_weather_files</strong></a>(save_dir<font color="#909090">=None</font>, used_weather_files<font color="#909090">=None</font>, trajectories<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;write&nbsp;out&nbsp;the&nbsp;weather&nbsp;files&nbsp;used&nbsp;for&nbsp;a&nbsp;run<br>
+&nbsp;<br>
+Arguments<br>
+=========&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+save_dir&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Directory&nbsp;in&nbsp;which&nbsp;to&nbsp;store&nbsp;file&nbsp;with&nbsp;used&nbsp;weather&nbsp;files<br>
+used_weather_files&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;used&nbsp;weather&nbsp;files,&nbsp;with&nbsp;the&nbsp;times&nbsp;at&nbsp;which&nbsp;the&nbsp;files&nbsp;were&nbsp;first&nbsp;used&nbsp;as&nbsp;keys<br>
+trajectories&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;trajectory&nbsp;data<br>
+utc_hour&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial&nbsp;time&nbsp;of&nbsp;trajectory</tt></dd></dl>
+ <dl><dt><a name="-search_info"><strong>search_info</strong></a>(run<font color="#909090">=None</font>, print_verbose<font color="#909090">=True</font>)</dt><dd><tt>Method&nbsp;to&nbsp;find&nbsp;the&nbsp;info&nbsp;for&nbsp;a&nbsp;run&nbsp;in&nbsp;the&nbsp;runs_info.txt&nbsp;file<br>
+&nbsp;<br>
+Arguments<br>
+=========&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+run&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String&nbsp;indicating&nbsp;which&nbsp;run&nbsp;we&nbsp;wish&nbsp;to&nbsp;know&nbsp;the&nbsp;parameters&nbsp;of<br>
+print_verbose&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;the&nbsp;parameters&nbsp;will&nbsp;be&nbsp;printed&nbsp;to&nbsp;the&nbsp;command&nbsp;line</tt></dd></dl>
+ <dl><dt><a name="-set_params"><strong>set_params</strong></a>(params<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;initialise&nbsp;the&nbsp;parameters&nbsp;being&nbsp;used<br>
+&nbsp;<br>
+Arguments<br>
+=========&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+params&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
+balloon&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.</tt></dd></dl>
+ <dl><dt><a name="-write_out_polygon"><strong>write_out_polygon</strong></a>(coords<font color="#909090">=None</font>, color<font color="#909090">='BF0000DF'</font>)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;string&nbsp;with&nbsp;given&nbsp;coordiinates&nbsp;of&nbsp;given&nbsp;shape&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;a&nbsp;kml&nbsp;file<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+coords&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;containing&nbsp;the&nbsp;lats&nbsp;and&nbsp;lons&nbsp;of&nbsp;the&nbsp;shape&nbsp;to&nbsp;be&nbsp;drawn<br>
+color&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String&nbsp;indicating&nbsp;the&nbsp;color&nbsp;the&nbsp;shape&nbsp;should&nbsp;be&nbsp;drawn&nbsp;in&nbsp;(Hex&nbsp;Color&nbsp;Code)</tt></dd></dl>
+ <dl><dt><a name="-write_run_info"><strong>write_run_info</strong></a>(add_run_info<font color="#909090">=True</font>, run<font color="#909090">=None</font>, params<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;write&nbsp;the&nbsp;parameters&nbsp;being&nbsp;used&nbsp;to&nbsp;the&nbsp;runs_info.txt&nbsp;file&nbsp;which&nbsp;contains&nbsp;the&nbsp;info&nbsp;for&nbsp;all&nbsp;runs&nbsp;run<br>
+&nbsp;<br>
+Arguments<br>
+=========&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+params_dir&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Directory&nbsp;in&nbsp;which&nbsp;to&nbsp;save&nbsp;the&nbsp;params.txt&nbsp;file<br>
+params&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
+balloon&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.</tt></dd></dl>
+ <dl><dt><a name="-write_verbose"><strong>write_verbose</strong></a>(params_dir<font color="#909090">=None</font>, params<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;write&nbsp;the&nbsp;parameters&nbsp;used&nbsp;of&nbsp;run&nbsp;to&nbsp;file<br>
+&nbsp;<br>
+Arguments<br>
+=========&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+params_dir&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Directory&nbsp;in&nbsp;which&nbsp;to&nbsp;save&nbsp;the&nbsp;params.txt&nbsp;file<br>
+params&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
+balloon&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.</tt></dd></dl>
+</td></tr></table>
+</body></html>

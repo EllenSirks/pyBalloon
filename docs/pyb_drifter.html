@@ -1,0 +1,58 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module pyb_drifter</title>
+<meta charset="utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>pyb_drifter</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/ellen/Desktop/SuperBIT_DRS/pyBalloon/pyb_drifter.py">/home/ellen/Desktop/SuperBIT_DRS/pyBalloon/pyb_drifter.py</a></font></td></tr></table>
+    <p><tt>Method&nbsp;to&nbsp;determine&nbsp;trajectories&nbsp;for&nbsp;one&nbsp;starting&nbsp;position&nbsp;with&nbsp;different&nbsp;drift&nbsp;times.</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="astropy.io.ascii.html">astropy.io.ascii</a><br>
+<a href="datetime.html">datetime</a><br>
+<a href="numpy.html">numpy</a><br>
+</td><td width="25%" valign=top><a href="os.html">os</a><br>
+<a href="param_file.html">param_file</a><br>
+<a href="pyb_io.html">pyb_io</a><br>
+</td><td width="25%" valign=top><a href="pyb_runner.html">pyb_runner</a><br>
+<a href="sys.html">sys</a><br>
+<a href="time.html">time</a><br>
+</td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-drifter"><strong>drifter</strong></a>(datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, params<font color="#909090">=None</font>, run<font color="#909090">=None</font>, print_verbose<font color="#909090">=False</font>, write_verbose<font color="#909090">=True</font>)</dt><dd><tt>&nbsp;&nbsp;&nbsp;&nbsp;Method&nbsp;to&nbsp;calculate&nbsp;trajectories&nbsp;starting&nbsp;at&nbsp;the&nbsp;same&nbsp;location&nbsp;and&nbsp;time,&nbsp;but&nbsp;have&nbsp;different&nbsp;drift&nbsp;times<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Arguments<br>
+&nbsp;&nbsp;&nbsp;&nbsp;=========<br>
+datestr&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Date&nbsp;of&nbsp;initial&nbsp;point<br>
+utc_hour&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Time&nbsp;of&nbsp;initial&nbsp;point<br>
+loc0&nbsp;:&nbsp;floats&nbsp;in&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point<br>
+balloon&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.<br>
+params&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
+run&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;String&nbsp;indicating&nbsp;which&nbsp;run&nbsp;folder&nbsp;the&nbsp;results&nbsp;are&nbsp;to&nbsp;be&nbsp;stored&nbsp;in<br>
+print_verbose&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;the&nbsp;parameters&nbsp;used&nbsp;will&nbsp;be&nbsp;printed&nbsp;to&nbsp;the&nbsp;command&nbsp;line<br>
+write_verbose&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;the&nbsp;parameters&nbsp;used&nbsp;are&nbsp;written&nbsp;to&nbsp;a&nbsp;file</tt></dd></dl>
+</td></tr></table>
+</body></html>
