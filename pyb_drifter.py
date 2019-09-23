@@ -1,4 +1,6 @@
-"""Method to determine trajectories for one starting position with different drift times"""
+"""
+Method to determine trajectories for one starting position with different drift times.
+"""
 
 from astropy.io import ascii
 import datetime as dt
