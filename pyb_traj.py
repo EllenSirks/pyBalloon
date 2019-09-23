@@ -64,13 +64,13 @@ def read_data(loc0=None, weather_file=None, descent_only=False):
 
 	Arguments
 	=========
-    loc0 : floats in tuple
-    	(latitude in degrees, longitude in degrees, altitude in km) of initial point
+	loc0 : floats in tuple
+		(latitude in degrees, longitude in degrees, altitude in km) of initial point
 	weather_file : string
 		Name of weather file from data is to be read
 	descent_only : bool
-        Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
-    Return:
+		Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+	Return:
 		Dictionary containing the forecast data
 	"""
 
@@ -148,15 +148,15 @@ def calc_properties(data=None, weather_file=None, loc0=None, balloon=None, desce
 	weather_file : string
 		Name of weather file from which the data is to be read (if data is None)
 	loc0 : floats in tuple
-    	(latitude in degrees, longitude in degrees, altitude in km) of initial point
+		(latitude in degrees, longitude in degrees, altitude in km) of initial point
 	balloon : dict
-    	Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
 	descent_only : bool
-        Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+		Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
 	output_figs : bool
-    	If True, figures showing the grib data before and after interpolation between altitude steps are created and saved
-    Return:
-    	Data appended with new properties and dictionary containing figures (can be empty if output_figs is False)
+		If True, figures showing the grib data before and after interpolation between altitude steps are created and saved
+	Return:
+		Data appended with new properties and dictionary containing figures (can be empty if output_figs is False)
 	"""
 
 	if data == None:
@@ -192,13 +192,13 @@ def calc_displacements(data=None, balloon=None, descent_only=False, vz_correct=F
 	data : dict
 		Dictionary containing weather forecast data plus properties calculated using the calc_properties() function
 	balloon : dict
-    	Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
 	descent_only : bool
-        Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
-    vz_correct : bool
-    	If True, correct for vertical winds in forecast model using the 'omega' property
-    Return:
-    	Data appended with additional calculated properties  		
+		Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+	vz_correct : bool
+		If True, correct for vertical winds in forecast model using the 'omega' property
+	Return:
+		Data appended with additional calculated properties  		
 	"""
 
 	g = p.g_0 * (p.R_e / (p.R_e + data['altitudes']))**2
@@ -246,21 +246,21 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 	data : dict
 		Dictionary containing weather forecast data plus properties calculated using the calc_properties() function
 	lon_rad : float
-        Current longitude in radians
-    lat_rad : float
-        Current latitude in radians
-    all_alts : list
-    	List containing altitudes of trajectory so far
-    current_time : float
-        Current time of the trajectory
+		Current longitude in radians
+	lat_rad : float
+		Current latitude in radians
+	all_alts : list
+		List containing altitudes of trajectory so far
+	current_time : float
+		Current time of the trajectory
 	balloon : dict
-    	Dictionary of balloon parameters, e.g. burtsradius, mass etc.
-    datestr : string
-        Date of initial point
-    utc_hour : float
-    	Time of initial point
-    loc0 : floats in tuple
-    	(latitude in degrees, longitude in degrees, altitude in km) of initial point
+		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+	datestr : string
+		Date of initial point
+	utc_hour : float
+		Time of initial point
+	loc0 : floats in tuple
+		(latitude in degrees, longitude in degrees, altitude in km) of initial point
 	total_time : list
 		List of increments in time for steps in trajectory so far
 	time_diffs : list
@@ -269,10 +269,10 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 		Index corresponding to current weather file being used (only when not interpolating)
 	params : list
 	   	List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
-    output_figs : bool
-    	If True, figures showing the grib data before and after interpolation between altitude steps are created and saved
-    Return:
-    	Data of new weather file(s), updated weather file keys, updated index, updated figs, updated used_weather_files and updated time_diffs.
+	output_figs : bool
+		If True, figures showing the grib data before and after interpolation between altitude steps are created and saved
+	Return:
+		Data of new weather file(s), updated weather file keys, updated index, updated figs, updated used_weather_files and updated time_diffs.
 	"""
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
@@ -379,19 +379,19 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 		Dictionary of initial weather files used. The keys represent the times at which the weather files started being used (i.e. here the starting time)
 	time_diffs : list
 		List containing difference in time between trajectory time and weather forecasts used		
-    datestr : string
-        Date of initial point
-    utc_hour : float
-    	Time of initial point
-    loc0 : floats in tuple
-    	(latitude in degrees, longitude in degrees, altitude in km) of initial point
-    params : list
-    	List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
-    balloon : dict
-    	Dictionary of balloon parameters, e.g. burtsradius, mass etc.
-    output_figs : bool
-    	If True, figures showing the grib data before and after interpolation between altitude steps are created and saved    
-    Return:
+	datestr : string
+		Date of initial point
+	utc_hour : float
+		Time of initial point
+	loc0 : floats in tuple
+		(latitude in degrees, longitude in degrees, altitude in km) of initial point
+	params : list
+		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+	balloon : dict
+		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+	output_figs : bool
+		If True, figures showing the grib data before and after interpolation between altitude steps are created and saved	
+	Return:
 		Output trajectory data, list of fig dictionaries for each used weather files, dictionary of used_weather_files, list time_diffs
 	"""
 
@@ -689,21 +689,21 @@ def prepare_data(weather_file=None, loc0=None, current_time=None, balloon=None, 
 	=========
 	weather_file : string
 		Name of weather file to be used and read
-    loc0 : floats in tuple
-    	(latitude in degrees, longitude in degrees, altitude in km) of initial point
-    current_time : float
-        Current time of the trajectory	
-    balloon : dict
-    	Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+	loc0 : floats in tuple
+		(latitude in degrees, longitude in degrees, altitude in km) of initial point
+	current_time : float
+		Current time of the trajectory	
+	balloon : dict
+		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
   	descent_only : bool
-        Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
-    vz_correct : bool
-    	If True, correct for vertical winds in forecast model using the 'omega' property
-    check_sigmas : bool
-    	If True, use ensemble forecasts to keep track of standard deviations for winds in weather forecast data
-    output_figs : bool
-    	If True, figures showing the grib data before and after interpolation between altitude steps are created and saved    
-    Return:
+		Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+	vz_correct : bool
+		If True, correct for vertical winds in forecast model using the 'omega' property
+	check_sigmas : bool
+		If True, use ensemble forecasts to keep track of standard deviations for winds in weather forecast data
+	output_figs : bool
+		If True, figures showing the grib data before and after interpolation between altitude steps are created and saved	
+	Return:
 		Dictionary containing data ready for starting the trajectory calculations, and dictionary containing figures for interpolation checks (empty if output_figs is False)
 	"""
 
@@ -734,16 +734,16 @@ def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=
 	weather_files : list
 		List of weather files used at the start
 	datestr : string
-        Date of initial point
-    utc_hour : float
-    	Time of initial point
-    loc0 : floats in tuple
-    	(latitude in degrees, longitude in degrees, altitude in km) of initial point
-    balloon : dict
-    	Dictionary of balloon parameters, e.g. burtsradius, mass etc.
-    params : list
-    	List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
-    Return:
+		Date of initial point
+	utc_hour : float
+		Time of initial point
+	loc0 : floats in tuple
+		(latitude in degrees, longitude in degrees, altitude in km) of initial point
+	balloon : dict
+		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+	params : list
+		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+	Return:
 		The calculated trajectories, list of fig dicionaries for each weather file, dictionary of used_weather_files, and list of time differences between trajectiry times and weather forecast files
 	"""
 
