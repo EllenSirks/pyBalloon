@@ -10,8 +10,17 @@ import param_file as p
 
 #################################################################################################################
 
-# method to find & download latest weather file
 def get_latest_gfs_file(resolution=0.5):
+	"""
+	Find and download latest weather file available
+
+	Arguments
+	=========
+	resolution : float
+		Resolution of weather forecast model (GFS)
+	Return:
+		Weather file name in list ([])
+	"""
 
 	res1 = 'pgrb2.0p' + str(int(resolution*100))
 	res2 = str(int(-4*resolution + 6))
@@ -64,8 +73,23 @@ def get_latest_gfs_file(resolution=0.5):
 
 #################################################################################################################
 
-# method to find & download weather files needed for interpolation (3)
 def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0):
+	"""
+	Find and download weather forecast files to be used for interpolation
+
+	Arguments
+	=========
+	datestr : string
+		The current date of the trajectory (yyyymmdd)
+	utc_hour : float
+		Current time of trajectory
+	resolution : float
+		Resolution of weather forecast model (GFS)
+	hr_diff : float
+		Number of hours in the past we wish the forecasts to be from (e.g. when we wish to download them in the morning for later in the day) needs to be a multiple of 6.
+	Return:
+		List of weather_file names (without .grb2 at the end)		
+	"""
 
 	sys.stdout.write('\r')
 	sys.stdout.flush()
@@ -85,8 +109,23 @@ def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5, hr_
 
 #################################################################################################################
 
-# method to find & download weather_file nearest in time to time of ascent/descent
 def get_closest_gfs_file(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0):
+	"""
+	Find & download weather_file nearest in time to current time of trajectory
+
+	Arguments
+	=========
+	datestr : string
+		The current date of the trajectory (yyyymmdd)
+	utc_hour : float
+		Current time of trajectory
+	resolution : float
+		Resolution of weather forecast model (GFS)
+	hr_diff : float
+		Number of hours in the past we wish the forecasts to be from (e.g. when we wish to download them in the morning for later in the day) needs to be a multiple of 6.
+	Return:
+		Weather file name (without .grb2 at the end) in list ([])
+	"""
 
 	sys.stdout.write('\r')
 	sys.stdout.flush()
@@ -115,7 +154,17 @@ def get_closest_gfs_file(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0)
 
 #################################################################################################################
 
-def get_gfs_files(weather_files=None): # files should be formatted like; gfs_x_datestr_hhhh_hhh.grb2
+def get_gfs_files(weather_files=None):
+	"""
+ 	Download specified weather forecasts
+
+	Arguments
+	=========
+	weather_files : list
+		List containing weather file from which we wish to use the data. File names should be formatted as: gfs_x_datestr_hhhh_hhh.grb2
+	Return:
+		List of weather file names (without .grb2 at the end)
+ 	"""
 
 	out_dir = p.path + p.weather_data_folder + p.GFS_folder
 	now = dt.datetime.utcnow()
@@ -131,16 +180,13 @@ def get_gfs_files(weather_files=None): # files should be formatted like; gfs_x_d
 		hhhh, hhh = file[-13:-9], file[-8:-5]
 
 		if datestr in [str(now.year) + str(now.month).zfill(2) + str(now.day - i).zfill(2) for i in range(0, 10)]:
-
 			url_base = 'https://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/'
 			filename = url_base + 'gfs.' + datestr + '/' + str(int(hhhh)/100).zfill(2) + '/' + 'gfs.t' + str(int(hhhh)/100).zfill(2) +  'z.pgrb2.' + res1 + '.f' + hhh
 
 		else:
-
 			if res2 == '4':
 				url_base = 'https://nomads.ncdc.noaa.gov/data/gfs4/'
 				filename = url_base + month + '/' + datestr + '/' + file
-
 			elif res2 == '5':
 				url_base = 'http://rda.ucar.edu/data/ds084.1/'
 				filename = url_base + year + '/' + datestr + '/gfs.0p25.' + datestr + str(int(int(hhhh)/100)).zfill(2) + '.f' + hhh + '.grib2'
@@ -149,9 +195,7 @@ def get_gfs_files(weather_files=None): # files should be formatted like; gfs_x_d
 
 		if os.path.isfile(out_dir + second_file) and float(os.stat(out_dir + second_file).st_size) > 40000000.:
 			continue
-
 		download_file(path_file=filename, out_dir=out_dir)
-
 		if os.path.basename(filename) != second_file:
 			copyfile(out_dir + os.path.basename(filename), out_dir + second_file)
 			os.remove(out_dir + os.path.basename(filename))
@@ -160,7 +204,17 @@ def get_gfs_files(weather_files=None): # files should be formatted like; gfs_x_d
 
 #################################################################################################################
 
-def get_gefs_files(datestr=None, utc_hour=None): # gfs files we wish to have the gefs for, in format: gfs_x_datestr_hhhh_hhh.grb2
+def get_gefs_files(datestr=None, utc_hour=None): #
+	"""
+ 	Download ensemble weather forecasts for current date and time of trajectory
+
+	Arguments
+	=========
+	datestr : string
+		The current date of the trajectory (yyyymmdd)
+	utc_hour : float
+		Current time of trajectory
+ 	"""
 
 	out_dir = p.path + p.weather_data_folder + p.GFS_folder
 	now = dt.datetime.now()
@@ -173,9 +227,9 @@ def get_gefs_files(datestr=None, utc_hour=None): # gfs files we wish to have the
 	if datestr in [str(now.year) + str(now.month).zfill(2) + str(now.day - i).zfill(2) for i in range(0, 10)]:
 
 		url = url_base + 'gefs.' + datestr + '/' + str(closest_model).zfill(2)  + '/pgrb2ap5/' 
-
 		dl_files = ['geavg.t' + str(closest_model).zfill(2) + 'z.pgrb2a.0p50.f' + str(hhh3).zfill(3), 'gespr.t' + str(closest_model).zfill(2) + 'z.pgrb2a.0p50.f' + str(hhh3).zfill(3)]
-		second_files = ['geavg_4_' + datestr + '_' + str(int(closest_model*100)).zfill(4) + '_' + str(hhh3).zfill(3) + '.grb2', 'gespr_4_' + datestr + '_' + str(int(closest_model*100)).zfill(4) + '_' + str(hhh3).zfill(3) + '.grb2'] 
+		second_files = ['geavg_4_' + datestr + '_' + str(int(closest_model*100)).zfill(4) + '_' + str(hhh3).zfill(3) + '.grb2', 'gespr_4_' + datestr + '_' + str(int(closest_model*100)).zfill(4)\
+		 + '_' + str(hhh3).zfill(3) + '.grb2'] 
 
 		for i in range(len(dl_files)):
 
@@ -190,12 +244,9 @@ def get_gefs_files(datestr=None, utc_hour=None): # gfs files we wish to have the
 	else:
 
 		second_files = ['gens-a_3_' + datestr + '_' + str(int(closest_model*100)).zfill(4) + '_' + str(hhh6).zfill(3) + '_' + str(i).zfill(2) + '.grb2' for i in range(0, 21)]
-
 		for file in second_files:
-			
 			if os.path.isfile(out_dir + file) and float(os.stat(out_dir + file).st_size) > 40000000.:
 				print(file + ' already downloaded!')
-
 			else:
 				print('Cannot download ' + str(file) + ' this way! Go to: https://www.ncdc.noaa.gov/has/HAS.DsSelect')
 				continue
@@ -203,6 +254,16 @@ def get_gefs_files(datestr=None, utc_hour=None): # gfs files we wish to have the
 #################################################################################################################
 
 def download_file(path_file=None, out_dir=None):
+	"""
+	Method to download 0.25 resolution weather forecast data
+
+	Arguments
+	=========
+	path_file : string
+		String containing the path to the file and the file name
+	out_dir : strings
+		Directory file is to be saved in
+	"""
 
 	file = os.path.basename(path_file)
 
@@ -230,8 +291,17 @@ def download_file(path_file=None, out_dir=None):
 
 #################################################################################################################
 
-# method to check what percentage of a file has been downloaded
 def check_file_status(filepath=None, filesize=None):
+	"""
+	Check what percentage of a file has been downloaded
+
+	Arguments
+	=========
+	filepath : string
+		String containing the path to the file and the file name
+	filesize : float
+		Total size of file to be downloaded
+	"""
 
 	sys.stdout.write('\r')
 	sys.stdout.flush()
@@ -242,9 +312,21 @@ def check_file_status(filepath=None, filesize=None):
 
 #################################################################################################################
 
-# method to find time & date that is nearest to the time of ascent/descent
-# hr_diff needs to be a multiple of 6
 def get_closest_hr(datestr=None, utc_hour=None, hr_diff=0): 
+	"""
+	Find time & date that is nearest to the current time of trajectory
+
+	Arguments
+	=========
+	datestr : string
+		The current date of the trajectory (yyyymmdd)
+	utc_hour : float
+		Current time of trajectory
+	hr_diff : float
+		Number of hours in the past we wish the forecasts to be from (e.g. when we wish to download them in the morning for later in the day) needs to be a multiple of 6.
+	Return:
+		Time and date of determined closest hour
+	"""
 
 	hrs_6 = [0., 6., 12., 18.]
 
@@ -285,8 +367,21 @@ def get_closest_hr(datestr=None, utc_hour=None, hr_diff=0):
 
 #################################################################################################################
 
-# method to find time & date left & right of time of ascent/descent
 def get_interval(datestr=None, utc_hour=None, hr_diff=0):
+	"""
+	Find closest time & date left & right of current time of trajectory
+
+	Arguments
+	=========
+	datestr : string
+		The current date of the trajectory (yyyymmdd)
+	utc_hour : float
+		Current time of trajectory
+	hr_diff : float
+		Number of hours in the past we wish the forecasts to be from (e.g. when we wish to download them in the morning for later in the day) needs to be a multiple of 6
+	Return:
+		Times and dates of determined interval
+	"""
 
 	times = np.array([0., 6., 12., 18., 24.])
 
@@ -306,7 +401,7 @@ def get_interval(datestr=None, utc_hour=None, hr_diff=0):
 		if right_hr != left_hr:
 			right_hr, right_hhh, right_hhh6, right_datestr = get_closest_hr(datestr=datestr, utc_hour=right_hour, hr_diff=hr_diff+6)
 
-		if right_hr > utc_hour:
+		if right_hr > utc_hour and np.abs(right_hr - utc_hour) <= 1.5:
 			right_hr -= 6
 			right_hhh += 6
 			if right_hr < 0:
@@ -322,7 +417,6 @@ def get_interval(datestr=None, utc_hour=None, hr_diff=0):
 if __name__ == '__main__':
 
 	# file = sys.argv[1]
-
 	# get_gfs_files(weather_files=[file])
 
 	get_latest_gfs_file(resolution=0.5)

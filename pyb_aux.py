@@ -14,8 +14,15 @@ import param_file as p
 
 #################################################################################################################
 
-# method to create new array for given conditions
 def all_and(data):
+    """
+    Method to create logical and for a list of arrays.
+    
+    Arguments
+    =========
+    data : list
+        List of Numpy boolean arrays
+    """
 
     result = data.pop()
     for d in data:
@@ -25,8 +32,15 @@ def all_and(data):
 
 #################################################################################################################
 
-# method to calculate Earth WGS84 based radius on a given latitude. See http://en.wikipedia.org/wiki/Earth_radius#Radius_at_a_given_geodetic_latitude
 def earth_radius(lat_rad):
+    """
+    Calculate Earth WGS84 based radius on a given latitude.
+
+    Arguments
+    =========
+    lat_rad : float
+        Latitude in radians
+    """
     
     # WGS84 reference ellipsoid
     a = 6378.137     # Earth equatorial radius, km
@@ -41,8 +55,17 @@ def earth_radius(lat_rad):
 
 #################################################################################################################
 
-# method to calculate the air density
 def air_density(data):
+    """
+    Calculate air density from pressure and temperature.
+    
+    Arguments
+    =========
+    data : dict
+        Dictonary returned by read_gfs_data()
+    Return
+        Air densities (as Numpy array) for each altitude step in data.
+    """
 
     ps = data['pressures'] # Pa
     Ts = data['temperatures'] # K
@@ -58,8 +81,23 @@ def air_density(data):
 
 #################################################################################################################
 
-# method to interpolate data to altitude steps
 def data_interpolation(data, alt0, step, mode='spline', descent_only=False, output_figs=False):
+    """
+    Interpolate (and extrapolate in the low end, if mode='spline' is used) vertical data from alt0 to maximum level present in the data.
+
+    Arguments
+    =========
+    data : dict
+        Dictionary returned by read_gfs_data()
+    alt0 : float
+        Starting altitude of the interpolation in meters from WGS84 reference ellipsoid
+    step : float
+        Interpolation altitude step
+    mode : string (optional)
+        Interpolation method. Supported methods are 'spline' and 'linear'. Default: 'spline'
+    Return:
+        Interpolated version of the data.
+    """
 
     altitudes = data['altitudes']
 
@@ -146,8 +184,19 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False, outp
 
 #################################################################################################################
 
-# method to calculate effective lift (force, in Newtons) caused by the balloon.
 def lift(data, mass):
+    """
+    Calculate effective lift (force, in Newtons) caused by the balloon.
+
+    Arguments
+    =========
+    data : dict
+        Dictionary containing 'altitudes' (meters), balloon 'volumes' (m^3) and 'air_densities' (kg/m^3)
+    mass: float
+        Mass of the whole balloon
+    Return:
+        Resultant lift force.
+    """
 
     h = data['altitudes']
     V_b = data['balloon_volumes']
@@ -160,8 +209,17 @@ def lift(data, mass):
 
 #################################################################################################################
 
-# method to calculate volume of a sphere.
 def balloon_volume(data):
+    """
+    Calculate volume of a sphere.
+
+    Arguments
+    =========
+    data : dict
+        Dictionary containing 'balloon_radii' (in meters)
+    Return:
+        Volume of the balloon at each level in data
+    """
 
     r = data['balloon_radii']
     V = 4/3. * np.pi * r**3
@@ -170,8 +228,21 @@ def balloon_volume(data):
 
 #################################################################################################################
 
-# method to calculate gas (~balloon) volume based on ideal gas law: pV = nRT
 def balloon_volume_ideal_gas(data, gas_mass, gas_molar_mass=p.M_helium):
+    """
+    Calculate gas (~balloon) volume based on ideal gas law: pV = nRT.
+
+    Arguments
+    =========
+    data : dict
+        Dictionary returned by read_gfs_data()
+    gas_mass : float
+        Mass of the gas in question
+    gas_molar_mass : float (optional)
+        Gas molar mask (g/mol). Default: 4.002602 (Helium)
+    Return:
+        Gas volume at each level in data
+    """
 
     m = gas_mass # 
     M = gas_molar_mass/1000. # default to Helium, convert to kg/mol
@@ -186,8 +257,19 @@ def balloon_volume_ideal_gas(data, gas_mass, gas_molar_mass=p.M_helium):
 
 #################################################################################################################
 
-# method to calculate burst radius of balloon
 def burst_altitude(data, burst_radius):
+    """
+    Find the altitude where balloon radius gets greater than the given burst radius.
+
+    Arguments
+    =========
+    data : dict
+        Dictionary containing 'altitudes' and corresponding 'balloon_radii'
+    burst_radius : float
+        Balloon burst radius
+    Return:
+        Altitude of burst and corresponding array index
+    """
 
     radii = data['balloon_radii']
 
@@ -205,8 +287,17 @@ def burst_altitude(data, burst_radius):
 
 #################################################################################################################
 
-# method to find the level of neutral buoyancy (or more precise, the level where effective lift is closest to zero)
 def neutral_buoyancy_level(data):
+    """
+    Find the level of neutral buoyancy (or more precise, the level where effective lift is closest to zero).
+
+    Arguments
+    =========
+    data : dict
+        Dictionary containing 'altitudes' and corresponding 'lifts'
+    Return:
+        Altitude of neutral buoyancy and corresponding array index
+    """
 
     alt_out = []
     i_out = []
@@ -222,8 +313,21 @@ def neutral_buoyancy_level(data):
 
 #################################################################################################################
 
-# method to calculate the rate of ascent (in m/s) for the inflated balloon at given levels
 def ascent_speed(data, mass, Cd=p.Cd_sphere):
+    """
+    Calculate the rate of ascent (in m/s) for the inflated balloon at given levels.
+
+    Arguments
+    =========
+    data : dict
+        Dictionary with 'altitudes' and corresponding 'air_densities', 'balloon_radii' and 'balloon_volumes'
+    mass : float
+        Full balloon mass (in kg)
+    Cd : float (optional)
+        Coefficient of drag. Default: 0.47 (sphere)
+    Return:
+        Ascent speed (m/s) at every level in input data.
+    """
 
     m = mass
     rho = data['air_densities']
@@ -249,8 +353,25 @@ def ascent_speed(data, mass, Cd=p.Cd_sphere):
 
 #################################################################################################################
 
-# method to calculate the rate of descent (in m/s) for deflated (burst) balloon with 1 or 2 different sized parachutes with given areas, change altitude and drag-coefficient.
 def descent_speed(data, mass, Cd, areas, alt_step, change_alt=None):
+    """
+    Calculate the rate of descent for deflated (burst) balloon with 1 or 2 different sized parachutes with given areas, change altitude and drag-coefficient.
+
+    Arguments
+    =========
+    data : dict
+        Dictionary with 'altitudes', and corresponding 'air_densities'
+    mass: float
+        Mass of the payload + assumed remnants of the balloon
+    Cd : floats in tuple
+        Coefficients of drag for one or two parachutes in a tuple
+    areas: floats in tuple
+        Effective areas (in m^2) of one or two parachutes in a tuple
+    change_alt : float
+        Altitude where first parachute is changed to the second one. If None, only one parachute is used. Default: None
+    Return:
+        Rate of descent (m/s) for each level in input data
+    """
 
     m = mass
     h = data['altitudes']
@@ -273,8 +394,26 @@ def descent_speed(data, mass, Cd, areas, alt_step, change_alt=None):
 
 #################################################################################################################    
 
-#  method to find balloon radii at each height level
 def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_mass=p.M_helium):
+    """
+    Calculate balloon radii for given pressures/temperatures/initial conditions using inversion of Mooney-Rivlin equation.
+    See description of the equation at: http://www.zmatt.net/weather-balloon-physics/
+
+    Arguments
+    =========
+    data : dict
+        Dictionary containing 'pressures' and 'temperatures'
+    radius_empty : float
+        Radius of the empty balloon
+    radius_filled : float
+        Radius when filled at ground level
+    thickness_empty : float
+        Balloon rubber initial thickness
+    gas_molar_mass : float (optional)
+        Molar mass (g/mol) of the gas used to fill the balloon. Default: 4.002602 (Helium)
+    Return:
+        Radius of the balloon at each level in input data, and the mass of the gas.
+    """
 
     r0 = radius_empty # in meters
     r1 = radius_filled # in meters
@@ -354,8 +493,19 @@ def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_
 
 #################################################################################################################
 
-# method to find elevation at given lat/lon
 def get_elevation(lon, lat):
+    """ 
+    Calculate elevation at given longitude and latitude using data from: http://viewfinderpanoramas.org/
+
+    Arguments
+    =========
+    lon : float
+        Longitude of location
+    lat : float
+        Latitude of location    
+    Return:
+        Elevation at provided longitude and latitude
+    """
 
     SAMPLES = 1201  # Change this to 3601 for SRTM1
     HGTDIR = p.path + p.elevation_data_folder
@@ -394,8 +544,24 @@ def get_elevation(lon, lat):
 
 #################################################################################################################
 
-# method to get more accurate endpoint for predictions as they can go underground.
 def get_endpoint(data=None, run=None, filename=None, params=None):
+    """ 
+    Calculate more accurate endpoint using data from: http://viewfinderpanoramas.org/
+    PyBalloon does not know the elevation of given locations, so trajectories can continue underground untill i = 0 (see pyb_traj)
+
+    Arguments
+    =========
+    data: dict
+        Dictionary containing 'latitudes', 'longitudes', 'altitudes', and 'distances'. If None, read data from run and filename
+    run : string
+        String indicating which run folder the trajectory data is stored in, if None use last folder created
+    filename : string
+        Name of the trajectory file which contains the 'latitudes', 'longitudes', 'altitudes', and 'distances'.
+    params : list
+        List of parameters used for given trajectory. If None, use parameters from param_file.py
+    Return:
+       Latitude and longitude of new endpoint and elevation at this longitude and latitude
+    """
 
     if params == None:
         descent_only = p.descent_only
@@ -458,8 +624,23 @@ def get_endpoint(data=None, run=None, filename=None, params=None):
 
 #################################################################################################################
 
-# method to calculate std and mean from the GEFS ensemble forecasts
 def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only=False):
+    """
+    Calculate std and mean from the GEFS ensemble forecasts
+
+    Arguments
+    =========
+    weather_file : string
+        Name of main weather forecast model (GFS)
+    current_time : float
+        Float representing the current time of the trajectory
+    loc0 : floats in tuple
+        (latitude in degrees, longitude in degrees, altitude in km) of initial point
+    descent_only : bool
+        Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+    Return:
+        Dictionary containing std and mean data from the GEFS ensemble forecasts
+    """
 
     import param_file as p
 
@@ -569,8 +750,19 @@ def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only
 
 #################################################################################################################
 
-# method to add error data to main weather data
 def add_uv_errs(main_data=None, err_data=None):
+    """
+    Method to add error data from ensemble weather forecasts to main weather data
+
+    Arguments
+    =========
+    main_data : dict
+        Dictionary containing the data from the main weather forecast model (GFS)
+    err_data : dict
+        Dictionary containing the standard deviation and mean data from the twenty ensemble weather forecast models (GEFS)
+    Return
+        Dictionary made out of both the main and error data
+    """
 
     sys.stdout.write('\r')
     sys.stdout.flush()
@@ -587,7 +779,31 @@ def add_uv_errs(main_data=None, err_data=None):
 
 #################################################################################################################
 
-def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats,  prop, resolution):
+def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop, resolution):
+    """
+    Calculate locations and values of points to be used for bilinear interpolation given a list of data and point
+
+    Arguments
+    =========
+    grid_i : float
+        Index corresponding to closest longitude and latitude to given point
+    i : float
+        Index corresponding to current altitude
+    lon_rad : float
+        Longitude in radians of point at which we wish to know the value of the property
+    lat_rad : float
+        Latitude in radians of point at which we wish to know the value of the property
+    data_lons : list
+        List of longitudes in weather forecast model (GFS)
+    data_lats : list
+        List of latitudes in weather forecast model (GFS)
+    prop : list
+        List containing the data we wish to interpolate
+    resolution : float
+        Resolution of weather forecast models (GFS) used
+    Return
+        Four tuples containing the x and y coordinates and values of the points to be used for bilinear interpolation
+    """
 
     curr_lat, curr_lon = data_lats[grid_i], data_lons[grid_i]
 
@@ -627,8 +843,31 @@ def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats,  pro
 
     return (x1, y1, q11), (x1, y2, q12), (x2, y1, q21), (x2, y2, q22)
 
-# method to interpolate (x,y) from values associated with four points
 def bilinear_interpolation(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop, resolution):
+    """
+    Calculate property at given latitude/longitude using bilinear interpolation
+
+    Arguments
+    =========
+    grid_i : float
+        Index corresponding to closest longitude and latitude to given point
+    i : float
+        Index corresponding to current altitude
+    lon_rad : float
+        Longitude in radians of point at which we wish to know the value of the property
+    lat_rad : float
+        Latitude in radians of point at which we wish to know the value of the property
+    data_lons : list
+        List of longitudes in weather forecast model (GFS)
+    data_lats : list
+        List of latitudes in weather forecast model (GFS)
+    prop : list
+        List containing the data we wish to interpolate
+    resolution : float
+        Resolution of weather forecast models (GFS) used
+    Return
+        Value of data at given latitude and longitude based on bilinear interpolation
+    """
 
     x = lon_rad
     y = lat_rad

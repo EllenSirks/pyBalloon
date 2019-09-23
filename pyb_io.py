@@ -22,9 +22,25 @@ import pyb_traj
 import param_file as p
 
 #################################################################################################################
+#################################################################################################################
 
-# method to collect relevant data from GFS file
-def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_only=False):
+def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
+	"""
+	Method to read GFS file and collect relevant data (winds, temperatures, altitudes)
+
+	Arguments
+	=========
+	fname : string
+		The name of the grib file to be read
+	area : (float, float, float, float)
+		The (most northern latitude, most western longitude, most southern latitude, most eastern longitude) in degrees, indicating the area on the globe from which the data should be collected
+	alt0 : float
+		Initial altitude in km
+	t_0 : float
+		Initial temperature.
+	descent_only : bool
+        Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+	"""
 
 	if area is not None:
 		tlat, llon, blat, rlon = area
@@ -268,21 +284,48 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, extra_data=None, descent_o
 
 #################################################################################################################
 
-# method to read a single GFS file
+# method 
 def read_gfs_single(directory=None, area=None, alt0=None, descent_only=False):
+	"""
+	Method to read a single GFS file
+
+	Arguments
+	=========
+   	directory : string
+		The path plus name of the grib file to be read (without .grb2 at the end)
+	area : (float, float, float, float)
+		The (most northern latitude, most western longitude, most southern latitude, most eastern longitude) in degrees, indicating the area on the globe from which the data should be collected
+	alt0 : float
+		Initial temperature.
+	descent_only : bool
+        Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+	"""
 
 	all_data = []
 
 	fname = os.path.join(directory, (directory + '.grb2'))
-	main_run_data = read_gfs_file(fname, area=area, alt0=alt0, descent_only=descent_only)
+	main_run_data = read_gfs_file(fname=fname, area=area, alt0=alt0, descent_only=descent_only)
 	all_data.append(main_run_data)
 
 	return all_data
 
 #################################################################################################################
 
-# method to read a GEFS file
 def read_gefs_file(fname=None, area=None, alt0=0, descent_only=False):
+	"""
+	Method to read am ensemble GFS file (GEFS)
+
+	Arguments
+	=========
+	fname : string
+		The name of the grib file to be read
+	area : (float, float, float, float)
+		The (most northern latitude, most western longitude, most southern latitude, most eastern longitude) in degrees, indicating the area on the globe from which the data should be collected
+	alt0 : float
+		Initial temperature.
+	descent_only : bool
+        Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+	"""
 
 	import param_file as p
 
@@ -400,9 +443,31 @@ def read_gefs_file(fname=None, area=None, alt0=0, descent_only=False):
 	return data
 
 #################################################################################################################
+#################################################################################################################
 
-# method to save given trajectories as KML files.
-def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, params=None, balloon=None, radius=5, mean_direction=None):
+def save_kml(fname, data, other_info=None, params=None, balloon=None, shape='circle', radius=5, mean_direction=None):
+	"""
+	Method to save given trajectory as KML file
+
+	Arguments
+	=========
+	fname : string
+		Name of file containing the trajectory
+	data : dict
+		Dictionary containing the trajectory data
+	other_info : list
+		List containing the highest point in the trajectory, i.e. either the starting location if descent_only or the burst location of the balloon if not descent_only
+	params : list
+		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+	balloon : dict
+		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+	shape : string
+		Indicates the shape of the sigma contours drawn around the predicted landing point
+	radius : float
+		Radius of circle, if circle is chosen contour shape
+	mean_direction : float
+		Angle between starting point and landing point. Used to orientate ellips if ellips is the chosen contour shape
+	"""
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
@@ -440,7 +505,7 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 
 	num = 0
 
-	if num == 0 or eps_mode == 'full':
+	if num == 0:
 
 		kml_str += '<coordinates>\n'
 
@@ -497,15 +562,16 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 
  	err = np.sqrt(radius**2 - 3.35**2)
 
-	kml_str_add1 = create_circle(lon = end_lon, lat = end_lat, radius=radius, color='ff0080ff') # 95th percentile
-	kml_str_add2 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + 1.68**2), color='ff0000ff') # 68th percentile
-	kml_str_add3 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + 5.03**2), color='ff00ffff') # 99th percentile
-	kml_str_add4 = create_circle(lon = end_lon, lat = end_lat, radius=err, color='ff336699')
-
-	# kml_str_add1 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=2, theta=mean_direction, color='ff0080ff') # 95th percentile
-	# kml_str_add2 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=1, theta=mean_direction, color='ff0000ff') # 68th percentile
-	# kml_str_add3 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=3, theta=mean_direction, color='ff00ffff') # 99th percentile
-	# kml_str_add4 = create_ellips(lon = end_lon, lat = end_lat, add=0, times=1, theta=mean_direction, color='ff336699')
+ 	if shape == 'circle':
+		kml_str_add1 = create_circle(lon = end_lon, lat = end_lat, radius=radius, color='ff0080ff') # 95th percentile
+		kml_str_add2 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + 1.68**2), color='ff0000ff') # 68th percentile
+		kml_str_add3 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + 5.03**2), color='ff00ffff') # 99th percentile
+		kml_str_add4 = create_circle(lon = end_lon, lat = end_lat, radius=err, color='ff336699')
+	elif shape == 'ellips':
+		kml_str_add1 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=2, theta=mean_direction, color='ff0080ff') # 95th percentile
+		kml_str_add2 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=1, theta=mean_direction, color='ff0000ff') # 68th percentile
+		kml_str_add3 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=3, theta=mean_direction, color='ff00ffff') # 99th percentile
+		kml_str_add4 = create_ellips(lon = end_lon, lat = end_lat, add=0, times=1, theta=mean_direction, color='ff336699')
 
 	kml_str += kml_str_add1
 	kml_str += kml_str_add2
@@ -521,62 +587,17 @@ def save_kml(fname, data, model_start_idx=0, eps_mode='end', other_info=None, pa
 
 #################################################################################################################
 
-# method to find all latslons to create a circle of a given radius (km) around a lat/lon point
-def geodesic_point_buffer(lat, lon, radius):
+def write_out_polygon(coords=None, color='BF0000DF'):
+	"""
+	Method to create string with given coordiinates of given shape to be added to a kml file
 
-	proj_wgs84 = pyproj.Proj(init='epsg:4326')
-
-	# Azimuthal equidistant projection
-	aeqd_proj = '+proj=aeqd +lat_0={lat} +lon_0={lon} +x_0=0 +y_0=0'
-	project = partial(
-		pyproj.transform,
-		pyproj.Proj(aeqd_proj.format(lat=lat, lon=lon)),
-		proj_wgs84)
-	buf = Point(0, 0).buffer(radius * 1000)  # distance in metres
-	return transform(project, buf).exterior.coords[:]
-
-#################################################################################################################
-
-# method to find all latslons to create a ellips of a given minor/major axis (km) around a lat/lon point
-def get_ellips_coords(lat=None, lon=None, x_extent=1.87, y_extent=1.47, theta=0):
-
-	minor_axis = min([x_extent, y_extent])
-	major_axis = max([x_extent, y_extent])
-
-	if major_axis == y_extent:
-		theta += np.radians(90.)
-
-	coords = np.array(geodesic_point_buffer(lat, lon, 0.5))
-	lons = coords[:, 0] # check
-	lats = coords[:, 1]
-
-	min_lon, max_lon = min(lons), max(lons)
-	min_lat, max_lat = min(lats), max(lats)
-
-	lon_deg_per_km =  max_lon - min_lon
-	lat_deg_per_km =  max_lat - min_lat
-
-	cart_coords = make_ellipse(theta_num=100, phi=theta, x_cent=0, y_cent=0, semimaj=major_axis, semimin=minor_axis)
-
-	x_coords = cart_coords[0]
-	y_coords = cart_coords[1]
-
-	new_coords = []
-	for i in range(len(x_coords)):
-
-		new_lon = lon + lon_deg_per_km*x_coords[i]
-		new_lat = lat + lat_deg_per_km*y_coords[i]
-
-		new_coords.append((new_lon, new_lat))
-
-	return new_coords
-
-#################################################################################################################
-
-# method to create a circle of given radius around the landing point in the kml files.
-def create_circle(lon=None, lat=None, radius=5, color='BF0000DF'):
-
-	coords = np.array(geodesic_point_buffer(lat, lon, radius))
+	Arguments
+	=========
+	coords : list
+		List containing the lats and lons of the shape to be drawn
+	color : string
+		String indicating the color the shape should be drawn in (Hex Color Code)
+	"""
 
 	kml_str = '<Style id="stylesel_362">'
 	kml_str += '<LineStyle id="substyle_363">'
@@ -610,52 +631,23 @@ def create_circle(lon=None, lat=None, radius=5, color='BF0000DF'):
 
 #################################################################################################################
 
-# method to create a circle of given radius around the landing point in the kml files.
-def create_ellips(lon=None, lat=None, x_extent=1.858, y_extent=1.474, theta=0, add=0, times=1, color='BF0000DF'):
-
-	x_extent *= times
-	y_extent *= times
-
-	x_extent += add
-	y_extent += add
-
-	# coords = np.array(geodesic_point_buffer(lat, lon, radius))
-	coords = np.array(get_ellips_coords(lat=lat, lon=lon, x_extent=x_extent, y_extent=y_extent, theta=theta))
-
-	kml_str = '<Style id="stylesel_362">'
-	kml_str += '<LineStyle id="substyle_363">'
-	kml_str += '<color>'+color+'</color>'
-	kml_str += '<colorMode>normal</colorMode>'
-	kml_str += '<width>5</width>'
-	kml_str += '</LineStyle>'
-	kml_str += '<PolyStyle id="substyle_364">'
-	kml_str += '<color>'+color+'</color>'
-	kml_str += '<colorMode>normal</colorMode>'
-	kml_str += '<fill>1</fill>'
-	kml_str += '<outline>1</outline>'
-	kml_str += '</PolyStyle>'
-	kml_str += '</Style>'
-	kml_str += '<Placemark id="feat_91">'
-	kml_str += '<styleUrl>#stylesel_362</styleUrl>'
-	kml_str += '<LineString id="geom_86">'
-	kml_str += '<coordinates>'
-
-	for i in range(len(coords)):
-		kml_str += str(coords[i][0]) + ',' + str(coords[i][1]) + ',' +  '0' +'\n'
-
-	kml_str += '</coordinates>\n'
-	kml_str += '<extrude>1</extrude>\n'
-	kml_str += '<tessellate>1</tessellate>\n'
-	kml_str += '<altitudeMode>clampToGround</altitudeMode>\n'
-	kml_str += '</LineString>\n'
-	kml_str += '</Placemark>\n'
-
-	return kml_str
-
-#################################################################################################################
-
-# method to merge the kml files output by the pyb_drifter script
 def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=None):
+	"""
+	Method to merge the kml files output by the pyb_drifter script
+
+	Arguments
+	=========
+	datestr : string
+		Date of initial point
+	run : string
+		String indicating the folder in which the drifted trajectories are stored
+	params : list
+		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+	balloon : dict
+		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+	drift_times : array
+		Array of driftimes used to created the trajectories
+	"""
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
@@ -773,9 +765,6 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 		kml_str2 += '</Point>\n'
 		kml_str2 += '</Placemark>\n'
 
-		# kml_str_add = create_circle(lon = endpoints[f][1], lat = endpoints[f][0])
-		# kml_str2 += kml_str_add
-
 	kml_str2 += '</Document>\n'
 	kml_str2 += '</kml>'
 
@@ -784,9 +773,25 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 	fid.close()
 
 #################################################################################################################
+#################################################################################################################
 
-# method to print out the parameters being used to the terminal
 def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=None):
+	"""
+	Method to print out the parameters being used to the terminal
+
+	Arguments
+	=========	
+	datestr : string
+		Date of initial point
+	utc_hour : float
+		Time of initial point
+	loc0 : floats in tuple
+	   	(latitude in degrees, longitude in degrees, altitude in km) of initial point
+	params : list
+		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+	balloon : dict
+		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+	"""
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = set_params(params=params, balloon=balloon)
 
@@ -820,8 +825,19 @@ def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=N
 
 #################################################################################################################
 
-# method to write the parameters used of run to file
 def write_verbose(params_dir=None, params=None, balloon=None):
+	"""
+	Method to write the parameters used of run to file
+
+	Arguments
+	=========	
+	params_dir : string
+		Directory in which to save the params.txt file
+	params : list
+		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+	balloon : dict
+		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+	"""
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = set_params(params=params, balloon=balloon)
 
@@ -850,8 +866,17 @@ def write_verbose(params_dir=None, params=None, balloon=None):
 
 #################################################################################################################
 
-# method to set the parameters being used
 def set_params(params=None, balloon=None):
+	"""
+	Method to initialise the parameters being used
+
+	Arguments
+	=========	
+	params : list
+		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+	balloon : dict
+		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+	"""
 
 	# balloon parameters
 	if balloon == None:
@@ -889,8 +914,19 @@ def set_params(params=None, balloon=None):
 
 #################################################################################################################
 
-# method to write the parameters being used to the runs_info.txt file which contains the info for all runs run
 def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
+	"""
+	Method to write the parameters being used to the runs_info.txt file which contains the info for all runs run
+
+	Arguments
+	=========	
+	params_dir : string
+		Directory in which to save the params.txt file
+	params : list
+		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+	balloon : dict
+		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+	"""
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas = params
 
@@ -917,8 +953,17 @@ def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 
 #################################################################################################################
 
-# method to find the info for a run in the runs_info.txt file
 def search_info(run=None, print_verbose=True):
+	"""
+	Method to find the info for a run in the runs_info.txt file
+
+	Arguments
+	=========	
+    run : string
+    	String indicating which run we wish to know the parameters of
+    print_verbose : bool
+    	If True, the parameters will be printed to the command line
+	"""
 
 	data = ascii.read(p.path + p.output_folder + 'runs_info.txt')
 	runs = data['run']
@@ -960,8 +1005,22 @@ def search_info(run=None, print_verbose=True):
 
 #################################################################################################################
 
-# method to write out the weather files used for a run
+
 def save_used_weather_files(save_dir=None, used_weather_files=None, trajectories=None, utc_hour=None):
+	"""
+	Method to write out the weather files used for a run
+
+	Arguments
+	=========	
+	save_dir : string
+		Directory in which to store file with used weather files
+	used_weather_files : dict
+		Dictionary of used weather files, with the times at which the files were first used as keys
+	trajectories : dict
+		Dictionary containing trajectory data
+	utc_hour : float
+		Initial time of trajectory
+	"""
 
 	if not os.path.exists(save_dir + 'used_weather_files.txt'):
 		f = open(save_dir + 'used_weather_files.txt', 'w')
@@ -985,6 +1044,20 @@ def save_used_weather_files(save_dir=None, used_weather_files=None, trajectories
 #################################################################################################################
 
 def determine_error(utc_hour=None, used_weather_files=None, trajectories=None, params=None):
+	"""
+	Method to determine the error in the trajectory from the difference in location, time to forecast and how far into the future the forecast looks
+
+	Arguments
+	=========
+	utc_hour : float
+		Initial time of trajectory
+	used_weather_files : dict
+		Dictionary of used weather files, with the times at which the files were first used as keys
+	trajectories : dict
+		Dictionary containing trajectory data
+	params : list
+		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+	"""
 
 	if params == None:
 		interpolate = bool(p.interpolate)
@@ -1018,6 +1091,26 @@ def determine_error(utc_hour=None, used_weather_files=None, trajectories=None, p
 #################################################################################################################
 
 def create_trajectory_files(traj_dir=None, kml_dir=None, datestr=None, utc_hour=None, loc0=None, trajectories=None, params=None):
+	"""
+	Method to create trajectory files and write out the trajectory data to them
+
+	Arguments
+	=========
+	traj_dir : string
+		Directory where the trajectory files will be saved
+	kml_dir : string 
+		Directory where the kml files will be saved
+    datestr : string
+        Date of initial point
+	utc_hour : float
+		Initial time of trajectory
+    loc0 : floats in tuple
+    	(latitude in degrees, longitude in degrees, altitude in km) of initial point
+	trajectories : dict
+		Dictionary containing trajectory data
+	params : list
+		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+	"""
 
 	if params == None:
 		interpolate = bool(p.interpolate)
@@ -1058,6 +1151,16 @@ def create_trajectory_files(traj_dir=None, kml_dir=None, datestr=None, utc_hour=
 #################################################################################################################
 
 def make_descent_rate_plot(directory=None, data=None):
+	"""
+	Method to create plots showing the descent rates of the trajectory
+
+	Arguments
+	=========
+	directory : string
+		Directory where the figures will be saved
+	data : dict
+		Dictionary containing the trajectory data
+	"""
 
 	alts = np.array(data['alts'])
 	times = np.array(data['times'])
@@ -1085,29 +1188,182 @@ def make_descent_rate_plot(directory=None, data=None):
 	plt.grid(True)
 	plt.tight_layout()
 
-	fig.savefig(directory + 'descent_rate_vs_alt.png')	
+	fig.savefig(directory + 'descent_rate_vs_alt.png')
+
+#################################################################################################################
+#################################################################################################################
+
+
+def geodesic_point_buffer(lat=None, lon=None, radius=5):
+	"""
+	Method to find all latslons to create a circle of a given radius (km) around a lat/lon point
+
+	lon : float
+		Longitude in degrees of centre of circle (i.e. lon of landing point)
+	lat : float
+		Latitude in degrees of centre of circle (i.e. lat of landing point)
+	radius : float
+		Radius in km of circle
+	"""
+
+	proj_wgs84 = pyproj.Proj(init='epsg:4326')
+
+	# Azimuthal equidistant projection
+	aeqd_proj = '+proj=aeqd +lat_0={lat} +lon_0={lon} +x_0=0 +y_0=0'
+	project = partial(
+		pyproj.transform,
+		pyproj.Proj(aeqd_proj.format(lat=lat, lon=lon)),
+		proj_wgs84)
+	buf = Point(0, 0).buffer(radius * 1000)  # distance in metres
+	return transform(project, buf).exterior.coords[:]
 
 #################################################################################################################
 
-def make_ellipse(theta_num=100, phi=0, x_cent=0, y_cent=0, semimaj=3.0, semimin=1.5):
+def make_ellipse(theta_num=100, phi=0, x_cent=0, y_cent=0, semimaj=1.9, semimin=1.4):
+	"""
+	Method to create an ellips and get x/y coordinates given ellips parameters
 
-    theta = np.linspace(0, 2*np.pi, theta_num)
-    r = 1/np.sqrt((np.cos(theta))**2 + (np.sin(theta))**2)
-    x = r*np.cos(theta)
-    y = r*np.sin(theta)
+	Arguments
+	=========
+	theta_num : int
+		Number of coordinates in the ellips
+	phi : float
+		Angle in radians indicating the rotation of the ellips
+	x_cent : float
+		X coordinate of the centre of the ellips
+	y_cent : float
+		Y coordinate of the centre of the ellips
+	semimaj : float
+		Semimajor-axis of ellips
+	semimin : float
+		Semiminor-axis of ellips
+	"""
 
-    data = np.array([x, y])
+	theta = np.linspace(0, 2*np.pi, theta_num)
+	r = 1/np.sqrt((np.cos(theta))**2 + (np.sin(theta))**2)
+	x = r*np.cos(theta)
+	y = r*np.sin(theta)
 
-    S = np.array([[semimaj, 0], [0, semimin]])
-    R = np.array([[np.cos(phi), -np.sin(phi)], [np.sin(phi), np.cos(phi)]])
-    T = np.dot(R, S)
+	data = np.array([x, y])
 
-    data = np.dot(T, data)
+	S = np.array([[semimaj, 0], [0, semimin]])
+	R = np.array([[np.cos(phi), -np.sin(phi)], [np.sin(phi), np.cos(phi)]])
+	T = np.dot(R, S)
 
-    data[0] += x_cent
-    data[1] += y_cent
+	data = np.dot(T, data)
 
-    return data
+	data[0] += x_cent
+	data[1] += y_cent
+
+	return data
+
+#################################################################################################################
+
+def get_ellips_coords(lat=None, lon=None, x_extent=1.87, y_extent=1.47, theta=0):
+	"""
+	#Method to find all lats/lons to create a ellips of a given minor/major axis (km) around a lat/lon point
+
+	Arguments
+	=========
+	lon : float
+		Longitude in degrees of centre of ellips (i.e. lon of landing point)
+	lat : float
+		Latitude in degrees of centre of ellips (i.e. lat of landing point)
+	x_extent : float
+		Extent in km in the x (longitude) direction, taken from percentile calculations
+	y_extent : float
+		Extent in km in the y (latitude) direction, taken from percentile calculations
+	theta : float
+		Angle in radians indicating the rotation of the ellipse. Calculated from the mean direction of the trajectory
+	"""
+
+	minor_axis = min([x_extent, y_extent])
+	major_axis = max([x_extent, y_extent])
+
+	if major_axis == y_extent:
+		theta += np.radians(90.)
+
+	coords = np.array(geodesic_point_buffer(lat, lon, 0.5))
+	lons = coords[:, 0]
+	lats = coords[:, 1]
+
+	min_lon, max_lon = min(lons), max(lons)
+	min_lat, max_lat = min(lats), max(lats)
+
+	lon_deg_per_km =  max_lon - min_lon
+	lat_deg_per_km =  max_lat - min_lat
+
+	cart_coords = make_ellipse(theta_num=100, phi=theta, x_cent=0, y_cent=0, semimaj=major_axis, semimin=minor_axis)
+
+	x_coords = cart_coords[0]
+	y_coords = cart_coords[1]
+
+	new_coords = []
+	for i in range(len(x_coords)):
+
+		new_lon = lon + lon_deg_per_km*x_coords[i]
+		new_lat = lat + lat_deg_per_km*y_coords[i]
+
+		new_coords.append((new_lon, new_lat))
+
+	return new_coords
+
+#################################################################################################################
+
+def create_circle(lon=None, lat=None, radius=5, color='BF0000DF'):
+	"""
+	Method to create a circle of given radius around the landing point in the kml files.
+
+	Arguments
+	=========
+	lon : float
+		Longitude in degrees of centre of circle (i.e. lon of landing point)
+	lat : float
+		Latitude in degrees of centre of circle (i.e. lat of landing point)
+	radius : float
+		Radius in km of circle
+	color : string
+		Color of the circle to be drawn (Hex Color Code)
+	"""
+
+	coords = np.array(geodesic_point_buffer(lat, lon, radius))
+	kml_str = write_out_polygon(coords=coords, color=color)
+	return kml_str
+
+#################################################################################################################
+
+def create_ellips(lon=None, lat=None, x_extent=1.858, y_extent=1.474, theta=0, add=0, times=1, color='BF0000DF'):
+	"""
+	Method to create an ellips around the landing point in the kml files.
+
+	Arguments
+	=========
+	lon : float
+		Longitude in degrees of centre of ellips (i.e. lon of landing point)
+	lat : float
+		Latitude in degrees of centre of ellips (i.e. lat of landing point)
+	x_extent : float
+		Extent in km in the x (longitude) direction, taken from percentile calculations
+	y_extent : float
+		Extent in km in the y (latitude) direction, taken from percentile calculations
+	theta : float
+		Angle in radians indicating the rotation of the ellipse. Calculated from the mean direction of the trajectory
+	add : float
+		Error from trajectory to be added to the contours
+	times : int
+		Times indicates which sigma limit the contour represents (i.e. 1, 2, 3)
+	color : string
+		Color of the ellips to be drawn (Hex Color Code)
+	"""
+
+	x_extent *= times
+	y_extent *= times
+	x_extent += add
+	y_extent += add
+
+	coords = np.array(get_ellips_coords(lat=lat, lon=lon, x_extent=x_extent, y_extent=y_extent, theta=theta))
+	kml_str = write_out_polygon(coords=coords, color=color)
+	return kml_str
 
 #################################################################################################################
 
