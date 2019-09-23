@@ -14,10 +14,22 @@ import param_file as p
 
 #################################################################################################################
 
-# method to calculate the fractions needed for interpolation
-# e.g. if time is 10 then on the lhs we have 6 and on the rhs we have 12, 10 is then 2/3 of the way away from 6 and 1/3 away from 12.
-# the fractions needed are then 1-2/3 for 6 and 1 - 1/3 for 12
-def calc_time_frac(current_time=None, weather_times=None, weather_files=None):
+def calc_time_frac(current_time=None, weather_files=None):
+	"""
+	Calculate how far the current time is from each interpolation file as fractions of difference in time over total time.
+
+	E.g. if the current time is 10 then on the lhs we have 6 and on the rhs we have 12, 10 is then 2/3 of the way away from 6 and 1/3 away from 12.
+	the fractions needed are then 1-2/3 for 6 and 1 - 1/3 for 12
+
+	Arguments
+	=========
+	current_time : float
+		Current time of trajectory
+	weather_files : list
+		List of the interpolation files currently being used
+	Return:
+		Two tuples containing the interpolation file name and corresponding fraction
+	"""
 
 	weather_files.sort()
 	times = [(int(int(file[15:19])/100.) + int(file[20:23])) for file in weather_files]
@@ -44,8 +56,21 @@ def calc_time_frac(current_time=None, weather_times=None, weather_files=None):
 
 #################################################################################################################
 
-# method to read in model data
 def read_data(loc0=None, weather_file=None, descent_only=False):
+	"""
+	Read in model forecast data
+
+	Arguments
+	=========
+    loc0 : floats in tuple
+    	(latitude in degrees, longitude in degrees, altitude in km) of initial point
+	weather_file : string
+		Name of weather file from data is to be read
+	descent_only : bool
+        Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+    Return:
+		Dictionary containing the forecast data
+	"""
 
 	lat0, lon0, alt0 = loc0
 
@@ -65,10 +90,25 @@ def read_data(loc0=None, weather_file=None, descent_only=False):
 
 #################################################################################################################
 
-# method to calculate new lat/lon coordinates from Cartesian displacements. 
-# Required arguments: lat_rad [rad] (current latitude), lon_rad [rad] (current longitude), alt [m] (current altitude), dx (East - west movement), dy [m] (North - south movement)
-# Note: for dx, east is positive and for dy, north is positive
 def movement2ll(lat_rad=None, lon_rad=None, alt=None, dx=None, dy=None):
+	"""
+	Calculate new lat/lon coordinates given original location and Cartesian displacements.
+
+	Arguments
+	=========
+	lat_rad : float
+		Current latitude in radians
+	lon_rad : float
+		Current longitude in radians
+	alt : float
+		Current altitude in meters
+	dx : float
+		East - west movement in meters (East is positive)
+	dy : float
+		North - south movement in meters (North is positive)
+	Return:
+		New coordinates: latitude [radians], longitude [radians], and distance traveled [km]
+	"""
 
 	# radius derived from WGS84 reference ellipsoid with altitude added to it.
 	Re = pyb_aux.earth_radius(lat_rad)
@@ -91,13 +131,31 @@ def movement2ll(lat_rad=None, lon_rad=None, alt=None, dx=None, dy=None):
 	lat2 = np.arcsin(sin_lat * cos_dr + cos_lat * sin_dr * cos_theta)
 	lon2 = lon_rad + np.arctan2(sin_theta * sin_dr * cos_lat, cos_dr - sin_lat * np.sin(lat2))
 
-	# return new coordinates: latitude [radians], longitude [radians], and distance traveled [km]
 	return lat2, lon2, dist
 
 #################################################################################################################
 
-# method to calculate necessary properties and carry out the interpolation
 def calc_properties(data=None, weather_file=None, loc0=None, balloon=None, descent_only=False, output_figs=False):
+	"""
+	Calculate necessary properties, e.g. air densities and descent speeds, and carry the interpolation to more altitudes than in forecast data
+
+	Arguments
+	=========
+	data : dict
+		Dictionary containing data from forecast model read in by read_data()
+	weather_file : string
+		Name of weather file from which the data is to be read (if data is None)
+	loc0 : floats in tuple
+    	(latitude in degrees, longitude in degrees, altitude in km) of initial point
+	balloon : dict
+    	Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+	descent_only : bool
+        Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+	output_figs : bool
+    	If True, figures showing the grib data before and after interpolation between altitude steps are created and saved
+    Return:
+    	Data appended with new properties and dictionary containing figures (can be empty if output_figs is False)
+	"""
 
 	if data == None:
 		data = read_data(loc0=loc0, weather_file=weather_file)
@@ -123,8 +181,23 @@ def calc_properties(data=None, weather_file=None, loc0=None, balloon=None, desce
 
 #################################################################################################################
 
-# method to calculate the displacements in the x/y directions
 def calc_displacements(data=None, balloon=None, descent_only=False, vz_correct=False):
+	"""
+	Calculate the displacements in the x/y directions for all possible locations (lon/lat/alt) in weather data
+
+	Arguments
+	=========
+	data : dict
+		Dictionary containing weather forecast data plus properties calculated using the calc_properties() function
+	balloon : dict
+    	Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+	descent_only : bool
+        Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+    vz_correct : bool
+    	If True, correct for vertical winds in forecast model using the 'omega' property
+    Return:
+    	Data appended with additional calculated properties  		
+	"""
 
 	g = p.g_0 * (p.R_e / (p.R_e + data['altitudes']))**2
 	data['z_speeds'] = -data['omegas']/(data['air_densities']*g)
@@ -157,9 +230,48 @@ def calc_displacements(data=None, balloon=None, descent_only=False, vz_correct=F
 
 #################################################################################################################
 
-# method to update weather files to newest available
 def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lon_rad=None, all_alts=None, current_time=None, balloon=None, datestr=None, utc_hour=None, loc0=None, \
 	total_time=[0], time_diffs=[], index=0, params=None, output_figs=False):
+	"""
+	Update weather files to newest and best available (closest in time to current time)
+
+	Arguments
+	=========
+	figs : list
+		List of dictionaries containing figures showing the grib data before and after interpolation between altitude steps. Each dict corresponds to one weather file.
+	used_weather_files : dict
+		Dictionary of weather files that have been used so far. The keys represent the times at which the weather files started being used.
+	data : dict
+		Dictionary containing weather forecast data plus properties calculated using the calc_properties() function
+	lon_rad : float
+        Current longitude in radians
+    lat_rad : float
+        Current latitude in radians
+    all_alts : list
+    	List containing altitudes of trajectory so far
+    current_time : float
+        Current time of the trajectory
+	balloon : dict
+    	Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+    datestr : string
+        Date of initial point
+    utc_hour : float
+    	Time of initial point
+    loc0 : floats in tuple
+    	(latitude in degrees, longitude in degrees, altitude in km) of initial point
+	total_time : list
+		List of increments in time for steps in trajectory so far
+	time_diffs : list
+		List containing difference in time between trajectory time and weather forecasts used
+	index : int
+		Index corresponding to current weather file being used (only when not interpolating)
+	params : list
+	   	List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+    output_figs : bool
+    	If True, figures showing the grib data before and after interpolation between altitude steps are created and saved
+    Return:
+    	Data of new weather file(s), updated weather file keys, updated index, updated figs, updated used_weather_files and updated time_diffs.
+	"""
 
 	descent_only, next_point, interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 	res = str(int(-4*resolution + 6))
@@ -255,8 +367,31 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 
 ###############################################################################################################
 
-# method to calculate the trajectory of the balloon/parachute given a start position & other input parameters
-def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, alt_change_fit=10, output_figs=False):
+def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, output_figs=False):
+	"""
+	Calculate the trajectory of the balloon/parachute given a start position & other input parameters
+
+	Arguments
+	=========
+	used_weather_files : dict
+		Dictionary of initial weather files used. The keys represent the times at which the weather files started being used (i.e. here the starting time)
+	time_diffs : list
+		List containing difference in time between trajectory time and weather forecasts used		
+    datestr : string
+        Date of initial point
+    utc_hour : float
+    	Time of initial point
+    loc0 : floats in tuple
+    	(latitude in degrees, longitude in degrees, altitude in km) of initial point
+    params : list
+    	List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+    balloon : dict
+    	Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+    output_figs : bool
+    	If True, figures showing the grib data before and after interpolation between altitude steps are created and saved    
+    Return:
+		Output trajectory data, list of fig dictionaries for each used weather files, dictionary of used_weather_files, list time_diffs
+	"""
 
 	time0 = time.time()
 
@@ -517,15 +652,14 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 	end_lat, end_lon = float(output['lats'][-1]), float(output['lons'][-1])
 
 	dx_end = haversine((start_lat, start_lon), (start_lat, end_lon))
-	if end_lon < start_lon:
-		dx_end *= -1
 	dy_end = haversine((start_lat, start_lon), (end_lat, start_lon))
+
 	if end_lat < start_lat:
 		dy_end *= -1
+	if end_lon < start_lon:
+		dx_end *= -1
 
-	mean_theta = np.degrees(np.arctan2(dy_end, dx_end))
-
-	output['mean_direction'] = mean_theta
+	output['mean_direction'] = np.degrees(np.arctan2(dy_end, dx_end))
 
 	# print out relevant quantities
 	sys.stdout.write('\r')
@@ -545,8 +679,31 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 
 #################################################################################################################
 
-# method to prepare the data for the calculations of the trajectory
-def prepare_data(weather_file=None, loc0=None, current_time=None, balloon=None, descent_only=False, drift_time=0, vz_correct=False, check_sigmas=False, output_figs=False):
+def prepare_data(weather_file=None, loc0=None, current_time=None, balloon=None, descent_only=False, vz_correct=False, check_sigmas=False, output_figs=False):
+	"""
+	Prepare the data from a weather file for calculating the trajectory
+	
+	Arguments
+	=========
+	weather_file : string
+		Name of weather file to be used and read
+    loc0 : floats in tuple
+    	(latitude in degrees, longitude in degrees, altitude in km) of initial point
+    current_time : float
+        Current time of the trajectory	
+    balloon : dict
+    	Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+  	descent_only : bool
+        Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+    vz_correct : bool
+    	If True, correct for vertical winds in forecast model using the 'omega' property
+    check_sigmas : bool
+    	If True, use ensemble forecasts to keep track of standard deviations for winds in weather forecast data
+    output_figs : bool
+    	If True, figures showing the grib data before and after interpolation between altitude steps are created and saved    
+    Return:
+		Dictionary containing data ready for starting the trajectory calculations, and dictionary containing figures for interpolation checks (empty if output_figs is False)
+	"""
 
 	if check_sigmas:
 
@@ -566,8 +723,27 @@ def prepare_data(weather_file=None, loc0=None, current_time=None, balloon=None, 
 
 #################################################################################################################
 
-# method to pull everything together and return the trajectory
 def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, output_figs=False):
+	"""
+	Run all functions to calculate the trajectory
+	
+	Arguments
+	=========
+	weather_files : list
+		List of weather files used at the start
+	datestr : string
+        Date of initial point
+    utc_hour : float
+    	Time of initial point
+    loc0 : floats in tuple
+    	(latitude in degrees, longitude in degrees, altitude in km) of initial point
+    balloon : dict
+    	Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+    params : list
+    	List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+    Return:
+		The calculated trajectories, list of fig dicionaries for each weather file, dictionary of used_weather_files, and list of time differences between trajectiry times and weather forecast files
+	"""
 
 	used_weather_files = {}
 	used_weather_files[utc_hour] = weather_files
