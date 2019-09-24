@@ -18,6 +18,8 @@ Dependencies
 - functools
 - pyproj
 
+Each function has documentation at the beginning of said function. These docstrings are also in html format in the docs/ subdirectory.
+
 Folders
 ------------
 - pyBalloon: contains the code. 
