@@ -182,6 +182,8 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False, outp
 
 				figs[key] = fig
 
+				plt.close()
+
 	return new_data, figs
 
 #################################################################################################################
@@ -569,7 +571,7 @@ def get_endpoint(data=None, run=None, filename=None, params=None):
 		descent_only = p.descent_only
 		if descent_only:
 			next_point = p.next_point
-		interpolate = p.interpolate
+		time_interpolate = p.time_interpolate
 		drift_time = p.drift_time
 
 	else:
@@ -577,8 +579,8 @@ def get_endpoint(data=None, run=None, filename=None, params=None):
 		descent_only = bool(params[0])
 		if descent_only:
 			next_point = str(params[1])
-		interpolate = bool(params[-2])
-		drift_time = float(params[-1])
+		time_interpolate = bool(params[-7])
+		drift_time = float(params[-6])
 
 	if data == None and run != None:
 
@@ -828,10 +830,12 @@ def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop
 			lons = [curr_lon, curr_lon + lon_add, curr_lon, curr_lon + lon_add]
 			lats = [curr_lat - lat_add, curr_lat - lat_add, curr_lat + lat_add, curr_lat + lat_add]
 		else:
-			lon_add += np.radians(resolution)
-			lat_add += np.radians(resolution)
-			lons = [curr_lon - lon_add, curr_lon - lon_add, curr_lon + lon_add, curr_lon + lon_add]
-			lats = [curr_lat - lat_add, curr_lat + lat_add, curr_lat - lat_add, curr_lat + lat_add]
+			# lon_add += np.radians(resolution)
+			# lat_add += np.radians(resolution)
+			# lons = [curr_lon - lon_add, curr_lon - lon_add, curr_lon + lon_add, curr_lon + lon_add]
+			# lats = [curr_lat - lat_add, curr_lat + lat_add, curr_lat - lat_add, curr_lat + lat_add]
+			lons = [curr_lon, curr_lon, curr_lon, curr_lon]
+			lats = [curr_lat, curr_lat, curr_lat, curr_lat]
 
 	bottom_lat, bottom_lon, top_lat, top_lon = min(lats), min(lons), max(lats), max(lons)
 
