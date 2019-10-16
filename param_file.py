@@ -1,6 +1,6 @@
 """File with relevant running parameters"""
 
-# general path
+# paths
 path = '/path/to/location/of/pyBalloon/folder/'
 
 # folders
@@ -52,6 +52,9 @@ M_air = 0.0289644 # Molar mass of air [kg/mol], altitude dependence not used her
 T0 = 288.15 # K
 M_helium = 4.002602 # molar mass of helium [kg/mol], altitude dependence not used here
 Cd_sphere = 0.47 # Drag coefficient for a sphere
+
+# data tile size
+tile_size = 6.
 
 # login for 0.25 degrees resolution weather data
 email = ''

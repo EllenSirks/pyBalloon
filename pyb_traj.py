@@ -2,6 +2,8 @@
 Functions used by pyBalloon to calculate balloon trajectories
 """
 
+from memory_profiler import profile
+
 from haversine import haversine
 import numpy as np
 import datetime
@@ -78,7 +80,7 @@ def read_data(loc0=None, weather_file=None, descent_only=False):
 
 	in_dir = p.path + p.weather_data_folder + p.GFS_folder
 
-	tile_size = 60. # degrees (read a tile this wide/high from the GFS grb2 file)
+	tile_size = p.tile_size # degrees (read a tile this wide/high from the GFS grb2 file)
 	area = (lat0 + (tile_size/2.), lon0 - (tile_size/2.), lat0 - (tile_size/2.), lon0 + (tile_size/2.)) # note top, left, bottom, right ordering for area
 
 	sys.stdout.write('\r')
@@ -399,7 +401,6 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 		Output trajectory data, list of fig dictionaries for each used weather files, dictionary of used_weather_files, list time_diffs
 	"""
 
-	time0 = time.time()
 
 	############################################################################################################
 
@@ -749,6 +750,7 @@ def prepare_data(weather_file=None, loc0=None, current_time=None, balloon=None, 
 
 #################################################################################################################
 
+# @profile
 def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, output_figs=False):
 	"""
 	Run all functions to calculate the trajectory
@@ -771,7 +773,6 @@ def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=
 		The calculated trajectories, list of fig dicionaries for each weather file, dictionary of used_weather_files, and list of time differences between trajectiry times and weather forecast files
 	"""
 
-
 	used_weather_files = {}
 	used_weather_files[utc_hour] = weather_files
 
@@ -780,26 +781,23 @@ def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=
 
 	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
-	# time0 = time.time()
-
 	data_array = {}
 	figs1 = []
 	for weather_file in weather_files:
 
 		model_data, figs_dict = prepare_data(weather_file=weather_file, loc0=loc0, current_time=utc_hour, balloon=balloon, descent_only=descent_only, vz_correct=vz_correct, check_sigmas=check_sigmas, output_figs=output_figs)
 		data_array[weather_file] = model_data
+		del model_data
 		figs1.append(figs_dict)
-
-	# print('1 ' + str(round((time.time() - time0), 1)) + ' s')
-
-	# time0 = time.time()
+		del figs_dict
 
 	trajectories, figs2, used_weather_files, time_diffs = calc_movements(data=data_array, used_weather_files=used_weather_files, time_diffs=time_diffs, datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon, output_figs=output_figs)
 	
-	# print('2 ' + str(round((time.time() - time0), 1)) + ' s')
-
 	for fig_dict in figs2:
 		figs1.append(fig_dict)
+		del fig_dict
+
+	del figs2
 
 	return trajectories, figs1, used_weather_files, time_diffs
 
