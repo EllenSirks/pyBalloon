@@ -77,8 +77,8 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 	lats = lats[row_idx, col_idx]
 	lons = lons[row_idx, col_idx]
 
-	if len(lats) == 0: print( 'Warning! lats is empty!')
-	if len(lons) == 0: print( 'Warning! lons is empty!')
+	if len(lats) == 0: print('Warning! lats is empty!')
+	if len(lons) == 0: print('Warning! lons is empty!')
 
 	############################################################################################################
 
@@ -112,8 +112,8 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 
 	# omega = {}
 	# for msg in omega_msgs:
-	# 	if msg.typeOfLevel == 'isobaricInhPa':
-	# 		omega[msg.level] = msg.values[row_idx, col_idx]
+	#	if msg.typeOfLevel == 'isobaricInhPa':
+	#		omega[msg.level] = msg.values[row_idx, col_idx]
 
 	############################################################################################################
 
@@ -173,7 +173,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 			alt.append(altitude[key])
 
 			# if key in list(omega.keys()):
-			# 	omg.append(omega[key])
+			#	omg.append(omega[key])
 
 			u_winds.append(np.hstack(uwnd))
 			v_winds.append(np.hstack(vwnd))
@@ -181,7 +181,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 			altitudes.append(np.hstack(alt))
 
 			# if key in list(omega.keys()):
-			# 	omegas.append(np.hstack(omg))
+			#	omegas.append(np.hstack(omg))
 
 			i+=1
 		else:
@@ -190,9 +190,9 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 	# ############################################################################################################
 
 	# if descent_only:
-	# 	main_keys = list(u_wind.keys())
+	#	main_keys = list(u_wind.keys())
 	# else:
-	# 	main_keys = list(pressures)
+	#	main_keys = list(pressures)
 
 	# main_keys.sort()
 	# main_keys.reverse()
@@ -204,10 +204,10 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 	# omega_ext = {}
 
 	# for key in main_keys:
-	# 	if key not in omega_keys:
-	# 		omega_ext[key] = np.zeros(y)
-	# 	else:
-	# 		omega_ext[key] = omega[key]
+	#	if key not in omega_keys:
+	#		omega_ext[key] = np.zeros(y)
+	#	else:
+	#		omega_ext[key] = omega[key]
 
 	# omegas = [omega_ext[key] for key in main_keys]
 
@@ -294,7 +294,7 @@ def read_gfs_single(directory=None, area=None, alt0=None, descent_only=False):
 
 	Arguments
 	=========
-   	directory : string
+  	directory : string
 		The path plus name of the grib file to be read (without .grb2 at the end)
 	area : (float, float, float, float)
 		The (most northern latitude, most western longitude, most southern latitude, most eastern longitude) in degrees, indicating the area on the globe from which the data should be collected
@@ -337,7 +337,7 @@ def read_gefs_file(fname=None, area=None, alt0=0, descent_only=False):
 	if area is not None:
 		tlat, llon, blat, rlon = area
 	else:
-		print 'Do you really wish to search the entire planet?'
+		print('Do you really wish to search the entire planet?')
 		tlat, llon, blat, rlon = (90.0, 0.0, -90.0, 360.0)
 
 	############################################################################################################
@@ -362,9 +362,9 @@ def read_gefs_file(fname=None, area=None, alt0=0, descent_only=False):
 	lons = lons[(row_idx, col_idx)]
 
 	if len(lats) == 0:
-		print 'Warning! lats is empty!'
+		print('Warning! lats is empty!')
 	if len(lons) == 0:
-		print 'Warning! lons is empty!'
+		print('Warning! lons is empty!')
 
 	############################################################################################################
 
@@ -539,9 +539,9 @@ def save_kml(fname, data, other_info=None, params=None, balloon=None, shape='cir
 	kml_str += '<altitudeMode>absolute</altitudeMode>\n'
 
 	# if data['lons'][-1] >= 180.0:
-	# 	rem = 360
+	#	rem = 360
 	# else:
-	# 	rem = 0
+	#	rem = 0
 
 	kml_str += '<coordinates>%f,%f,%f</coordinates>\n' % (data['lons'][-1], data['lats'][-1], data['alts'][-1])
 	kml_str += '</Point>\n'
@@ -561,11 +561,11 @@ def save_kml(fname, data, other_info=None, params=None, balloon=None, shape='cir
 			kml_str += '</Point>\n'
 			kml_str += '</Placemark>\n'
 
- 	end_lat, end_lon, end_alt = data['lats'][-1], data['lons'][-1], data['alts'][-1]
+	end_lat, end_lon, end_alt = data['lats'][-1], data['lons'][-1], data['alts'][-1]
 
- 	err = np.sqrt(radius**2 - 3.35**2)
+	err = np.sqrt(radius**2 - 3.35**2)
 
- 	if shape == 'circle':
+	if shape == 'circle':
 		kml_str_add1 = create_circle(lon = end_lon, lat = end_lat, radius=radius, color='ff0080ff') # 95th percentile
 		kml_str_add2 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + 1.68**2), color='ff0000ff') # 68th percentile
 		kml_str_add3 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + 5.03**2), color='ffff00ff') # 99th percentile
@@ -587,6 +587,8 @@ def save_kml(fname, data, other_info=None, params=None, balloon=None, shape='cir
 	fid = open(fname, 'w')
 	fid.write(kml_str)
 	fid.close()
+
+	del kml_str, fid
 
 #################################################################################################################
 
@@ -789,7 +791,7 @@ def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=N
 	utc_hour : float
 		Time of initial point
 	loc0 : floats in tuple
-	   	(latitude in degrees, longitude in degrees, altitude in km) of initial point
+	  	(latitude in degrees, longitude in degrees, altitude in km) of initial point
 	params : list
 		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
 	balloon : dict
