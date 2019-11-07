@@ -18,7 +18,7 @@ import param_file as p
 
 #################################################################################################################
 
-def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, run=None, print_verbose=False, write_verbose=False, add_run_info=True, output_figs=False):
+def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, run=None, print_verbose=False, write_verbose=False, add_run_info=True, output_figs=False, overwrite=False):
 	"""
 	Method to run entire simulation of flight and write out calculated trajectories and predicted endpoint
 
@@ -44,6 +44,8 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 		If True, the parameters used are appended to the run_info.txt file in the Output folder
 	output_figs : bool
 		If True, figures showing the grib data before and after interpolation between altitude steps are created and saved
+	overwrite : bool
+		If True, overwrite trajectory file with same name in folder
 	"""
 
 	print('')
@@ -104,7 +106,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	############################################################################################################ <---- create/write output 
 
 	# write out trajectories and create kml file name based on trajectory file
-	kml_fname = pyb_io.create_trajectory_files(traj_dir=traj_dir, kml_dir=kml_dir, datestr=datestr, utc_hour=utc_hour, loc0=loc0, trajectories=trajectories, params=params)
+	kml_fname = pyb_io.create_trajectory_files(traj_dir=traj_dir, kml_dir=kml_dir, datestr=datestr, utc_hour=utc_hour, loc0=loc0, trajectories=trajectories, params=params, overwrite=overwrite)
 
 	# write parameters of this run to file
 	if write_verbose:

@@ -15,7 +15,7 @@ import param_file as p
 
 #################################################################################################################
 
-def drifter(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, run=None, print_verbose=False, write_verbose=True):
+def drifter(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, run=None, print_verbose=False, write_verbose=True, add_run_info=False, overwrite=False):
 	"""
 	Method to calculate trajectories starting at the same location and time, but have different drift times
 
@@ -37,6 +37,10 @@ def drifter(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, r
 		If True, the parameters used will be printed to the command line
 	write_verbose : bool
 		If True, the parameters used are written to a file
+	add_run_info : bool 
+		If True, the parameters used are appended to the run_info.txt file in the Output folder		
+	overwrite : bool
+		If True, overwrite trajectory file with same name in folder
 	"""
 
 	out_dir = p.path + p.output_folder
@@ -50,9 +54,9 @@ def drifter(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, r
 		run = now_str + '_' + str(len(files))
 
 	descent_only, next_point, time_interpolate, grid_interpolation, drift_time, resolution, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
-	
+
 	drift_times = np.arange(0., 20., 5.)
-	params[3] = drift_times
+	params[4] = drift_times
 
 	if print_verbose:
 		pyb_io.print_verbose(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon)
@@ -67,9 +71,9 @@ def drifter(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, r
 
 	for drift_time in drift_times:
 
-		params[3] = drift_time
+		params[4] = drift_time
 		print('Running drift time: ' + str(drift_time) + ' minutes')
-		pyb_runner.runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon, run=run, add_run_info=False)
+		pyb_runner.runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon, run=run, add_run_info=add_run_info, overwrite=overwrite)
 		print('----------\n')
 
 	pyb_io.merge_kml(datestr=datestr, run=run, params=params, balloon=balloon, drift_times=drift_times)
