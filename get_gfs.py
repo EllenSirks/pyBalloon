@@ -160,7 +160,7 @@ def get_closest_gfs_file(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0)
 
 def get_gfs_files(weather_files=None):
 	"""
- 	Download specified weather forecasts
+	Download specified weather forecasts
 
 	Arguments
 	=========
@@ -168,7 +168,7 @@ def get_gfs_files(weather_files=None):
 		List containing weather file from which we wish to use the data. File names should be formatted as: gfs_x_datestr_hhhh_hhh.grb2
 	Return:
 		List of weather file names (without .grb2 at the end)
- 	"""
+	"""
 
 	out_dir = p.path + p.weather_data_folder + p.GFS_folder
 	now = dt.datetime.utcnow()
@@ -197,7 +197,7 @@ def get_gfs_files(weather_files=None):
 			
 		second_file = 'gfs_' + res2 + '_' + datestr + '_' + hhhh + '_' + hhh + '.grb2'
 
-		if os.path.isfile(out_dir + second_file) and float(os.stat(out_dir + second_file).st_size) > 40000000.:
+		if os.path.isfile(out_dir + second_file):
 			continue
 		download_file(path_file=filename, out_dir=out_dir)
 		if os.path.basename(filename) != second_file:
@@ -208,9 +208,9 @@ def get_gfs_files(weather_files=None):
 
 #################################################################################################################
 
-def get_gefs_files(datestr=None, utc_hour=None): #
+def get_gefs_files(datestr=None, utc_hour=None):
 	"""
- 	Download ensemble weather forecasts for current date and time of trajectory
+	Download ensemble weather forecasts for current date and time of trajectory
 
 	Arguments
 	=========
@@ -218,7 +218,7 @@ def get_gefs_files(datestr=None, utc_hour=None): #
 		The current date of the trajectory (yyyymmdd)
 	utc_hour : float
 		Current time of trajectory
- 	"""
+	"""
 
 	out_dir = p.path + p.weather_data_folder + p.GFS_folder
 	now = dt.datetime.now()
@@ -271,14 +271,14 @@ def download_file(path_file=None, out_dir=None):
 
 	file = os.path.basename(path_file)
 
-	if 'gfs' in path_file and '0p25' in file:
-			values = {'email' : p.email, 'passwd' : p.password, 'action' : 'login'}
-			ret = requests.post(url = 'https://rda.ucar.edu/cgi-bin/login',  data = values)
-			cookies = ret.cookies
+	if 'gfs' in path_file and ('0p25' in file or '_5_' in file):
+		payload = {'email': p.email, 'passwd' : p.password, 'do': 'login'}
+		ret = requests.post(url = 'https://rda.ucar.edu/cgi-bin/login', data=payload)
+		cookies = ret.cookies
 	else:
 		cookies = None
 
-	req = requests.get(path_file, cookies = cookies, allow_redirects=True, stream=True)
+	req = requests.get(path_file, cookies=cookies, allow_redirects=True, stream=True)
 
 	if req.ok is not True:
 		print('Cannot download ' + str(file) + ' this way! Check spelling or go to: https://www.ncdc.noaa.gov/has/HAS.DsSelect')
@@ -311,7 +311,7 @@ def check_file_status(filepath=None, filesize=None):
 	sys.stdout.flush()
 	size = float(os.stat(filepath).st_size)
 	percent_complete = (size/filesize)*100.
-	sys.stdout.write(('Downloading ' + os.path.basename(filepath) + ', %.1f %s ' % (percent_complete, '% Completed')).ljust(45) + '\r')
+	sys.stdout.write(('Downloading ' + os.path.basename(filepath) + ', %.1f %s ' % (percent_complete, '% Completed')).ljust(50) + '\r')
 	sys.stdout.flush()
 
 #################################################################################################################

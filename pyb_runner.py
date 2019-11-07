@@ -6,6 +6,7 @@ from astropy.io import ascii
 import datetime as dt
 import numpy as np
 import sys, os
+import psutil
 import time
 
 import pyb_traj
@@ -54,12 +55,14 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	lat0, lon0, alt0 = loc0
 
 	# general parameters, if balloon/parachute and other parameters are not supplied, they are read from param_file.py
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	# change altitude if it is underground (not always accurate)
 	if not descent_only:
-		if pyb_aux.get_elevation(lon0, lat0) > alt0:
-			alt0 = pyb_aux.get_elevation(lon0, lat0)
+		elevation = pyb_aux.get_elevation(lon0, lat0)
+		if elevation > alt0:
+			alt0 = elevation
+			loc0 = lat0, lon0, alt0
 
 	# print out parameters to terminal
 	if print_verbose:
@@ -123,7 +126,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	pyb_io.make_descent_rate_plot(directory=fig_dir, data=trajectories, datestr=datestr, utc_hour=utc_hour, loc0=loc0)
 
 	# determine error
-	err = pyb_io.determine_error(utc_hour=utc_hour, used_weather_files=used_weather_files, trajectories=trajectories, params=params)
+	err = pyb_io.determine_error(trajectories=trajectories, params=params)
 
 	# highest point in main-run trajectory (bit redundant for descent only)
 	if descent_only:
@@ -135,6 +138,8 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	# write out file for google-earth
 	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
 	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, shape='ellips', radius=err, mean_direction=np.radians(trajectories['mean_direction']))
+
+	return trajectories
 
 #################################################################################################################
 
@@ -149,9 +154,12 @@ if __name__ == "__main__":
 	loc0 = float(sys.argv[3]), float(sys.argv[4]), float(sys.argv[5])
 	params = None
 
-	print('Is the initial time for the UTC zone?')
+	if len(sys.argv) > 6:
+		run = sys.argv[6]
+	else:
+		run = None
 
-	runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, print_verbose=True, write_verbose=True)
+	runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, print_verbose=False, write_verbose=True, run=run, output_figs=True)
 
 	############################################################################################################
 

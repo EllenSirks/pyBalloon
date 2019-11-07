@@ -2,11 +2,14 @@
 Auxiliary functions used in pyBalloon
 """
 
+from haversine import haversine
+
 import matplotlib.pyplot as plt
 from scipy import interpolate
 from astropy.io import ascii
 import numpy as np
 import sys, os
+import math
 import time
 
 import get_gfs
@@ -83,7 +86,7 @@ def air_density(data):
 
 #################################################################################################################
 
-def data_interpolation(data, alt0, step, mode='spline', descent_only=False, output_figs=False):
+def data_interpolation(data, alt0, step, descent_only=False, output_figs=False):
 	"""
 	Interpolate (and extrapolate in the low end, if mode='spline' is used) vertical data from alt0 to maximum level present in the data.
 
@@ -106,7 +109,8 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False, outp
 	new_data = {}
 
 	if descent_only:
-		new_data['altitudes'] = np.arange(alt0 % step,  alt0 + step, step)
+		new_data['altitudes'] = np.arange(alt0 % step, alt0 + step, step)
+		# new_data['altitudes'] = np.logspace(math.log(1, 10), math.log(alt0+1000, 10), 400) # logarithmic steps
 	else:
 		new_data['altitudes'] = np.arange(alt0, altitudes.max() + step, step)
 
@@ -129,33 +133,26 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False, outp
 				x = 0
 				y, = d.shape
 
-			if mode == 'spline':
-				if not descent_only:
-					if x > 0:
-						for i in range(0, y):
-							ok_idxs = altitudes[:, i] >= alt0
-							tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
-							arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
-					else:
-						tck = interpolate.splrep(altitudes, d)
+			if not descent_only:
+				if x > 0:
+					for i in range(0, y):
+						ok_idxs = altitudes[:, i] >= alt0
+						tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
 						arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
+				else:
+					tck = interpolate.splrep(altitudes, d)
+					arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
 
-				elif descent_only:					   
-					if x > 0:
-						for i in range(0, y):
-							ok_idxs = altitudes[:, i] <= alt0
-							tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
-							arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
-					else:
-						tck = interpolate.splrep(altitudes, d)
-						arr.append(np.array(interpolate.splev(new_data['altitudes'], tck)))
+			elif descent_only:					   
+				if x > 0:
+					for i in range(0, y):
+						ok_idxs = altitudes[:, i] <= alt0
+						tck = interpolate.splrep(altitudes[ok_idxs, i], d[ok_idxs, i])
+						arr.append(np.array(interpolate.splev(new_data['altitudes']-0.5*step, tck)))
+				else:
+					tck = interpolate.splrep(altitudes, d)
+					arr.append(np.array(interpolate.splev(new_data['altitudes']-0.5*step, tck)))
 
-			else: # use linear interpolation 
-				# There's something wrong here:
-				for i in range(0, y):
-					for i in range(0, len(d)):
-						tck = interpolate.interp1d(altitudes[:, i], d[:, i])
-						arr.append(tck(new_data['altitudes']))
 			new_data[key] = np.array(arr)
 
 	figs = {}
@@ -163,7 +160,7 @@ def data_interpolation(data, alt0, step, mode='spline', descent_only=False, outp
 	if output_figs:
 
 		ind1 = np.where(altitudes[:, 0] == alt0)[0][0]
-		ind2 = np.where(new_data['altitudes'] == alt0)[0][0]
+		ind2 = len(new_data['altitudes'])-1
 
 		for key in data.keys():
 			if key not in checks:
@@ -379,20 +376,29 @@ def descent_speed(data, mass, Cd, areas, alt_step, change_alt=None):
 
 	m = mass
 	h = data['altitudes']
+	rho = data['air_densities']
 	g = p.g_0 * (p.R_e / (p.R_e + h))**2 # Gravitational acceleration at height h
 
-	speeds = []
+	# speeds = []
+	# if change_alt is not None:
+	# 	idxs = h < change_alt
+	# 	for rho in data['air_densities']:
+	# 		v = np.sqrt(2*m*g/(rho*Cd*areas[0])) # m/s
+	# 		v[idxs] = np.sqrt(2*m*g[idxs]/(rho[idxs]*Cd*areas[1]))
+	# 		speeds.append(v)
+	# else:
+	# 	for rho in data['air_densities']:
+	# 		v = np.sqrt(2*m*g/(rho*Cd*areas)) # m/s
+	# 		speeds.append(v)
+
 	if change_alt is not None:
 		idxs = h < change_alt
-		for rho in data['air_densities']:
-			v = np.sqrt(2*m*g/(rho*Cd*areas[0])) # m/s
-			v[idxs] = np.sqrt(2*m*g[idxs]/(rho[idxs]*Cd*areas[1]))
-			speeds.append(v)
+		v = np.sqrt(2*m*g/(rho*Cd*areas[0])) # m/s
+		v[idxs] = np.sqrt(2*m*g[idxs]/(rho[idxs]*Cd*areas[1]))
 	else:
-		factor = 1
-		for rho in data['air_densities']:
-			v = np.sqrt(2*m*g/(rho*Cd*areas)) # m/s
-			speeds.append(v)
+		v = np.sqrt(2*m*g/(rho*Cd*areas)) # m/s
+
+	speeds = v
 
 	return -1*np.array(speeds)
 
@@ -609,20 +615,25 @@ def get_endpoint(data=None, run=None, filename=None, params=None):
 
 	inds = (-i, -i + 1)
 
-	dlon = lons[inds[0]] - lons[inds[1]]
-	dlat = lats[inds[0]] - lats[inds[1]]
+	if list(set(dists)) == [0]:
+		newlon, newlat = lons[inds[0]], lats[inds[0]]
 
-	x1 = dists[inds[1]]
+	else:
 
-	y1 = alts[inds[0]] - alts[inds[1]]
-	y2 = elevations[-2] - alts[inds[1]]
+		dlon = lons[inds[0]] - lons[inds[1]]
+		dlat = lats[inds[0]] - lats[inds[1]]
 
-	dx = x1*(y2/y1)
-	x2 = x1 - dx
-	f = dx/x1
+		x1 = dists[inds[1]]
 
-	newlon = lons[inds[1]] + f*dlon
-	newlat = lats[inds[1]] + f*dlat
+		y1 = alts[inds[0]] - alts[inds[1]]
+		y2 = elevations[-2] - alts[inds[1]]
+
+		dx = x1*(y2/y1)
+		x2 = x1 - dx
+		f = dx/x1
+
+		newlon = lons[inds[1]] + f*dlon
+		newlat = lats[inds[1]] + f*dlat
 
 	return (newlat, newlon), get_elevation(lat=newlat, lon=newlon)
 
@@ -783,7 +794,35 @@ def add_uv_errs(main_data=None, err_data=None):
 
 #################################################################################################################
 
-def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop, resolution):
+def calc_mean_travel_direction(lon0, lat0, end_lon, end_lat):
+	"""
+	Calculate mean direction of travel from start lat/lon to end lat/lon
+
+	Arguments
+	=========
+	lon0 : float
+		Initial longitude
+	lat0 : float
+		Initial latitude
+	end_lon : float
+		Final (predicted) longitude
+	end_lat : float
+		Final (predicted) latitude
+	"""
+
+	dx_end = haversine((lat0, lon0), (lat0, end_lon))
+	dy_end = haversine((lat0, lon0), (end_lat, lon0))
+
+	if end_lat < lat0:
+		dy_end *= -1
+	if end_lon < lon0:
+		dx_end *= -1
+
+	return np.degrees(np.arctan2(dy_end, dx_end))
+
+#################################################################################################################
+
+def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, resolution):
 	"""
 	Calculate locations and values of points to be used for bilinear interpolation given a list of data and point
 
@@ -801,8 +840,6 @@ def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop
 		List of longitudes in weather forecast model (GFS)
 	data_lats : list
 		List of latitudes in weather forecast model (GFS)
-	prop : list
-		List containing the data we wish to interpolate
 	resolution : float
 		Resolution of weather forecast models (GFS) used
 	Return
@@ -830,10 +867,6 @@ def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop
 			lons = [curr_lon, curr_lon + lon_add, curr_lon, curr_lon + lon_add]
 			lats = [curr_lat - lat_add, curr_lat - lat_add, curr_lat + lat_add, curr_lat + lat_add]
 		else:
-			# lon_add += np.radians(resolution)
-			# lat_add += np.radians(resolution)
-			# lons = [curr_lon - lon_add, curr_lon - lon_add, curr_lon + lon_add, curr_lon + lon_add]
-			# lats = [curr_lat - lat_add, curr_lat + lat_add, curr_lat - lat_add, curr_lat + lat_add]
 			lons = [curr_lon, curr_lon, curr_lon, curr_lon]
 			lats = [curr_lat, curr_lat, curr_lat, curr_lat]
 
@@ -845,11 +878,10 @@ def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop
 	low_right = np.where((np.isclose(data_lats, bottom_lat)) & (np.isclose(data_lons, top_lon)))[0][0]
 
 	x1, y1, x2, y2 = data_lons[low_left], data_lats[low_left], data_lons[up_right], data_lats[up_right]
-	q11, q12, q21, q22 = prop[low_left, i], prop[up_left, i], prop[low_right, i], prop[up_right, i]
 
-	return (x1, y1, q11), (x1, y2, q12), (x2, y1, q21), (x2, y2, q22)
+	return x1, y1, x2, y2, low_left, up_left, low_right, up_right
 
-def bilinear_interpolation(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop, resolution):
+def bilinear_interpolation(grid_i=None, i=None, lon_rad=None, lat_rad=None, data_lons=None, data_lats=None, prop=None, resolution=None, coords=None, inds=None):
 	"""
 	Calculate property at given latitude/longitude using bilinear interpolation
 
@@ -871,6 +903,10 @@ def bilinear_interpolation(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, pr
 		List containing the data we wish to interpolate
 	resolution : float
 		Resolution of weather forecast models (GFS) used
+	coords : list
+		List of lon and lat coordinates of points used for the bilinear interpolation
+	inds : list
+		List of indices of the points in the weather forecast grid
 	Return
 		Value of data at given latitude and longitude based on bilinear interpolation
 	"""
@@ -878,7 +914,15 @@ def bilinear_interpolation(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, pr
 	x = lon_rad
 	y = lat_rad
 
-	points = find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop, resolution)
+	if coords == None or inds == None:
+		x1, y1, x2, y2, low_left, up_left, low_right, up_right = find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, resolution)
+	else:
+		x1, y1, x2, y2 = coords
+		low_left, up_left, low_right, up_right = inds
+
+	q11, q12, q21, q22 = prop[low_left, i], prop[up_left, i], prop[low_right, i], prop[up_right, i]
+	points = (x1, y1, q11), (x1, y2, q12), (x2, y1, q21), (x2, y2, q22)
+
 	points = sorted(points)
 	(x1, y1, q11), (_x1, y2, q12), (x2, _y1, q21), (_x2, _y2, q22) = points
 

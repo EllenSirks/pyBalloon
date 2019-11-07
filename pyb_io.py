@@ -60,7 +60,6 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 	v_msgs = grib.select(name='V component of wind')
 	g_msgs = grib.select(name='Geopotential Height')
 	t_msgs = grib.select(name='Temperature')
-	# omega_msgs = grib.select(name='Vertical velocity')
 
 	lats, lons, = u_msgs[0].latlons() # lats: -90 -> 90, lons: 0 -> 360
 	lats2, lons2 = u_msgs[0].latlons()
@@ -110,11 +109,6 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 		if msg.typeOfLevel == 'isobaricInhPa':
 			altitude[msg.level] = msg.values[row_idx, col_idx]
 
-	# omega = {}
-	# for msg in omega_msgs:
-	#	if msg.typeOfLevel == 'isobaricInhPa':
-	#		omega[msg.level] = msg.values[row_idx, col_idx]
-
 	############################################################################################################
 
 	pressures = list(u_wind.keys())
@@ -126,7 +120,6 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 		u_winds = [np.zeros(lats.shape)]
 		v_winds = [np.zeros(lats.shape)]
 		altitudes = [alt0*np.ones(lats.shape)]
-		# omegas = [np.zeros(lats.shape)]
 
 		if t_0 is None:
 			temperatures = [t_surface]
@@ -143,7 +136,6 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 		v_winds = []
 		temperatures = []
 		altitudes = []
-		# omegas = []
 
 		alts_min = np.array([np.min(alt) for alt in altitude.values()])
 
@@ -172,44 +164,14 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 			temp.append(temperature[key])
 			alt.append(altitude[key])
 
-			# if key in list(omega.keys()):
-			#	omg.append(omega[key])
-
 			u_winds.append(np.hstack(uwnd))
 			v_winds.append(np.hstack(vwnd))
 			temperatures.append(np.hstack(temp))
 			altitudes.append(np.hstack(alt))
 
-			# if key in list(omega.keys()):
-			#	omegas.append(np.hstack(omg))
-
 			i+=1
 		else:
 			i+=1
-
-	# ############################################################################################################
-
-	# if descent_only:
-	#	main_keys = list(u_wind.keys())
-	# else:
-	#	main_keys = list(pressures)
-
-	# main_keys.sort()
-	# main_keys.reverse()
-	# omega_keys = list(omega.keys())
-
-	# omegas = np.array(omegas)
-	# x, y = omegas.shape
-
-	# omega_ext = {}
-
-	# for key in main_keys:
-	#	if key not in omega_keys:
-	#		omega_ext[key] = np.zeros(y)
-	#	else:
-	#		omega_ext[key] = omega[key]
-
-	# omegas = [omega_ext[key] for key in main_keys]
 
 	############################################################################################################
 
@@ -232,13 +194,11 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 			deltaT = temperatures[grid_i2] - temperatures[grid_i2 - 1]
 			deltaU = u_winds[grid_i2] - u_winds[grid_i2 - 1]
 			deltaV = v_winds[grid_i2] - v_winds[grid_i2 - 1]
-			# deltaOmg = omegas[grid_i2] - omegas[grid_i2 - 1]
 
 			altitudes.insert(grid_i2, alt0*np.ones(lats.shape))
 			u_winds.insert(grid_i2, u_winds[grid_i2 - 1] + deltaU*f1)
 			v_winds.insert(grid_i2, v_winds[grid_i2 - 1] + deltaV*f1)
 			temperatures.insert(grid_i2, temperatures[grid_i2 - 1] + deltaT*f1)
-			# omegas.insert(grid_i2, omegas[grid_i2 - 1] + deltaOmg*f1)
 			index = grid_i2
 
 		else:
@@ -251,13 +211,11 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 			deltaT = temperatures[grid_i2 + 1] - temperatures[grid_i2]
 			deltaU = u_winds[grid_i2 + 1] - u_winds[grid_i2]
 			deltaV = v_winds[grid_i2 + 1] - v_winds[grid_i2]
-			# deltaOmg = omegas[grid_i2 + 1] - omegas[grid_i2]
 
 			altitudes.insert(grid_i2 + 1, alt0*np.ones(lats.shape))
 			u_winds.insert(grid_i2 + 1, u_winds[grid_i2] + deltaU*f1)
 			v_winds.insert(grid_i2 + 1, v_winds[grid_i2] + deltaV*f1)
 			temperatures.insert(grid_i2 + 1, temperatures[grid_i2] + deltaT*f1)
-			# omegas.insert(grid_i2 + 1, omegas[grid_i2] + deltaOmg*f1)
 			index = grid_i2 + 1
 
 	############################################################################################################
@@ -270,7 +228,6 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 	data['v_winds'] = np.array(v_winds)
 	data['temperatures'] = np.array(temperatures)
 	data['altitudes'] = np.array(altitudes)
-	# data['omegas'] = np.array(omegas)
 	all_pressures = []
 
 	for dat in data['lats']:
@@ -472,7 +429,7 @@ def save_kml(fname, data, other_info=None, params=None, balloon=None, shape='cir
 		Angle between starting point and landing point. Used to orientate ellips if ellips is the chosen contour shape
 	"""
 
-	descent_only, next_point, time_interpolate, grid_interpolation, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolation, drift_time, resolution, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	kml_str = '<?xml version="1.0" encoding="UTF-8"?>\n'
 	kml_str += '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">\n'
@@ -537,15 +494,10 @@ def save_kml(fname, data, other_info=None, params=None, balloon=None, shape='cir
 
 	kml_str += '<Point>\n'
 	kml_str += '<altitudeMode>absolute</altitudeMode>\n'
-
-	# if data['lons'][-1] >= 180.0:
-	#	rem = 360
-	# else:
-	#	rem = 0
-
 	kml_str += '<coordinates>%f,%f,%f</coordinates>\n' % (data['lons'][-1], data['lats'][-1], data['alts'][-1])
 	kml_str += '</Point>\n'
 	kml_str += '</Placemark>\n'
+
 	num += 1
 
 	# Add "other_info" places
@@ -654,7 +606,7 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 		Array of driftimes used to created the trajectories
 	"""
 
-	descent_only, next_point, time_interpolate, grid_interpolation, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolation, drift_time, resolution, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	dir_base = p.path + p.output_folder + str(run) + '/'
 
@@ -798,7 +750,7 @@ def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=N
 		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
 	"""
 
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_sigmas, params, balloon = set_params(params=params, balloon=balloon)
 
 	print('General Parameters')
 	print('----------')
@@ -810,7 +762,6 @@ def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=N
 	if drift_time is not None:
 		print('drift time: ' + str(drift_time) + ' minutes')
 	print('resolution of forecasts: ' + str(resolution) + ' degrees')
-	print('correct for vertical winds: ' + str(vz_correct))
 	if hr_diff is not None:
 		print('difference in hrs for forecasts: ' + str(hr_diff) + ' hours')
 	print('check sigmas: ' + str(check_sigmas))
@@ -845,7 +796,7 @@ def write_verbose(params_dir=None, params=None, balloon=None):
 		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
 	"""
 
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	f = open(params_dir + 'params.txt', 'w+')
 	f.write('General parameters\n')
@@ -857,7 +808,6 @@ def write_verbose(params_dir=None, params=None, balloon=None):
 	f.write('grid_interpolation: ' + str(grid_interpolate) + '\n')
 	f.write('drift time: ' + str(drift_time) + ' min\n')
 	f.write('resolution of forecasts: ' + str(resolution) + ' degrees\n')
-	f.write('correct for vertical winds: ' + str(vz_correct) + '\n')
 	f.write('difference in hrs for forecasts: ' + str(hr_diff) + ' hours\n')
 	f.write('check sigmas: ' + str(check_sigmas) + '\n')
 	f.write('----------------------\n')
@@ -900,26 +850,24 @@ def set_params(params=None, balloon=None):
 		grid_interpolate = p.grid_interpolate
 		drift_time = float(p.drift_time)
 		resolution = float(p.resolution)
-		vz_correct = bool(p.vz_correct)
 		hr_diff = int(p.hr_diff)
 		check_sigmas = bool(p.check_sigmas)
 
-		params = [descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas]
+		params = [descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_sigmas]
 		
 	else:
 
 		descent_only = bool(params[0])
 		if descent_only:
 			next_point = str(params[1])
-		time_interpolate = bool(params[-7])
-		grid_interpolate = bool(params[-6])
-		drift_time = float(params[-5])
-		resolution = float(params[-4])
-		vz_correct = bool(params[-3])
+		time_interpolate = bool(params[-6])
+		grid_interpolate = bool(params[-5])
+		drift_time = float(params[-4])
+		resolution = float(params[-3])
 		hr_diff = int(params[-2])
 		check_sigmas = bool(params[-1])
 
-	return descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas, params, balloon
+	return descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_sigmas, params, balloon
 
 #################################################################################################################
 
@@ -937,7 +885,7 @@ def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
 	"""
 
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, vz_correct, hr_diff, check_sigmas = params
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_sigmas = params
 
 	if add_run_info:
 
@@ -946,7 +894,7 @@ def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 		if not os.path.isfile(run_info_file):
 
 			f = open(run_info_file, 'w+')
-			f.write('run descent_only next_point time_interpolate grid_interpolate drift_time resolution vz_correct hr_diff check_sigmas Cd_parachute\
+			f.write('run descent_only next_point time_interpolate grid_interpolate drift_time resolution hr_diff check_sigmas Cd_parachute\
 			 parachute_area altitude_step equip_mass balloon_mass fill_radius radius_empty burst_radius thickness_empty Cd_balloon simple_ascent_rate parachute_change_altitude')
 
 		lines = [line.rstrip('\n').split(' ') for line in open(run_info_file)]
@@ -955,7 +903,7 @@ def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 		f = open(run_info_file, 'a+')
 		if run not in runs:
 			f.write('\n' + str(run) + ' ' + str(descent_only) + ' ' + str(next_point) + ' ' + str(time_interpolate) + ' ' + str(grid_interpolate) + ' ' + str(drift_time) + ' ' + \
-				str(resolution) + ' '  + str(vz_correct) + ' ' + str(hr_diff) + ' ' + str(check_sigmas)  + ' ' + str(balloon['Cd_parachute']) + ' ' + str(balloon['parachute_areas'][0]) \
+				str(resolution) + ' '  + str(hr_diff) + ' ' + str(check_sigmas)  + ' ' + str(balloon['Cd_parachute']) + ' ' + str(balloon['parachute_areas'][0]) \
 				+ ' ' + str(balloon['altitude_step'])  + ' ' + str(balloon['equip_mass']) + ' ' + str(balloon['balloon_mass']) + ' ' + str(balloon['fill_radius']) \
 				 + ' ' + str(balloon['radius_empty']) + ' ' + str(balloon['burst_radius']) + ' ' + str(balloon['thickness_empty']) + ' ' + str(balloon['Cd_balloon']) \
 				 + ' ' + str(balloon['simple_ascent_rate']) + ' ' + str(balloon['parachute_change_altitude']))
@@ -1000,7 +948,6 @@ def search_info(run=None, print_verbose=True):
 			print('grid_interpolate: ' + str(data['grid_interpolate'][index]))
 			print('drift time: ' + str(data['drift_time'][index]) + ' minutes')
 			print('resolution of forecasts: ' + str(data['resolution'][index]) + ' degrees')
-			print('correct for vertical winds: ' + str(data['vz_correct'][index]))
 			print('difference in hrs for forecasts: ' + str(data['hr_diff'][index]) + ' hours')
 			print('check sigmas: ' + str(data['check_sigmas'][index]))
 			print('----------')
@@ -1015,7 +962,6 @@ def search_info(run=None, print_verbose=True):
 		return index
 
 #################################################################################################################
-
 
 def save_used_weather_files(save_dir=None, used_weather_files=None, trajectories=None, utc_hour=None):
 	"""
@@ -1054,16 +1000,12 @@ def save_used_weather_files(save_dir=None, used_weather_files=None, trajectories
 
 #################################################################################################################
 
-def determine_error(utc_hour=None, used_weather_files=None, trajectories=None, params=None):
+def determine_error(trajectories=None, params=None):
 	"""
 	Method to determine the error in the trajectory from the difference in location, time to forecast and how far into the future the forecast looks
 
 	Arguments
 	=========
-	utc_hour : float
-		Initial time of trajectory
-	used_weather_files : dict
-		Dictionary of used weather files, with the times at which the files were first used as keys
 	trajectories : dict
 		Dictionary containing trajectory data
 	params : list
@@ -1075,26 +1017,11 @@ def determine_error(utc_hour=None, used_weather_files=None, trajectories=None, p
 	else:
 		time_interpolate = params[-7]
 
-	times = list(used_weather_files.keys())
-	times.sort()
-	indices = [np.where(np.isclose((utc_hour + trajectories['times']/60) % 24, times[i]))[0][0] for i in range(len(times))]
+	mean_tfut = np.mean(trajectories['tfutures'])
+	err = np.sqrt(3.35**2 + (mean_tfut*(0.19))**2) ## for forecast looking into the future
 
-	j = 0
-	time_list = []
-	for i in range(len(trajectories['times'])):
-		if j != len(indices) - 1:
-			if i == indices[j+1]:
-				j += 1
-		if type(used_weather_files[times[j]]) == type(list()):
-			i1 = 0
-			i2 = len(used_weather_files[times[j]]) - 1
-			time_list.append(trajectories['f1s'][i]*int(used_weather_files[times[j]][i1][-3:]) + trajectories['f2s'][i]*int(used_weather_files[times[j]][i2][-3:]))
-		else:
-			time_list.append(int(used_weather_files[times[j]][-3:]))
-
-	err = np.sqrt(3.35**2 + (np.mean(time_list)*(0.19))**2) ## change percentiles here
 	if not time_interpolate:
-		time_diff_err = np.mean(np.abs(trajectories['delta_ts']))*2.4 + -0.3
+		time_diff_err = np.mean(np.abs(trajectories['delta_ts']))*2.4 + -0.3 # for not using interpolation: i.e., difference between forecast time and model time
 		err = np.sqrt(time_diff_err**2 + err**2)
 
 	return err
@@ -1127,7 +1054,7 @@ def create_trajectory_files(traj_dir=None, kml_dir=None, datestr=None, utc_hour=
 		time_interpolate = bool(p.time_interpolate)
 		check_sigmas = bool(p.check_sigmas)
 	else:
-		time_interpolate = params[-7]
+		time_interpolate = params[-6]
 		check_sigmas = bool(params[-1])
 
 	traj_file = traj_dir + 'trajectory_' + datestr + '_' + str(utc_hour) + '_' + str(loc0)
@@ -1135,6 +1062,8 @@ def create_trajectory_files(traj_dir=None, kml_dir=None, datestr=None, utc_hour=
 
 	# determine number of files already in folder (with the same starting params)
 	no = len([filename for filename in os.listdir(traj_dir) if os.path.basename(traj_file) in filename])
+	no = 0
+
 	if no == 0:
 		traj_file += '.dat'
 		kml_fname += '.kml'
@@ -1143,13 +1072,8 @@ def create_trajectory_files(traj_dir=None, kml_dir=None, datestr=None, utc_hour=
 		kml_fname += '_' + str(no + 1) + '.kml'
 
 	# write out trajectory file
-	# out_list = [trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['loc_diffs'], trajectories['speeds'],\
-	#  trajectories['z_speeds'], trajectories['omegas'], trajectories['temperatures'], trajectories['grid_spreads_u'], trajectories['grid_spreads_v']]
-	# names = ['lats', 'lons', 'alts', 'dists', 'times', 'loc_diffs', 'speeds', 'z_speeds', 'omegas', 'temps', 'u_spread', 'v_spread']
-
-	out_list = [trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['loc_diffs'], trajectories['speeds'],\
-	 trajectories['temperatures'], trajectories['grid_spreads_u'], trajectories['grid_spreads_v']]
-	names = ['lats', 'lons', 'alts', 'dists', 'times', 'loc_diffs', 'speeds', 'temps', 'u_spread', 'v_spread']
+	out_list = [trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['tfutures'], trajectories['loc_diffs'], trajectories['speeds']]
+	names = ['lats', 'lons', 'alts', 'dists', 'times', 'tfutures', 'loc_diffs', 'speeds']
 
 	if check_sigmas:
 		out_list += [trajectories['sigmas_u'], trajectories['sigmas_v']]
