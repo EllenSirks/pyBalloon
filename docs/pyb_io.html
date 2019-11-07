@@ -31,6 +31,7 @@
 <a href="pyb_traj.html">pyb_traj</a><br>
 <a href="pyproj.html">pyproj</a><br>
 </td><td width="25%" valign=top><a href="sys.html">sys</a><br>
+<a href="time.html">time</a><br>
 </td></tr></table></td></tr></table><p>
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
 <tr bgcolor="#eeaa77">
@@ -88,14 +89,10 @@ trajectories&nbsp;:&nbsp;dict<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;trajectory&nbsp;data<br>
 params&nbsp;:&nbsp;list<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.</tt></dd></dl>
- <dl><dt><a name="-determine_error"><strong>determine_error</strong></a>(utc_hour<font color="#909090">=None</font>, used_weather_files<font color="#909090">=None</font>, trajectories<font color="#909090">=None</font>, params<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;determine&nbsp;the&nbsp;error&nbsp;in&nbsp;the&nbsp;trajectory&nbsp;from&nbsp;the&nbsp;difference&nbsp;in&nbsp;location,&nbsp;time&nbsp;to&nbsp;forecast&nbsp;and&nbsp;how&nbsp;far&nbsp;into&nbsp;the&nbsp;future&nbsp;the&nbsp;forecast&nbsp;looks<br>
+ <dl><dt><a name="-determine_error"><strong>determine_error</strong></a>(trajectories<font color="#909090">=None</font>, params<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;determine&nbsp;the&nbsp;error&nbsp;in&nbsp;the&nbsp;trajectory&nbsp;from&nbsp;the&nbsp;difference&nbsp;in&nbsp;location,&nbsp;time&nbsp;to&nbsp;forecast&nbsp;and&nbsp;how&nbsp;far&nbsp;into&nbsp;the&nbsp;future&nbsp;the&nbsp;forecast&nbsp;looks<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
-utc_hour&nbsp;:&nbsp;float<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial&nbsp;time&nbsp;of&nbsp;trajectory<br>
-used_weather_files&nbsp;:&nbsp;dict<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;used&nbsp;weather&nbsp;files,&nbsp;with&nbsp;the&nbsp;times&nbsp;at&nbsp;which&nbsp;the&nbsp;files&nbsp;were&nbsp;first&nbsp;used&nbsp;as&nbsp;keys<br>
 trajectories&nbsp;:&nbsp;dict<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;trajectory&nbsp;data<br>
 params&nbsp;:&nbsp;list<br>
@@ -122,14 +119,20 @@ y_extent&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Extent&nbsp;in&nbsp;km&nbsp;in&nbsp;the&nbsp;y&nbsp;(latitude)&nbsp;direction,&nbsp;taken&nbsp;from&nbsp;percentile&nbsp;calculations<br>
 theta&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Angle&nbsp;in&nbsp;radians&nbsp;indicating&nbsp;the&nbsp;rotation&nbsp;of&nbsp;the&nbsp;ellipse.&nbsp;Calculated&nbsp;from&nbsp;the&nbsp;mean&nbsp;direction&nbsp;of&nbsp;the&nbsp;trajectory</tt></dd></dl>
- <dl><dt><a name="-make_descent_rate_plot"><strong>make_descent_rate_plot</strong></a>(directory<font color="#909090">=None</font>, data<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;plots&nbsp;showing&nbsp;the&nbsp;descent&nbsp;rates&nbsp;of&nbsp;the&nbsp;trajectory<br>
+ <dl><dt><a name="-make_descent_rate_plot"><strong>make_descent_rate_plot</strong></a>(directory<font color="#909090">=None</font>, data<font color="#909090">=None</font>, datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;plots&nbsp;showing&nbsp;the&nbsp;descent&nbsp;rates&nbsp;of&nbsp;the&nbsp;trajectory<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
 directory&nbsp;:&nbsp;string<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Directory&nbsp;where&nbsp;the&nbsp;figures&nbsp;will&nbsp;be&nbsp;saved<br>
 data&nbsp;:&nbsp;dict<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;the&nbsp;trajectory&nbsp;data</tt></dd></dl>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;the&nbsp;trajectory&nbsp;data<br>
+datestr&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Date&nbsp;of&nbsp;initial&nbsp;point<br>
+utc_hour&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Time&nbsp;of&nbsp;initial&nbsp;point<br>
+loc0&nbsp;:&nbsp;floats&nbsp;in&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point</tt></dd></dl>
  <dl><dt><a name="-make_ellipse"><strong>make_ellipse</strong></a>(theta_num<font color="#909090">=100</font>, phi<font color="#909090">=0</font>, x_cent<font color="#909090">=0</font>, y_cent<font color="#909090">=0</font>, semimaj<font color="#909090">=1.9</font>, semimin<font color="#909090">=1.4</font>)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;an&nbsp;ellips&nbsp;and&nbsp;get&nbsp;x/y&nbsp;coordinates&nbsp;given&nbsp;ellips&nbsp;parameters<br>
 &nbsp;<br>
 Arguments<br>

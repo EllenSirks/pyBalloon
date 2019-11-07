@@ -33,7 +33,7 @@
 <font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
     
 <tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
-<td width="100%"><dl><dt><a name="-calc_displacements"><strong>calc_displacements</strong></a>(data<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, descent_only<font color="#909090">=False</font>, vz_correct<font color="#909090">=False</font>)</dt><dd><tt>Calculate&nbsp;the&nbsp;displacements&nbsp;in&nbsp;the&nbsp;x/y&nbsp;directions&nbsp;for&nbsp;all&nbsp;possible&nbsp;locations&nbsp;(lon/lat/alt)&nbsp;in&nbsp;weather&nbsp;data<br>
+<td width="100%"><dl><dt><a name="-calc_displacements"><strong>calc_displacements</strong></a>(data<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, step<font color="#909090">=None</font>, descent_only<font color="#909090">=False</font>)</dt><dd><tt>Calculate&nbsp;the&nbsp;displacements&nbsp;in&nbsp;the&nbsp;x/y&nbsp;directions&nbsp;for&nbsp;all&nbsp;possible&nbsp;locations&nbsp;(lon/lat/alt)&nbsp;in&nbsp;weather&nbsp;data<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
@@ -43,8 +43,6 @@ balloon&nbsp;:&nbsp;dict<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.<br>
 descent_only&nbsp;:&nbsp;bool<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Option&nbsp;to&nbsp;start&nbsp;the&nbsp;trajectory&nbsp;at&nbsp;its&nbsp;highest&nbsp;point.&nbsp;If&nbsp;True,&nbsp;the&nbsp;trajectory&nbsp;only&nbsp;has&nbsp;a&nbsp;descent&nbsp;phase<br>
-vz_correct&nbsp;:&nbsp;bool<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;correct&nbsp;for&nbsp;vertical&nbsp;winds&nbsp;in&nbsp;forecast&nbsp;model&nbsp;using&nbsp;the&nbsp;'omega'&nbsp;property<br>
 Return:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Data&nbsp;appended&nbsp;with&nbsp;additional&nbsp;calculated&nbsp;properties</tt></dd></dl>
  <dl><dt><a name="-calc_movements"><strong>calc_movements</strong></a>(data<font color="#909090">=None</font>, used_weather_files<font color="#909090">=None</font>, time_diffs<font color="#909090">=None</font>, datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, params<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, output_figs<font color="#909090">=False</font>)</dt><dd><tt>Calculate&nbsp;the&nbsp;trajectory&nbsp;of&nbsp;the&nbsp;balloon/parachute&nbsp;given&nbsp;a&nbsp;start&nbsp;position&nbsp;&amp;&nbsp;other&nbsp;input&nbsp;parameters<br>
@@ -69,7 +67,7 @@ output_figs&nbsp;:&nbsp;bool<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;figures&nbsp;showing&nbsp;the&nbsp;grib&nbsp;data&nbsp;before&nbsp;and&nbsp;after&nbsp;interpolation&nbsp;between&nbsp;altitude&nbsp;steps&nbsp;are&nbsp;created&nbsp;and&nbsp;saved&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
 Return:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Output&nbsp;trajectory&nbsp;data,&nbsp;list&nbsp;of&nbsp;fig&nbsp;dictionaries&nbsp;for&nbsp;each&nbsp;used&nbsp;weather&nbsp;files,&nbsp;dictionary&nbsp;of&nbsp;used_weather_files,&nbsp;list&nbsp;time_diffs</tt></dd></dl>
- <dl><dt><a name="-calc_properties"><strong>calc_properties</strong></a>(data<font color="#909090">=None</font>, weather_file<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, descent_only<font color="#909090">=False</font>, output_figs<font color="#909090">=False</font>)</dt><dd><tt>Calculate&nbsp;necessary&nbsp;properties,&nbsp;e.g.&nbsp;air&nbsp;densities&nbsp;and&nbsp;descent&nbsp;speeds,&nbsp;and&nbsp;carry&nbsp;the&nbsp;interpolation&nbsp;to&nbsp;more&nbsp;altitudes&nbsp;than&nbsp;in&nbsp;forecast&nbsp;data<br>
+ <dl><dt><a name="-calc_properties"><strong>calc_properties</strong></a>(data<font color="#909090">=None</font>, weather_file<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, step<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, descent_only<font color="#909090">=False</font>, output_figs<font color="#909090">=False</font>)</dt><dd><tt>Calculate&nbsp;necessary&nbsp;properties,&nbsp;e.g.&nbsp;air&nbsp;densities&nbsp;and&nbsp;descent&nbsp;speeds,&nbsp;and&nbsp;carry&nbsp;the&nbsp;interpolation&nbsp;to&nbsp;more&nbsp;altitudes&nbsp;than&nbsp;in&nbsp;forecast&nbsp;data<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
@@ -100,6 +98,30 @@ weather_files&nbsp;:&nbsp;list<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;the&nbsp;interpolation&nbsp;files&nbsp;currently&nbsp;being&nbsp;used<br>
 Return:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Two&nbsp;tuples&nbsp;containing&nbsp;the&nbsp;interpolation&nbsp;file&nbsp;name&nbsp;and&nbsp;corresponding&nbsp;fraction</tt></dd></dl>
+ <dl><dt><a name="-calc_variable"><strong>calc_variable</strong></a>(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, fracs, prop, resolution)</dt><dd><tt>Calculate&nbsp;the&nbsp;value&nbsp;of&nbsp;a&nbsp;variable&nbsp;at&nbsp;a&nbsp;given&nbsp;grid&nbsp;location/altitude<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+grid_interpolate&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;variables&nbsp;are&nbsp;interpolated&nbsp;between&nbsp;grid&nbsp;points<br>
+grid_i&nbsp;:&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;index&nbsp;of&nbsp;list&nbsp;representing&nbsp;current&nbsp;lon/lat<br>
+i&nbsp;:&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;index&nbsp;of&nbsp;list&nbsp;representing&nbsp;current&nbsp;altitude<br>
+lon_rad&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;longitude&nbsp;in&nbsp;radians<br>
+lat_rad&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Current&nbsp;latitude&nbsp;in&nbsp;radians<br>
+data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;weather&nbsp;forecast&nbsp;data&nbsp;plus&nbsp;properties&nbsp;calculated&nbsp;using&nbsp;the&nbsp;<a href="#-calc_properties">calc_properties</a>()&nbsp;function<br>
+fracs&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;containing&nbsp;the&nbsp;fractions&nbsp;used&nbsp;for&nbsp;the&nbsp;interpolation&nbsp;between&nbsp;weather&nbsp;files<br>
+prop&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;variable&nbsp;to&nbsp;be&nbsp;evaluated<br>
+resolution&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Resolution&nbsp;of&nbsp;the&nbsp;weather&nbsp;forecasts<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Value&nbsp;of&nbsp;given&nbsp;variable</tt></dd></dl>
  <dl><dt><a name="-movement2ll"><strong>movement2ll</strong></a>(lat_rad<font color="#909090">=None</font>, lon_rad<font color="#909090">=None</font>, alt<font color="#909090">=None</font>, dx<font color="#909090">=None</font>, dy<font color="#909090">=None</font>)</dt><dd><tt>Calculate&nbsp;new&nbsp;lat/lon&nbsp;coordinates&nbsp;given&nbsp;original&nbsp;location&nbsp;and&nbsp;Cartesian&nbsp;displacements.<br>
 &nbsp;<br>
 Arguments<br>
@@ -116,7 +138,7 @@ dy&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;North&nbsp;-&nbsp;south&nbsp;movement&nbsp;in&nbsp;meters&nbsp;(North&nbsp;is&nbsp;positive)<br>
 Return:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;New&nbsp;coordinates:&nbsp;latitude&nbsp;[radians],&nbsp;longitude&nbsp;[radians],&nbsp;and&nbsp;distance&nbsp;traveled&nbsp;[km]</tt></dd></dl>
- <dl><dt><a name="-prepare_data"><strong>prepare_data</strong></a>(weather_file<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, current_time<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, descent_only<font color="#909090">=False</font>, vz_correct<font color="#909090">=False</font>, check_sigmas<font color="#909090">=False</font>, output_figs<font color="#909090">=False</font>)</dt><dd><tt>Prepare&nbsp;the&nbsp;data&nbsp;from&nbsp;a&nbsp;weather&nbsp;file&nbsp;for&nbsp;calculating&nbsp;the&nbsp;trajectory<br>
+ <dl><dt><a name="-prepare_data"><strong>prepare_data</strong></a>(weather_file<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, current_time<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, descent_only<font color="#909090">=False</font>, check_sigmas<font color="#909090">=False</font>, output_figs<font color="#909090">=False</font>)</dt><dd><tt>Prepare&nbsp;the&nbsp;data&nbsp;from&nbsp;a&nbsp;weather&nbsp;file&nbsp;for&nbsp;calculating&nbsp;the&nbsp;trajectory<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
@@ -130,8 +152,6 @@ balloon&nbsp;:&nbsp;dict<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.<br>
 descent_only&nbsp;:&nbsp;bool<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Option&nbsp;to&nbsp;start&nbsp;the&nbsp;trajectory&nbsp;at&nbsp;its&nbsp;highest&nbsp;point.&nbsp;If&nbsp;True,&nbsp;the&nbsp;trajectory&nbsp;only&nbsp;has&nbsp;a&nbsp;descent&nbsp;phase<br>
-vz_correct&nbsp;:&nbsp;bool<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;correct&nbsp;for&nbsp;vertical&nbsp;winds&nbsp;in&nbsp;forecast&nbsp;model&nbsp;using&nbsp;the&nbsp;'omega'&nbsp;property<br>
 check_sigmas&nbsp;:&nbsp;bool<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;use&nbsp;ensemble&nbsp;forecasts&nbsp;to&nbsp;keep&nbsp;track&nbsp;of&nbsp;standard&nbsp;deviations&nbsp;for&nbsp;winds&nbsp;in&nbsp;weather&nbsp;forecast&nbsp;data<br>
 output_figs&nbsp;:&nbsp;bool<br>

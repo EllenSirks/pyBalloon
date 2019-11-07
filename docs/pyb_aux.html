@@ -21,13 +21,14 @@
 <td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="astropy.io.ascii.html">astropy.io.ascii</a><br>
 <a href="get_gfs.html">get_gfs</a><br>
 <a href="scipy.interpolate.html">scipy.interpolate</a><br>
-</td><td width="25%" valign=top><a href="numpy.html">numpy</a><br>
+</td><td width="25%" valign=top><a href="math.html">math</a><br>
+<a href="numpy.html">numpy</a><br>
 <a href="os.html">os</a><br>
-<a href="param_file.html">param_file</a><br>
-</td><td width="25%" valign=top><a href="matplotlib.pyplot.html">matplotlib.pyplot</a><br>
+</td><td width="25%" valign=top><a href="param_file.html">param_file</a><br>
+<a href="matplotlib.pyplot.html">matplotlib.pyplot</a><br>
 <a href="pyb_io.html">pyb_io</a><br>
-<a href="sys.html">sys</a><br>
-</td><td width="25%" valign=top><a href="time.html">time</a><br>
+</td><td width="25%" valign=top><a href="sys.html">sys</a><br>
+<a href="time.html">time</a><br>
 </td></tr></table></td></tr></table><p>
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
 <tr bgcolor="#eeaa77">
@@ -91,7 +92,7 @@ gas_molar_mass&nbsp;:&nbsp;float&nbsp;(optional)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Gas&nbsp;molar&nbsp;mask&nbsp;(g/mol).&nbsp;Default:&nbsp;4.002602&nbsp;(Helium)<br>
 Return:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Gas&nbsp;volume&nbsp;at&nbsp;each&nbsp;level&nbsp;in&nbsp;data</tt></dd></dl>
- <dl><dt><a name="-bilinear_interpolation"><strong>bilinear_interpolation</strong></a>(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop, resolution)</dt><dd><tt>Calculate&nbsp;property&nbsp;at&nbsp;given&nbsp;latitude/longitude&nbsp;using&nbsp;bilinear&nbsp;interpolation<br>
+ <dl><dt><a name="-bilinear_interpolation"><strong>bilinear_interpolation</strong></a>(grid_i<font color="#909090">=None</font>, i<font color="#909090">=None</font>, lon_rad<font color="#909090">=None</font>, lat_rad<font color="#909090">=None</font>, data_lons<font color="#909090">=None</font>, data_lats<font color="#909090">=None</font>, prop<font color="#909090">=None</font>, resolution<font color="#909090">=None</font>, coords<font color="#909090">=None</font>, inds<font color="#909090">=None</font>)</dt><dd><tt>Calculate&nbsp;property&nbsp;at&nbsp;given&nbsp;latitude/longitude&nbsp;using&nbsp;bilinear&nbsp;interpolation<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
@@ -111,6 +112,10 @@ prop&nbsp;:&nbsp;list<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;containing&nbsp;the&nbsp;data&nbsp;we&nbsp;wish&nbsp;to&nbsp;interpolate<br>
 resolution&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Resolution&nbsp;of&nbsp;weather&nbsp;forecast&nbsp;models&nbsp;(GFS)&nbsp;used<br>
+coords&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;lon&nbsp;and&nbsp;lat&nbsp;coordinates&nbsp;of&nbsp;points&nbsp;used&nbsp;for&nbsp;the&nbsp;bilinear&nbsp;interpolation<br>
+inds&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;indices&nbsp;of&nbsp;the&nbsp;points&nbsp;in&nbsp;the&nbsp;weather&nbsp;forecast&nbsp;grid<br>
 Return<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Value&nbsp;of&nbsp;data&nbsp;at&nbsp;given&nbsp;latitude&nbsp;and&nbsp;longitude&nbsp;based&nbsp;on&nbsp;bilinear&nbsp;interpolation</tt></dd></dl>
  <dl><dt><a name="-burst_altitude"><strong>burst_altitude</strong></a>(data, burst_radius)</dt><dd><tt>Find&nbsp;the&nbsp;altitude&nbsp;where&nbsp;balloon&nbsp;radius&nbsp;gets&nbsp;greater&nbsp;than&nbsp;the&nbsp;given&nbsp;burst&nbsp;radius.<br>
@@ -137,7 +142,19 @@ descent_only&nbsp;:&nbsp;bool<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Option&nbsp;to&nbsp;start&nbsp;the&nbsp;trajectory&nbsp;at&nbsp;its&nbsp;highest&nbsp;point.&nbsp;If&nbsp;True,&nbsp;the&nbsp;trajectory&nbsp;only&nbsp;has&nbsp;a&nbsp;descent&nbsp;phase<br>
 Return:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;std&nbsp;and&nbsp;mean&nbsp;data&nbsp;from&nbsp;the&nbsp;GEFS&nbsp;ensemble&nbsp;forecasts</tt></dd></dl>
- <dl><dt><a name="-data_interpolation"><strong>data_interpolation</strong></a>(data, alt0, step, mode<font color="#909090">='spline'</font>, descent_only<font color="#909090">=False</font>, output_figs<font color="#909090">=False</font>)</dt><dd><tt>Interpolate&nbsp;(and&nbsp;extrapolate&nbsp;in&nbsp;the&nbsp;low&nbsp;end,&nbsp;if&nbsp;mode='spline'&nbsp;is&nbsp;used)&nbsp;vertical&nbsp;data&nbsp;from&nbsp;alt0&nbsp;to&nbsp;maximum&nbsp;level&nbsp;present&nbsp;in&nbsp;the&nbsp;data.<br>
+ <dl><dt><a name="-calc_mean_travel_direction"><strong>calc_mean_travel_direction</strong></a>(lon0, lat0, end_lon, end_lat)</dt><dd><tt>Calculate&nbsp;mean&nbsp;direction&nbsp;of&nbsp;travel&nbsp;from&nbsp;start&nbsp;lat/lon&nbsp;to&nbsp;end&nbsp;lat/lon<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+lon0&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial&nbsp;longitude<br>
+lat0&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial&nbsp;latitude<br>
+end_lon&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Final&nbsp;(predicted)&nbsp;longitude<br>
+end_lat&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Final&nbsp;(predicted)&nbsp;latitude</tt></dd></dl>
+ <dl><dt><a name="-data_interpolation"><strong>data_interpolation</strong></a>(data, alt0, step, descent_only<font color="#909090">=False</font>, output_figs<font color="#909090">=False</font>)</dt><dd><tt>Interpolate&nbsp;(and&nbsp;extrapolate&nbsp;in&nbsp;the&nbsp;low&nbsp;end,&nbsp;if&nbsp;mode='spline'&nbsp;is&nbsp;used)&nbsp;vertical&nbsp;data&nbsp;from&nbsp;alt0&nbsp;to&nbsp;maximum&nbsp;level&nbsp;present&nbsp;in&nbsp;the&nbsp;data.<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
@@ -173,7 +190,7 @@ Arguments<br>
 =========<br>
 lat_rad&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Latitude&nbsp;in&nbsp;radians</tt></dd></dl>
- <dl><dt><a name="-find_bilinear_points"><strong>find_bilinear_points</strong></a>(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, prop, resolution)</dt><dd><tt>Calculate&nbsp;locations&nbsp;and&nbsp;values&nbsp;of&nbsp;points&nbsp;to&nbsp;be&nbsp;used&nbsp;for&nbsp;bilinear&nbsp;interpolation&nbsp;given&nbsp;a&nbsp;list&nbsp;of&nbsp;data&nbsp;and&nbsp;point<br>
+ <dl><dt><a name="-find_bilinear_points"><strong>find_bilinear_points</strong></a>(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, resolution)</dt><dd><tt>Calculate&nbsp;locations&nbsp;and&nbsp;values&nbsp;of&nbsp;points&nbsp;to&nbsp;be&nbsp;used&nbsp;for&nbsp;bilinear&nbsp;interpolation&nbsp;given&nbsp;a&nbsp;list&nbsp;of&nbsp;data&nbsp;and&nbsp;point<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
@@ -189,8 +206,6 @@ data_lons&nbsp;:&nbsp;list<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;longitudes&nbsp;in&nbsp;weather&nbsp;forecast&nbsp;model&nbsp;(GFS)<br>
 data_lats&nbsp;:&nbsp;list<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;latitudes&nbsp;in&nbsp;weather&nbsp;forecast&nbsp;model&nbsp;(GFS)<br>
-prop&nbsp;:&nbsp;list<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;containing&nbsp;the&nbsp;data&nbsp;we&nbsp;wish&nbsp;to&nbsp;interpolate<br>
 resolution&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Resolution&nbsp;of&nbsp;weather&nbsp;forecast&nbsp;models&nbsp;(GFS)&nbsp;used<br>
 Return<br>
