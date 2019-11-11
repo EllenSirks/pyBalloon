@@ -59,6 +59,6 @@ sigma_T = 1.64
 sigma_X = 1.37
 sigma_r = 1.51 # for circle
 
-# login for 0.25 degrees resolution weather data
-email = 'ellen.l.sirks@durham.ac.uk'
-password = 'Petten36'
+# login for 0.25 degrees resolution weather data from https://rda.ucar.edu/
+email = ''
+password = ''
