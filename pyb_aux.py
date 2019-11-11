@@ -3,7 +3,7 @@ Auxiliary functions used in pyBalloon
 """
 
 from haversine import haversine
-
+from osgeo import gdal
 import matplotlib.pyplot as plt
 from scipy import interpolate
 from astropy.io import ascii
@@ -503,54 +503,155 @@ def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_
 
 #################################################################################################################
 
-def get_elevation(lon, lat):
-	""" 
-	Calculate elevation at given longitude and latitude using data from: http://viewfinderpanoramas.org/
+# def get_elevation_greenland(lon, lat):
+# 	""" 
+# 	Calculate elevation at given longitude and latitude using data from: http://viewfinderpanoramas.org/
 
-	Arguments
-	=========
-	lon : float
-		Longitude of location
-	lat : float
-		Latitude of location	
-	Return:
-		Elevation at provided longitude and latitude
-	"""
+# 	Arguments
+# 	=========
+# 	lon : float
+# 		Longitude of location
+# 	lat : float
+# 		Latitude of location	
+# 	Return:
+# 		Elevation at provided longitude and latitude
+# 	"""
 
-	SAMPLES = 1201  # Change this to 3601 for SRTM1
-	HGTDIR = p.path + p.elevation_data_folder
+# 	SAMPLES = 1201  # Change this to 3601 for SRTM1
+# 	HGTDIR = p.path + p.elevation_data_folder
+
+# 	if lat > 180:
+# 		lat -= 360
+# 	if lon > 180:
+# 		lon -= 360
+
+# 	if lat >= 0:
+# 		ns = 'N'
+# 	elif lat < 0:
+# 		ns = 'S'
+
+# 	if lon >= 0:
+# 		ew = 'E'
+# 	elif lon < 0:
+# 		ew = 'W'
+
+# 	hgt_file = "%(ns)s%(lat)02d%(ew)s%(lon)03d.hgt" % {'lat': abs(lat), 'lon': abs(lon), 'ns': ns, 'ew': ew}
+# 	hgt_file_path = os.path.join(HGTDIR, hgt_file)
+
+# 	if not os.path.isfile(hgt_file_path):
+# 		print(str(hgt_file) + ' does not exist!')
+# 		return -32768
+
+# 	else:
+# 		with open(hgt_file_path, 'rb') as hgt_data:
+# 			# HGT is 16bit signed integer(i2) - big endian(>)
+# 			elevations = np.fromfile(hgt_data, np.dtype('>i2'), SAMPLES*SAMPLES).reshape((SAMPLES, SAMPLES))
+
+# 			lat_row = int(round((lat - int(lat)) * (SAMPLES - 1), 0))
+# 			lon_row = int(round((lon - int(lon)) * (SAMPLES - 1), 0))
+
+# 			return elevations[SAMPLES - 1 - lat_row, lon_row].astype(int)
+
+# #################################################################################################################
+
+# method to find the srtm file with the correct lon/lat limits
+def find_srtm_file(lon, lat):
 
 	if lat > 180:
 		lat -= 360
 	if lon > 180:
 		lon -= 360
 
-	if lat >= 0:
-		ns = 'N'
-	elif lat < 0:
-		ns = 'S'
+	srtm_dir = p.path + p.elevation_data_folder
 
-	if lon >= 0:
-		ew = 'E'
-	elif lon < 0:
-		ew = 'W'
+	data = ascii.read(srtm_dir + 'srtm_data_limits.txt')
+	files, tlat, blat, llon, rlon = data['file'], data['tlat'], data['blat'], data['llon'], data['rlon']
 
-	hgt_file = "%(ns)s%(lat)02d%(ew)s%(lon)03d.hgt" % {'lat': abs(lat), 'lon': abs(lon), 'ns': ns, 'ew': ew}
-	hgt_file_path = os.path.join(HGTDIR, hgt_file)
+	file = None
 
-	if not os.path.isfile(hgt_file_path):
-		print(str(hgt_file) + ' does not exist!')
-		return -32768
+	for i in range(len(files)):
+
+		if lat < tlat[i] and lat > blat[i]:
+			if lon < rlon[i] and lon > llon[i]:
+				file = files[i]
+
+	if file != None:
+		return str(file)
+	else:
+		print('Correct SRTM file data is not here!')
+		return
+
+#################################################################################################################
+
+# find the elevation at the location (the loc closest in the grid)
+def get_elevation(lon, lat):
+
+	srtm_dir = p.path + p.elevation_data_folder
+
+	if lat > 180:
+		lat -= 360
+	if lon > 180:
+		lon -= 360
+
+	if lat < 60 and lat > 60:
+
+		srtm_file = find_srtm_file(lon, lat)
+
+		file = srtm_dir + srtm_file
+
+		ds = gdal.Open(file)
+
+		band = ds.GetRasterBand(1)
+		elevations = band.ReadAsArray()
+
+		nrows, ncols = elevations.shape
+		x0, dx, dxdy, y0, dydx, dy = ds.GetGeoTransform()
+
+		lons = np.arange(x0, x0 + dx*ncols, dx)
+
+		lats = np.arange(y0, y0 + dy*nrows, dy) ### ?                                        
+
+		diff1 = np.abs(lons - lon)
+		diff2 = np.abs(lats - lat)
+
+		i1 = np.where((diff1 == np.min(diff1)))[0][0]
+		i0 = np.where((diff2 == np.min(diff2)))[0][0]
+
+		elevation = elevations[i0][i1]
 
 	else:
-		with open(hgt_file_path, 'rb') as hgt_data:
-			# HGT is 16bit signed integer(i2) - big endian(>)
-			elevations = np.fromfile(hgt_data, np.dtype('>i2'), SAMPLES*SAMPLES).reshape((SAMPLES, SAMPLES))
 
-			lat_row = int(round((lat - int(lat)) * (SAMPLES - 1), 0))
-			lon_row = int(round((lon - int(lon)) * (SAMPLES - 1), 0))
+		SAMPLES = 1201  # Change this to 3601 for SRTM1
+		HGTDIR = p.path + p.elevation_data_folder
 
-			return elevations[SAMPLES - 1 - lat_row, lon_row].astype(int)
+		if lat >= 0:
+			ns = 'N'
+		elif lat < 0:
+			ns = 'S'
+
+		if lon >= 0:
+			ew = 'E'
+		elif lon < 0:
+			ew = 'W'
+
+		hgt_file = "%(ns)s%(lat)02d%(ew)s%(lon)03d.hgt" % {'lat': abs(lat), 'lon': abs(lon), 'ns': ns, 'ew': ew}
+		hgt_file_path = os.path.join(HGTDIR, hgt_file)
+
+		if not os.path.isfile(hgt_file_path):
+			print(str(hgt_file) + ' does not exist!')
+			elevation = -32768
+
+		else:
+			with open(hgt_file_path, 'rb') as hgt_data:
+				# HGT is 16bit signed integer(i2) - big endian(>)
+				elevations = np.fromfile(hgt_data, np.dtype('>i2'), SAMPLES*SAMPLES).reshape((SAMPLES, SAMPLES))
+
+				lat_row = int(round((lat - int(lat)) * (SAMPLES - 1), 0))
+				lon_row = int(round((lon - int(lon)) * (SAMPLES - 1), 0))
+
+				elevation = elevations[SAMPLES - 1 - lat_row, lon_row].astype(int)
+
+	return elevation
 
 #################################################################################################################
 
@@ -605,7 +706,11 @@ def get_endpoint(data=None, run=None, filename=None, params=None):
 	elevations = []
 
 	for i in range(1, len(lats)):
-		elevation = get_elevation(lat=lats[-i], lon=lons[-i])
+
+		if lats[-i] < 60:
+			elevation = get_elevation(lat=lats[-i], lon=lons[-i])
+		else:
+			elevation = get_elevation_greenland(lat=lats[-i], lon=lons[-i])
 		elevations.append(elevation)
 		if elevation < alts[-i]:
 			break
@@ -881,6 +986,8 @@ def find_bilinear_points(grid_i, i, lon_rad, lat_rad, data_lons, data_lats, reso
 
 	return x1, y1, x2, y2, low_left, up_left, low_right, up_right
 
+#################################################################################################################
+
 def bilinear_interpolation(grid_i=None, i=None, lon_rad=None, lat_rad=None, data_lons=None, data_lats=None, prop=None, resolution=None, coords=None, inds=None):
 	"""
 	Calculate property at given latitude/longitude using bilinear interpolation
@@ -938,3 +1045,15 @@ def bilinear_interpolation(grid_i=None, i=None, lon_rad=None, lat_rad=None, data
 		   ) / ((x2 - x1) * (y2 - y1) + 0.0)
 
 #################################################################################################################
+
+if __name__ == '__main__':
+
+	time0 = time.time()
+
+	lat, lon = 67.95563298887704, 311.74684661346487
+
+	el = get_elevation(lon, lat)
+	print(el)
+
+	print(time.time() - time0)
+

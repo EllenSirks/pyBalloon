@@ -353,14 +353,10 @@ def calc_displacements(data=None, balloon=None, step=None, descent_only=False):
 	if step == None:
 		step = balloon['altitude_step']
 
-	for i in range(len(data['descent_speeds'])):
-
-		if not descent_only:	
+ 	# ascent properties		
+	if not descent_only:
+		for i in range(len(data['ascent_speeds'])):
 			data['ascent_speeds'][i] = np.array(list(0.5*data['ascent_speeds'][i][:-1] + 0.5*data['ascent_speeds'][i][1:]) + [data['ascent_speeds'][i][-1]])
-
-		data['descent_speeds'][i] = np.array(list(0.5*data['descent_speeds'][i][:-1] + 0.5*data['descent_speeds'][i][1:]) + [data['descent_speeds'][i][-1]])
-		data['u_winds'][i] = np.array(list(0.5*data['u_winds'][i][:-1] + 0.5*data['u_winds'][i][1:]) + [data['u_winds'][i][-1]])
-		data['v_winds'][i] = np.array(list(0.5*data['v_winds'][i][:-1] + 0.5*data['v_winds'][i][1:]) + [data['v_winds'][i][-1]])
 
 	if not descent_only:
 		data['max_altitudes'], data['max_alt_idxs'] = pyb_aux.burst_altitude(data, balloon['burst_radius'])
@@ -368,8 +364,15 @@ def calc_displacements(data=None, balloon=None, step=None, descent_only=False):
 		data['ascent_time_steps'] = delta_t
 		data['cumulative_ascent_times'] = np.cumsum(delta_t)/60.
 
+ 	# descent properties		
+	for i in range(len(data['descent_speeds'])):
+		data['descent_speeds'][i] = np.array(list(0.5*data['descent_speeds'][i][:-1] + 0.5*data['descent_speeds'][i][1:]) + [data['descent_speeds'][i][-1]])
+		data['u_winds'][i] = np.array(list(0.5*data['u_winds'][i][:-1] + 0.5*data['u_winds'][i][1:]) + [data['u_winds'][i][-1]])
+		data['v_winds'][i] = np.array(list(0.5*data['v_winds'][i][:-1] + 0.5*data['v_winds'][i][1:]) + [data['v_winds'][i][-1]])
+	
 	delta_t = -1*step / data['descent_speeds']
 
+	# # for logaritmic steps!
 	# steps = list(data['altitudes'][1:] - data['altitudes'][:-1])
 	# steps = np.array([steps[0]] + steps)
 	# delta_t = []
@@ -484,9 +487,13 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 		sigmas_u, sigmas_v = [], []
 		sigma_u_prop, sigma_v_prop = 'u_wind_errs', 'v_wind_errs'
 
+	x_prop, y_prop = 'u_winds', 'v_winds'
+	t_props = ['ascent_time_steps', 'descent_time_steps']
+	speed_props = ['ascent_speeds', 'descent_speeds']
+
 	speeds, figs = [], []
 	delta_ts, tfutures, total_time, dists, dists_u, dists_v = [utc_hour - time_key0], [initial_tfut], [0], [0], [0], [0]
-	stage, index, i, max_i, timer = 1, 0, 0, 0, 0
+	stage, index, props_index, i, max_i, timer = 1, 0, 0, 0, 0, 0
 
 	if drift_time == 0:
 		stage_update = 2
@@ -525,18 +532,6 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 
 		if not (stage == 1 and descent_only):
 
-			############################################################################################################
-
-			# set name of property in weather data
-			if stage == 1:
-				x_prop, y_prop, t_prop, speed_prop,  = 'u_winds', 'v_winds', 'ascent_time_steps', 'ascent_speeds'
-			if stage == 2:
-				x_prop, y_prop = 'u_winds', 'v_winds'
-			if stage == 3:
-				x_prop, y_prop, t_prop, speed_prop = 'u_winds', 'v_winds', 'descent_time_steps', 'descent_speeds'
-
-			############################################################################################################
-
 			# determine fractions for the interpolation between forecasts
 			if time_interpolate:
 				(t1, f1), (t2, f2) = calc_time_frac(current_time=current_time, weather_files=keys)
@@ -564,8 +559,8 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 
 			if stage != 2:
 
-				dt = calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), t_prop, resolution)
-				speed = calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), speed_prop, resolution)
+				dt = calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), t_props[props_index], resolution)
+				speed = calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), speed_props[props_index], resolution)
 
 			else:
 
@@ -583,29 +578,34 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 		if stage == 1:
 
 			if not descent_only:
+
+				sys.stdout.write('\r')
+				sys.stdout.flush()
+				sys.stdout.write(str(round(100.*(max_i - i)/max_i, 1)) + r' % done'.ljust(60) + '\r')
+				sys.stdout.flush()
+
 				if all_alts[-1] >= data[keys[index]]['max_altitudes'][grid_i]:
 
 					sys.stdout.write('\r')
 					sys.stdout.flush()
 					stage += stage_update
+					props_index += 1
 					sys.stdout.write(out_str.ljust(60) + '\r')
 					sys.stdout.flush()
 					time.sleep(0.2)
 
 					final_i = 0
 					continue
-				i += 1
 			else:
 
 				# Mimick the movement during ascent if we only want descent
 				if alts[i] >= alt0:
-					if drift_time == 0:
-						stage += 2
-					else:
-						stage += 1
+					stage += stage_update
+					props_index += 1
 					final_i = i
 					continue
-				i += 1
+
+			i += 1
 			max_i = i
 
 		elif stage == 2:
@@ -622,10 +622,14 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 			sys.stdout.write(str(round(100.*(max_i - i)/max_i, 1)) + r' % done'.ljust(60) + '\r')
 			sys.stdout.flush()
 
-			if all_alts[-1] < 2500.:
-				elevation = pyb_aux.get_elevation(lat=np.degrees(lat_rad[-1]), lon=np.degrees(lon_rad[-1]))
-				if i == 0 or alts[i] <= elevation:
+			if all_alts[-1] < 2000.:
+				elevation = pyb_aux.get_elevation(lon=np.degrees(lon_rad[-1]), lat=np.degrees(lat_rad[-1]))
+				if alts[i] <= elevation:
 					break
+
+			if i == 0:
+				break
+
 			i -= 1
 
 		if stage == 2:
@@ -657,25 +661,27 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 
 			loc_diffs.append(min_diff)
 
-	speeds.append(calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), speed_prop, resolution))
+	speeds.append(calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), speed_props[props_index], resolution))
 
 	# get more accurate end-point based on elevation data
-	new_end_point, new_alt = pyb_aux.get_endpoint(data=(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), np.array(all_alts), np.array(dists)))
+	if np.abs(elevation - all_alts[-1]) > balloon['altitude_step']/10.:
 
-	diff = np.sqrt((np.degrees(np.array(lat_rad)) - new_end_point[0])**2 + (np.degrees(np.array(lon_rad)) - new_end_point[1])**2)
-	index = np.where(diff == min(diff))[0][-1]
+		new_end_point, new_alt = pyb_aux.get_endpoint(data=(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), np.array(all_alts), np.array(dists)))
 
-	lat_rad, lon_rad, all_alts = lat_rad[:index], lon_rad[:index], all_alts[:index], 
-	dists, speeds, total_time, tfutures, loc_diffs = dists[:index+1], speeds[:index+1], total_time[:index+1], tfutures[:index+1], loc_diffs[:index+1]
+		diff = np.sqrt((np.degrees(np.array(lat_rad)) - new_end_point[0])**2 + (np.degrees(np.array(lon_rad)) - new_end_point[1])**2)
+		index = np.where(diff == min(diff))[0][-1]
 
-	if check_sigmas:
-		sigmas_u, sigmas_v = sigmas_u[:index+1], sigmas_v[:index+1]
-	if not time_interpolate:
-		delta_ts = delta_ts[:index+1]
+		lat_rad, lon_rad, all_alts = lat_rad[:index], lon_rad[:index], all_alts[:index], 
+		dists, speeds, total_time, tfutures, loc_diffs = dists[:index+1], speeds[:index+1], total_time[:index+1], tfutures[:index+1], loc_diffs[:index+1]
 
-	lat_rad.append(np.radians(new_end_point[0]))
-	lon_rad.append(np.radians(new_end_point[1]))
-	all_alts.append(new_alt)
+		if check_sigmas:
+			sigmas_u, sigmas_v = sigmas_u[:index+1], sigmas_v[:index+1]
+		if not time_interpolate:
+			delta_ts = delta_ts[:index+1]
+
+		lat_rad.append(np.radians(new_end_point[0]))
+		lon_rad.append(np.radians(new_end_point[1]))
+		all_alts.append(new_alt)
 
 	############################################################################################################
 

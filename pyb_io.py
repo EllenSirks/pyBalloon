@@ -862,9 +862,19 @@ def set_params(params=None, balloon=None):
 			next_point = str(params[1])
 		time_interpolate = bool(params[-6])
 		grid_interpolate = bool(params[-5])
-		drift_time = float(params[-4])
+
+		if type(params[-4]) != type(np.array([])):
+			drift_time = float(params[-4])
+		else:
+			drift_time = params[-4]
+
 		resolution = float(params[-3])
-		hr_diff = int(params[-2])
+
+		if type(params[-2]) != type(np.array([])):
+			hr_diff = int(params[-2])
+		else:
+			hr_diff = params[-2]
+
 		check_sigmas = bool(params[-1])
 
 	return descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_sigmas, params, balloon
@@ -1028,7 +1038,7 @@ def determine_error(trajectories=None, params=None):
 
 #################################################################################################################
 
-def create_trajectory_files(traj_dir=None, kml_dir=None, datestr=None, utc_hour=None, loc0=None, trajectories=None, params=None):
+def create_trajectory_files(traj_dir=None, kml_dir=None, datestr=None, utc_hour=None, loc0=None, trajectories=None, params=None, overwrite=False):
 	"""
 	Method to create trajectory files and write out the trajectory data to them
 
@@ -1061,8 +1071,10 @@ def create_trajectory_files(traj_dir=None, kml_dir=None, datestr=None, utc_hour=
 	kml_fname = kml_dir + datestr + '_' + str(utc_hour) + '_' + str(loc0)
 
 	# determine number of files already in folder (with the same starting params)
-	no = len([filename for filename in os.listdir(traj_dir) if os.path.basename(traj_file) in filename])
-	no = 0
+	if overwrite:
+		no = 0
+	else:
+		no = len([filename for filename in os.listdir(traj_dir) if os.path.basename(traj_file) in filename])
 
 	if no == 0:
 		traj_file += '.dat'
@@ -1107,6 +1119,11 @@ def make_descent_rate_plot(directory=None, data=None, datestr=None, utc_hour=Non
 		(latitude in degrees, longitude in degrees, altitude in km) of initial point		
 	"""
 
+	fig_dir = directory + 'DescentRates/'
+
+	if not os.path.exists(fig_dir):
+		os.makedirs(fig_dir)
+
 	alts = np.array(data['alts'])
 	times = np.array(data['times'])
 	descent_speeds = np.array(data['speeds'])
@@ -1121,7 +1138,7 @@ def make_descent_rate_plot(directory=None, data=None, datestr=None, utc_hour=Non
 	plt.grid(True)
 	plt.tight_layout()
 
-	fig.savefig(directory + 'descent_rate_vs_time.png')
+	fig.savefig(fig_dir + 'descent_rate_vs_time.png')
 
 	plt.clf()
 
@@ -1133,7 +1150,7 @@ def make_descent_rate_plot(directory=None, data=None, datestr=None, utc_hour=Non
 	plt.grid(True)
 	plt.tight_layout()
 
-	fig.savefig(directory + 'descent_rate_vs_alt_' + datestr + '_' + str(utc_hour) + '_' + str(loc0) + '.png')
+	fig.savefig(fig_dir + 'descent_rate_vs_alt_' + datestr + '_' + str(utc_hour) + '_' + str(loc0) + '.png')
 
 	plt.close()
 

@@ -83,14 +83,15 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	kml_dir = base_dir + p.kml_folder
 	traj_dir = base_dir + p.traj_folder
 	fig_dir = base_dir + p.fig_folder + p.check_figs_folder
+	fig_dir_checks = fig_dir + 'InterpolationChecks/'
 
 	# check if the paths exist/make them
 	if not os.path.exists(kml_dir):
 		os.makedirs(kml_dir)
 	if not os.path.exists(traj_dir):
 		os.makedirs(traj_dir)
-	if not os.path.exists(fig_dir):
-		os.makedirs(fig_dir)
+	if not os.path.exists(fig_dir_checks):
+		os.makedirs(fig_dir_checks)
 
 	############################################################################################################ <---- calculation trajectories
 
@@ -122,7 +123,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	if output_figs:
 		for i in range(len(fig_dicts)-1):
 			for key in fig_dicts[i].keys():
-				fig_dicts[i][key].savefig(fig_dir + datestr + '_' + key + '_check' + str(i+1) + '.png')
+				fig_dicts[i][key].savefig(fig_dir_checks + datestr + '_' + key + '_check' + str(i+1) + '.png')
 
 	# save descent rate figure
 	pyb_io.make_descent_rate_plot(directory=fig_dir, data=trajectories, datestr=datestr, utc_hour=utc_hour, loc0=loc0)
@@ -161,7 +162,7 @@ if __name__ == "__main__":
 	else:
 		run = None
 
-	runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, print_verbose=False, write_verbose=True, run=run, output_figs=True)
+	runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, print_verbose=False, write_verbose=True, run=run, output_figs=False)
 
 	############################################################################################################
 
