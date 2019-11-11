@@ -593,7 +593,7 @@ def get_elevation(lon, lat):
 	if lon > 180:
 		lon -= 360
 
-	if lat < 60 and lat > 60:
+	if np.abs(lat) < 60:
 
 		srtm_file = find_srtm_file(lon, lat)
 
@@ -706,11 +706,7 @@ def get_endpoint(data=None, run=None, filename=None, params=None):
 	elevations = []
 
 	for i in range(1, len(lats)):
-
-		if lats[-i] < 60:
-			elevation = get_elevation(lat=lats[-i], lon=lons[-i])
-		else:
-			elevation = get_elevation_greenland(lat=lats[-i], lon=lons[-i])
+		elevation = get_elevation(lat=lats[-i], lon=lons[-i])
 		elevations.append(elevation)
 		if elevation < alts[-i]:
 			break

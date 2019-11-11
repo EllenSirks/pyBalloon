@@ -405,7 +405,7 @@ def read_gefs_file(fname=None, area=None, alt0=0, descent_only=False):
 #################################################################################################################
 #################################################################################################################
 
-def save_kml(fname, data, other_info=None, params=None, balloon=None, shape='circle', radius=5, mean_direction=None):
+def save_kml(fname, data, other_info=None, params=None, balloon=None, shape='circle', err=0, radius=5, mean_direction=None):
 	"""
 	Method to save given trajectory as KML file
 
@@ -515,23 +515,24 @@ def save_kml(fname, data, other_info=None, params=None, balloon=None, shape='cir
 
 	end_lat, end_lon, end_alt = data['lats'][-1], data['lons'][-1], data['alts'][-1]
 
-	err = np.sqrt(radius**2 - 3.35**2)
+	if shape == 'ellips':
+		sigma_T = p.sigma_T
+		sigma_X = p.sigma_X
+	if shape == 'circle':
+		sigma_r = p.sigma_r
 
 	if shape == 'circle':
-		kml_str_add1 = create_circle(lon = end_lon, lat = end_lat, radius=radius, color='ff0080ff') # 95th percentile
-		kml_str_add2 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + 1.68**2), color='ff0000ff') # 68th percentile
-		kml_str_add3 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + 5.03**2), color='ffff00ff') # 99th percentile
-		# kml_str_add4 = create_circle(lon = end_lon, lat = end_lat, radius=err, color='ff149300')
+		kml_str_add1 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + sigma_r**2), color='ff0000ff') # 68th percentile
+		kml_str_add2 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + (2*sigma_r)**2), color='ff0080ff') # 95th percentile
+		kml_str_add3 = create_circle(lon = end_lon, lat = end_lat, radius=np.sqrt(err**2 + (3*sigma_r)**2), color='ffff00ff') # 99th percentile
 	elif shape == 'ellips':
-		kml_str_add1 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=2, theta=mean_direction, color='ff0080ff') # 95th percentile
-		kml_str_add2 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=1, theta=mean_direction, color='ff0000ff') # 68th percentile
-		kml_str_add3 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=3, theta=mean_direction, color='ffff00ff') # 99th percentile
-		# kml_str_add4 = create_ellips(lon = end_lon, lat = end_lat, add=0, times=1, theta=mean_direction, color='ff149300')
+		kml_str_add1 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=1, x_extent=sigma_T, y_extent=sigma_X, theta=mean_direction, color='ff0000ff') # 68th percentile
+		kml_str_add2 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=2, x_extent=sigma_T, y_extent=sigma_X, theta=mean_direction, color='ff0080ff') # 95th percentile
+		kml_str_add3 = create_ellips(lon = end_lon, lat = end_lat, add=err, times=3, x_extent=sigma_T, y_extent=sigma_X, theta=mean_direction, color='ffff00ff') # 99th percentile
 
 	kml_str += kml_str_add1
 	kml_str += kml_str_add2
 	kml_str += kml_str_add3
-	# kml_str += kml_str_add4
 
 	kml_str += '</Document>\n'
 	kml_str += '</kml>\n'
@@ -1028,7 +1029,7 @@ def determine_error(trajectories=None, params=None):
 		time_interpolate = params[-7]
 
 	mean_tfut = np.mean(trajectories['tfutures'])
-	err = np.sqrt(3.35**2 + (mean_tfut*(0.19))**2) ## for forecast looking into the future
+	err = np.sqrt((mean_tfut*(0.19))**2) ## for forecast looking into the future
 
 	if not time_interpolate:
 		time_diff_err = np.mean(np.abs(trajectories['delta_ts']))*2.4 + -0.3 # for not using interpolation: i.e., difference between forecast time and model time
@@ -1321,11 +1322,12 @@ def create_ellips(lon=None, lat=None, x_extent=1.858, y_extent=1.474, theta=0, a
 
 	x_extent *= times
 	y_extent *= times
-	x_extent += add
-	y_extent += add
+	x_extent = np.sqrt(add**2 + x_extent**2)
+	y_extent = np.sqrt(add**2 + y_extent**2)
 
 	coords = np.array(get_ellips_coords(lat=lat, lon=lon, x_extent=x_extent, y_extent=y_extent, theta=theta))
 	kml_str = write_out_polygon(coords=coords, color=color)
+
 	return kml_str
 
 #################################################################################################################

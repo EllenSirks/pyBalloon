@@ -61,7 +61,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 
 	# change altitude if it is underground (not always accurate)
 	if not descent_only:
-		elevation = pyb_aux.get_elevation(lon0, lat0)
+		elevation = pyb_aux.get_elevation(lon=lon0, lat=lat0)
 		if elevation > alt0:
 			alt0 = elevation
 			loc0 = lat0, lon0, alt0
@@ -130,6 +130,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 
 	# determine error
 	err = pyb_io.determine_error(trajectories=trajectories, params=params)
+	print('The error is: ' + str(round(err, 3)) + ' km\n')
 
 	# highest point in main-run trajectory (bit redundant for descent only)
 	if descent_only:
@@ -140,7 +141,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 
 	# write out file for google-earth
 	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
-	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, shape='ellips', radius=err, mean_direction=np.radians(trajectories['mean_direction']))
+	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, shape='ellips', err=err, mean_direction=np.radians(trajectories['mean_direction']))
 
 	return trajectories
 
