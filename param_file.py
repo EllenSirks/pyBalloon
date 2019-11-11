@@ -30,18 +30,18 @@ check_sigmas = False
 # balloon parameters
 balloon = {}
 balloon['altitude_step'] = 100.0 # (meters); (~50-800)
-balloon['equip_mass'] = 1.608 # kg 1
+balloon['equip_mass'] = 2 # kg
 balloon['balloon_mass'] = 1.50 # kg
 balloon['fill_radius'] = 2.122/2 # meters
 balloon['radius_empty'] = 2.41/2 # meters (flaccid body length - neck length)
-balloon['burst_radius'] = 11.2/2 # meters 9.44
+balloon['burst_radius'] = 11.2/2 # meters
 balloon['thickness_empty'] = 0.2 * 10**-3 # mm -> meters
 balloon['Cd_balloon'] = 0.5
 balloon['simple_ascent_rate'] = 5.0 # m/s
 
 # parachute parameters
-balloon['Cd_parachute'] = (0.97*1.4)/((0.57*1.75)**2) #  1.36
-balloon['parachute_areas'] = [(0.57*1.75)**2] # meters [0.57**2]
+balloon['Cd_parachute'] = 0.75 #  1.36
+balloon['parachute_areas'] = [(0.57*1.75)**2] # meters^2
 balloon['parachute_change_altitude'] = None # meters
 
 # constants
@@ -54,8 +54,11 @@ M_helium = 4.002602 # molar mass of helium [kg/mol], altitude dependence not use
 Cd_sphere = 0.47 # Drag coefficient for a sphere
 
 # data tile size
-tile_size = 6.
+tile_size = 4.
+sigma_T = 1.64
+sigma_X = 1.37
+sigma_r = 1.51 # for circle
 
 # login for 0.25 degrees resolution weather data
-email = ''
-password = ''
+email = 'ellen.l.sirks@durham.ac.uk'
+password = 'Petten36'
