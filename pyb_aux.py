@@ -911,15 +911,22 @@ def calc_mean_travel_direction(lon0, lat0, end_lon, end_lat):
 		Final (predicted) latitude
 	"""
 
+	if end_lon > 180:
+		end_lon -= 360
+
 	dx_end = haversine((lat0, lon0), (lat0, end_lon))
 	dy_end = haversine((lat0, lon0), (end_lat, lon0))
 
-	if end_lat < lat0:
-		dy_end *= -1
-	if end_lon < lon0:
-		dx_end *= -1
+	theta = np.degrees(np.arctan2(dy_end, dx_end))
 
-	return np.degrees(np.arctan2(dy_end, dx_end))
+	if end_lat < lat0 and end_lon > lon0:
+		theta = 360. - theta
+	elif end_lat > lat0 and end_lon < lon0:
+		theta = 180. - theta
+	elif end_lat < lat0 and end_lon < lon0:
+		theta += 180.
+
+	return theta
 
 #################################################################################################################
 
