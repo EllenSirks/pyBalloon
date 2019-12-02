@@ -5,7 +5,7 @@ Python scripts that can be used to simulate trajectories of tropospheric weather
 
 Dependencies
 ------------
-- Python 2.x (tested with 2.7.15+)
+- Tested with Python 2.7.15+ and Python 3.6.8
 - Numpy
 - Scipy
 - astropy

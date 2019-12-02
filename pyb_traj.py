@@ -432,7 +432,7 @@ def calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, fracs, pr
 
 #################################################################################################################
 
-def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, output_figs=False):
+def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, output_figs=False, check_elevation=True):
 	"""
 	Calculate the trajectory of the balloon/parachute given a start position & other input parameters
 
@@ -622,10 +622,11 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 			sys.stdout.write(str(round(100.*(max_i - i)/max_i, 1)) + r' % done'.ljust(60) + '\r')
 			sys.stdout.flush()
 
-			if all_alts[-1] < 2000.:
-				elevation = pyb_aux.get_elevation(lon=np.degrees(lon_rad[-1]), lat=np.degrees(lat_rad[-1]))
-				if alts[i] <= elevation:
-					break
+			if check_elevation:
+				if all_alts[-1] < 2000.:
+					elevation = pyb_aux.get_elevation(lon=np.degrees(lon_rad[-1]), lat=np.degrees(lat_rad[-1]))
+					if alts[i] <= elevation:
+						break
 
 			if i == 0:
 				break
@@ -663,25 +664,26 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 
 	speeds.append(calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), speed_props[props_index], resolution))
 
-	# get more accurate end-point based on elevation data
-	if np.abs(elevation - all_alts[-1]) > balloon['altitude_step']/10.:
+	if check_elevation:
+		# get more accurate end-point based on elevation data
+		if np.abs(elevation - all_alts[-1]) > balloon['altitude_step']/10.:
 
-		new_end_point, new_alt = pyb_aux.get_endpoint(data=(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), np.array(all_alts), np.array(dists)))
+			new_end_point, new_alt = pyb_aux.get_endpoint(data=(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), np.array(all_alts), np.array(dists)))
 
-		diff = np.sqrt((np.degrees(np.array(lat_rad)) - new_end_point[0])**2 + (np.degrees(np.array(lon_rad)) - new_end_point[1])**2)
-		index = np.where(diff == min(diff))[0][-1]
+			diff = np.sqrt((np.degrees(np.array(lat_rad)) - new_end_point[0])**2 + (np.degrees(np.array(lon_rad)) - new_end_point[1])**2)
+			index = np.where(diff == min(diff))[0][-1]
 
-		lat_rad, lon_rad, all_alts = lat_rad[:index], lon_rad[:index], all_alts[:index], 
-		dists, speeds, total_time, tfutures, loc_diffs = dists[:index+1], speeds[:index+1], total_time[:index+1], tfutures[:index+1], loc_diffs[:index+1]
+			lat_rad, lon_rad, all_alts = lat_rad[:index], lon_rad[:index], all_alts[:index], 
+			dists, speeds, total_time, tfutures, loc_diffs = dists[:index+1], speeds[:index+1], total_time[:index+1], tfutures[:index+1], loc_diffs[:index+1]
 
-		if check_sigmas:
-			sigmas_u, sigmas_v = sigmas_u[:index+1], sigmas_v[:index+1]
-		if not time_interpolate:
-			delta_ts = delta_ts[:index+1]
+			if check_sigmas:
+				sigmas_u, sigmas_v = sigmas_u[:index+1], sigmas_v[:index+1]
+			if not time_interpolate:
+				delta_ts = delta_ts[:index+1]
 
-		lat_rad.append(np.radians(new_end_point[0]))
-		lon_rad.append(np.radians(new_end_point[1]))
-		all_alts.append(new_alt)
+			lat_rad.append(np.radians(new_end_point[0]))
+			lon_rad.append(np.radians(new_end_point[1]))
+			all_alts.append(new_alt)
 
 	############################################################################################################
 
@@ -715,6 +717,7 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 
 	print('Maximum altitude: ' + str(np.max(all_alts)) + ' m')
 	print('Landing location: (%.6f, %.6f)' % (output['lats'][-1], output['lons'][-1]))
+	print('Mean direction of travel: ' + str(round(output['mean_direction'], 3)) + ' degrees')
 	print('Flight time: %.3f min' % (output['times'][-1]) + ', distance travelled: %.1f' % output['distance'] + ' km')
 	if check_sigmas:
 		total_sigma = np.sqrt(np.sqrt(np.sum(output['sigmas_u']**2))**2 + np.sqrt(np.sum(output['sigmas_v']**2))**2)/1000.
@@ -767,7 +770,7 @@ def prepare_data(weather_file=None, loc0=None, current_time=None, balloon=None, 
 
 #################################################################################################################
 
-def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, output_figs=False):
+def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, output_figs=False, check_elevation=True):
 	"""
 	Run all functions to calculate the trajectory
 	
@@ -808,7 +811,7 @@ def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=
 		del figs_dict
 
 	trajectories, figs2, used_weather_files, time_diffs = calc_movements(data=data_array, used_weather_files=used_weather_files, time_diffs=time_diffs, datestr=datestr, utc_hour=utc_hour, loc0=loc0, \
-		params=params, balloon=balloon, output_figs=output_figs)
+		params=params, balloon=balloon, output_figs=output_figs, check_elevation=check_elevation)
 	
 	for fig_dict in figs2:
 		figs1.append(fig_dict)

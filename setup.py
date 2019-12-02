@@ -1,3 +1,7 @@
+"""
+Script to be run to initialise paths before running pyBalloon.
+"""
+
 import sys, os
 
 import param_file as p

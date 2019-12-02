@@ -18,7 +18,7 @@ import param_file as p
 
 #################################################################################################################
 
-def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, run=None, print_verbose=False, write_verbose=False, add_run_info=True, output_figs=False, overwrite=False):
+def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, run=None, print_verbose=False, write_verbose=False, add_run_info=True, output_figs=False, overwrite=False, check_elevation=True):
 	"""
 	Method to run entire simulation of flight and write out calculated trajectories and predicted endpoint
 
@@ -46,6 +46,8 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 		If True, figures showing the grib data before and after interpolation between altitude steps are created and saved
 	overwrite : bool
 		If True, overwrite trajectory file with same name in folder
+	check_elevation : bool
+		If True, check elevation to make sure the code does not predict the trajectory to go underground.
 	"""
 
 	print('')
@@ -102,7 +104,8 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 		files = get_gfs.get_closest_gfs_file(datestr=datestr, utc_hour=utc_hour, resolution=resolution, hr_diff=hr_diff)
 
 	# calculate the trajectory of the balloon
-	trajectories, fig_dicts, used_weather_files, time_diffs = pyb_traj.run_traj(weather_files=files, datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon, output_figs=output_figs)
+	trajectories, fig_dicts, used_weather_files, time_diffs = pyb_traj.run_traj(weather_files=files, datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, \
+		balloon=balloon, output_figs=output_figs, check_elevation=check_elevation)
 
 	############################################################################################################ <---- create/write output 
 
@@ -126,7 +129,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 				fig_dicts[i][key].savefig(fig_dir_checks + datestr + '_' + key + '_check' + str(i+1) + '.png')
 
 	# save descent rate figure
-	pyb_io.make_descent_rate_plot(directory=fig_dir, data=trajectories, datestr=datestr, utc_hour=utc_hour, loc0=loc0)
+	# pyb_io.make_descent_rate_plot(directory=fig_dir, data=trajectories, datestr=datestr, utc_hour=utc_hour, loc0=loc0)
 
 	# determine error
 	err = pyb_io.determine_error(trajectories=trajectories, params=params)
@@ -163,7 +166,7 @@ if __name__ == "__main__":
 	else:
 		run = None
 
-	runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, print_verbose=False, write_verbose=True, run=run, output_figs=False)
+	runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, print_verbose=False, write_verbose=True, run=run, output_figs=False, check_elevation=True)
 
 	############################################################################################################
 

@@ -503,86 +503,6 @@ def mooney_rivlin(data, radius_empty, radius_filled, thickness_empty, gas_molar_
 
 #################################################################################################################
 
-# def get_elevation_greenland(lon, lat):
-# 	""" 
-# 	Calculate elevation at given longitude and latitude using data from: http://viewfinderpanoramas.org/
-
-# 	Arguments
-# 	=========
-# 	lon : float
-# 		Longitude of location
-# 	lat : float
-# 		Latitude of location	
-# 	Return:
-# 		Elevation at provided longitude and latitude
-# 	"""
-
-# 	SAMPLES = 1201  # Change this to 3601 for SRTM1
-# 	HGTDIR = p.path + p.elevation_data_folder
-
-# 	if lat > 180:
-# 		lat -= 360
-# 	if lon > 180:
-# 		lon -= 360
-
-# 	if lat >= 0:
-# 		ns = 'N'
-# 	elif lat < 0:
-# 		ns = 'S'
-
-# 	if lon >= 0:
-# 		ew = 'E'
-# 	elif lon < 0:
-# 		ew = 'W'
-
-# 	hgt_file = "%(ns)s%(lat)02d%(ew)s%(lon)03d.hgt" % {'lat': abs(lat), 'lon': abs(lon), 'ns': ns, 'ew': ew}
-# 	hgt_file_path = os.path.join(HGTDIR, hgt_file)
-
-# 	if not os.path.isfile(hgt_file_path):
-# 		print(str(hgt_file) + ' does not exist!')
-# 		return -32768
-
-# 	else:
-# 		with open(hgt_file_path, 'rb') as hgt_data:
-# 			# HGT is 16bit signed integer(i2) - big endian(>)
-# 			elevations = np.fromfile(hgt_data, np.dtype('>i2'), SAMPLES*SAMPLES).reshape((SAMPLES, SAMPLES))
-
-# 			lat_row = int(round((lat - int(lat)) * (SAMPLES - 1), 0))
-# 			lon_row = int(round((lon - int(lon)) * (SAMPLES - 1), 0))
-
-# 			return elevations[SAMPLES - 1 - lat_row, lon_row].astype(int)
-
-# #################################################################################################################
-
-# method to find the srtm file with the correct lon/lat limits
-def find_srtm_file(lon, lat):
-
-	if lat > 180:
-		lat -= 360
-	if lon > 180:
-		lon -= 360
-
-	srtm_dir = p.path + p.elevation_data_folder
-
-	data = ascii.read(srtm_dir + 'srtm_data_limits.txt')
-	files, tlat, blat, llon, rlon = data['file'], data['tlat'], data['blat'], data['llon'], data['rlon']
-
-	file = None
-
-	for i in range(len(files)):
-
-		if lat < tlat[i] and lat > blat[i]:
-			if lon < rlon[i] and lon > llon[i]:
-				file = files[i]
-
-	if file != None:
-		return str(file)
-	else:
-		print('Correct SRTM file data is not here!')
-		return
-
-#################################################################################################################
-
 # find the elevation at the location (the loc closest in the grid)
 def get_elevation(lon, lat):
 
@@ -593,23 +513,21 @@ def get_elevation(lon, lat):
 	if lon > 180:
 		lon -= 360
 
-	if np.abs(lat) < 60:
+	if np.abs(lat) < 60: # better accuracy, but slower!
 
-		srtm_file = find_srtm_file(lon, lat)
+		lon_box = int(math.ceil((lon + 180) / 5.))
+		lat_box = 25 - int(math.ceil((lat + 60) / 5.))
 
-		file = srtm_dir + srtm_file
+		file = srtm_dir + 'tif_files/srtm_' + str(lon_box).zfill(2) + '_' + str(lat_box).zfill(2) + '.tif'
 
-		ds = gdal.Open(file)
-
-		band = ds.GetRasterBand(1)
-		elevations = band.ReadAsArray()
+		ds = gdal.Open(file, gdal.GA_ReadOnly)
+		elevations = ds.GetRasterBand(1).ReadAsArray()
 
 		nrows, ncols = elevations.shape
 		x0, dx, dxdy, y0, dydx, dy = ds.GetGeoTransform()
 
 		lons = np.arange(x0, x0 + dx*ncols, dx)
-
-		lats = np.arange(y0, y0 + dy*nrows, dy) ### ?                                        
+		lats = np.arange(y0, y0 + dy*nrows, dy)                                     
 
 		diff1 = np.abs(lons - lon)
 		diff2 = np.abs(lats - lat)
@@ -622,7 +540,7 @@ def get_elevation(lon, lat):
 	else:
 
 		SAMPLES = 1201  # Change this to 3601 for SRTM1
-		HGTDIR = p.path + p.elevation_data_folder
+		HGTDIR = p.path + p.elevation_data_folder + '/hgt_files/'
 
 		if lat >= 0:
 			ns = 'N'
@@ -721,8 +639,8 @@ def get_endpoint(data=None, run=None, filename=None, params=None):
 
 	else:
 
-		dlon = lons[inds[0]] - lons[inds[1]]
-		dlat = lats[inds[0]] - lats[inds[1]]
+		dlon = lons[inds[1]] - lons[inds[0]]
+		dlat = lats[inds[1]] - lats[inds[0]]
 
 		x1 = dists[inds[1]]
 
@@ -730,11 +648,10 @@ def get_endpoint(data=None, run=None, filename=None, params=None):
 		y2 = elevations[-2] - alts[inds[1]]
 
 		dx = x1*(y2/y1)
-		x2 = x1 - dx
 		f = dx/x1
 
-		newlon = lons[inds[1]] + f*dlon
-		newlat = lats[inds[1]] + f*dlat
+		newlon = lons[inds[1]] - f*dlon
+		newlat = lats[inds[1]] - f*dlat
 
 	return (newlat, newlon), get_elevation(lat=newlat, lon=newlon)
 
@@ -762,7 +679,7 @@ def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only
 
 	indir = p.path + p.weather_data_folder + p.GEFS_folder
 
-	tile_size = 10.0
+	tile_size = p.tile_size
 	lat0, lon0, alt0 = loc0
 	area = (lat0 + tile_size / 2, lon0 - tile_size / 2, lat0 - tile_size / 2, lon0 + tile_size / 2)
 	tlat, llon, blat, rlon = area
@@ -1056,7 +973,6 @@ if __name__ == '__main__':
 	lat, lon = 67.95563298887704, 311.74684661346487
 
 	el = get_elevation(lon, lat)
-	print(el)
 
 	print(time.time() - time0)
 

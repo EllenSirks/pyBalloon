@@ -476,7 +476,7 @@ def save_kml(fname, data, other_info=None, params=None, balloon=None, shape='cir
 		kml_str += '</coordinates>\n'
 		kml_str += '<extrude>1</extrude>\n'
 		kml_str += '<tessellate>1</tessellate>\n'
-		kml_str += '<altitudeMode>absolute</altitudeMode>\n'
+		kml_str += '<altitudeMode>absolute</altitudeMode>\n' # sea level
 		kml_str += '</LineString>\n'
 		kml_str += '</Placemark>\n'
 		
@@ -1139,7 +1139,7 @@ def make_descent_rate_plot(directory=None, data=None, datestr=None, utc_hour=Non
 	plt.grid(True)
 	plt.tight_layout()
 
-	fig.savefig(fig_dir + 'descent_rate_vs_time.png')
+	fig.savefig(fig_dir + 'descent_rate_vs_time_' + datestr + '_' + str(utc_hour) + '_' + str(loc0) + '.png')
 
 	plt.clf()
 
@@ -1183,7 +1183,7 @@ def geodesic_point_buffer(lat=None, lon=None, radius=5):
 
 #################################################################################################################
 
-def make_ellipse(theta_num=100, phi=0, x_cent=0, y_cent=0, semimaj=1.9, semimin=1.4):
+def make_ellipse(theta_num=100, phi=0, x_cent=0, y_cent=0, semimaj=1.47, semimin=1.45):
 	"""
 	Method to create an ellips and get x/y coordinates given ellips parameters
 
@@ -1223,7 +1223,7 @@ def make_ellipse(theta_num=100, phi=0, x_cent=0, y_cent=0, semimaj=1.9, semimin=
 
 #################################################################################################################
 
-def get_ellips_coords(lat=None, lon=None, x_extent=1.87, y_extent=1.47, theta=0):
+def get_ellips_coords(lat=None, lon=None, x_extent=1.47, y_extent=1.45, theta=0):
 	"""
 	#Method to find all lats/lons to create a ellips of a given minor/major axis (km) around a lat/lon point
 
