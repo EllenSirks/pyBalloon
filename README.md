@@ -35,6 +35,6 @@ Weather Data and Elevation Data
 
 - (Most) Weather data between 201808 and 201911 is downloaded automatically from: https://nomads.ncdc.noaa.gov/data/gfs4/
 - Data from today to nine days ago is downloaded automatically from: https://ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/
-- Any other 0.5 resolution data can be ordered from: https://www.ncdc.noaa.gov/has/HAS.DsSelect
+- Any other 0.5 resolution data can be ordered from: https://www.ncdc.noaa.gov/has/HAS.DsSelect ; select Model & Global Forecast System model (GRIB-2) Grid 4
 - Any other 0.25 degree resolution data can be downloaded from: https://rda.ucar.edu/datasets/ds084.1/#!description ; an account is needed for this website.
 - Elevation data needs to be downloaded from: http://viewfinderpanoramas.org/dem3.html#hgt
