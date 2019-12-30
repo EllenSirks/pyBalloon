@@ -4,8 +4,9 @@ Functions used by pyBalloon to calculate balloon trajectories
 
 import numpy as np
 import datetime
+import sys, os
+import math
 import time
-import sys
 
 import get_gfs
 import pyb_aux
@@ -69,12 +70,11 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 
 	max_datestr, max_time, max_hhhh, max_hhh = keys[-1][6:14], time_keys[-1], keys[-1][15:19], [-1][20:23]
 	max_date = datetime.datetime(int(max_datestr[:4]), int(max_datestr[4:6]), int(max_datestr[6:]))
-	diff_days = (datetime.datetime(int(datestr[:4]), int(datestr[4:6]), int(datestr[6:])) - max_date ).days
+	diff_days = (datetime.datetime(int(datestr[:4]), int(datestr[4:6]), int(datestr[6:])) - max_date).days
 
 	############################################################################################################
 
-	if (datestr == max_datestr and current_time > max_time and time_interpolate) or (not time_interpolate and datestr == max_datestr and current_time > max_time and (current_time - max_time) > 1.5)\
-	 or (diff_days > 0 and hr_diff == 0):
+	if (datestr == max_datestr and current_time > max_time and time_interpolate and hr_diff == 0) or (not time_interpolate and datestr == max_datestr and current_time > max_time and (current_time - max_time) > 1.5) or (current_time > max_time % 24 and time_interpolate and hr_diff > 0):
 
 		sys.stdout.write('\r')
 		sys.stdout.flush()
@@ -93,10 +93,18 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 
 		else:
 
-			new_weather_files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=current_time, resolution=resolution, hr_diff=hr_diff)
+			add = 0
+			# if np.abs(get_gfs.get_interval(datestr=datestr, utc_hour=current_time)[0] - current_time) < 3.5: # upload lag
+			# 	add = 6
+
+			new_weather_files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=current_time, resolution=resolution, hr_diff=hr_diff+add)	
 			new_hhhh, new_hhh1 = int(int(new_weather_files[-1][15:19])/100), int(new_weather_files[-1][21:24])
 			new_hhhh0, new_hhh01 = int(int(new_weather_files[0][15:19])/100), int(new_weather_files[0][21:24])
 			time_diffs[current_time] = [(new_hhhh0 + new_hhh01) % 24 - current_time, (new_hhhh + new_hhh1) % 24 - current_time]
+
+			if new_weather_files[-2] not in list(data.keys()):
+				data[new_weather_files[-2]], figs_dict = prepare_data(weather_file=new_weather_files[-2], loc0=loc0, current_time=current_time, balloon=balloon, descent_only=descent_only,\
+				 check_sigmas=check_sigmas, output_figs=output_figs)
 
 		data[new_weather_files[-1]], figs_dict = prepare_data(weather_file=new_weather_files[-1], loc0=loc0, current_time=current_time, balloon=balloon, descent_only=descent_only,\
 		 check_sigmas=check_sigmas, output_figs=output_figs)
@@ -218,6 +226,7 @@ def read_data(loc0=None, weather_file=None, descent_only=False):
 	lat0, lon0, alt0 = loc0
 
 	in_dir = p.path + p.weather_data_folder + p.GFS_folder
+	usb_dir = p.usb_path
 
 	tile_size = p.tile_size # degrees (read a tile this wide/high from the GFS grb2 file)
 	area = (lat0 + (tile_size/2.), lon0 - (tile_size/2.), lat0 - (tile_size/2.), lon0 + (tile_size/2.)) # note top, left, bottom, right ordering for area
@@ -227,7 +236,11 @@ def read_data(loc0=None, weather_file=None, descent_only=False):
 	sys.stdout.write('Reading GFS data from ' + str(weather_file) + '.grb2...'.ljust(20))
 	sys.stdout.flush()
 
-	model_data = pyb_io.read_gfs_single(directory=in_dir + weather_file, area=area, alt0=alt0, descent_only=descent_only)[0]
+	file_dir = in_dir
+	if not os.path.isfile(in_dir + weather_file + '.grb2') and get_gfs.check_connection_device(p.usb_device_name):
+		file_dir = usb_dir
+		
+	model_data = pyb_io.read_gfs_single(directory=file_dir + weather_file, area=area, alt0=alt0, descent_only=descent_only)[0]
 
 	return model_data
 
@@ -528,7 +541,7 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 
 		# update weather files
 		data, keys, index, figs, used_weather_files, time_diffs = update_files(figs=figs, used_weather_files=used_weather_files, data=data, lat_rad=lat_rad, lon_rad=lon_rad, all_alts=all_alts, \
-			balloon=balloon, datestr=datestr, utc_hour=utc_hour, loc0=loc0, total_time=total_time, current_time=current_time, time_diffs=time_diffs, index=index, params=params, output_figs=output_figs)
+				balloon=balloon, datestr=datestr, utc_hour=utc_hour, loc0=loc0, total_time=total_time, current_time=current_time, time_diffs=time_diffs, index=index, params=params, output_figs=output_figs)
 
 		if not (stage == 1 and descent_only):
 
@@ -539,9 +552,9 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 				t1, f1, t2, f2 = keys[index], 1, keys[index], 0
 
 			delta_t = current_time - (int(int(t1[15:19])/100.) + int(t1[20:23])) # difference between forecast and model time
-			tfuture = (int(int(t1[15:19])/100.))
+			tfuture = int(t1[20:23])
 			if time_interpolate:
-				tfuture = current_time - tfuture
+				tfuture = f1*int(t1[20:23]) + f2*int(t2[20:23])
 
 			# Find the closest grid point
 			diff = np.sqrt((data_lats - lat_rad[-1])**2 + (data_lons - lon_rad[-1])**2)
@@ -622,11 +635,9 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 			sys.stdout.write(str(round(100.*(max_i - i)/max_i, 1)) + r' % done'.ljust(60) + '\r')
 			sys.stdout.flush()
 
-			if check_elevation:
-				if all_alts[-1] < 2000.:
-					elevation = pyb_aux.get_elevation(lon=np.degrees(lon_rad[-1]), lat=np.degrees(lat_rad[-1]))
-					if alts[i] <= elevation:
-						break
+			# if check_elevation and all_alts[-1] < 2000.:
+			# 	if alts[i] <= pyb_aux.get_elevation(lon=np.degrees(lon_rad[-1]), lat=np.degrees(lat_rad[-1])):
+			# 		break
 
 			if i == 0:
 				break
@@ -664,8 +675,14 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 
 	speeds.append(calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), speed_props[props_index], resolution))
 
+	# get more accurate end-point based on elevation data
 	if check_elevation:
-		# get more accurate end-point based on elevation data
+
+		sys.stdout.write('\r')
+		sys.stdout.flush()
+		sys.stdout.write('Getting new endpoint based on elevation...'.ljust(60))
+
+		elevation = pyb_aux.get_elevation(lon=np.degrees(lon_rad[-1]), lat=np.degrees(lat_rad[-1]))
 		if np.abs(elevation - all_alts[-1]) > balloon['altitude_step']/10.:
 
 			new_end_point, new_alt = pyb_aux.get_endpoint(data=(np.degrees(np.array(lat_rad)), np.degrees(np.array(lon_rad)), np.array(all_alts), np.array(dists)))

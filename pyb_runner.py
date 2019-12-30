@@ -6,7 +6,7 @@ from astropy.io import ascii
 import datetime as dt
 import numpy as np
 import sys, os
-import psutil
+import math
 import time
 
 import pyb_traj
@@ -18,7 +18,7 @@ import param_file as p
 
 #################################################################################################################
 
-def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, run=None, print_verbose=False, write_verbose=False, add_run_info=True, output_figs=False, overwrite=False, check_elevation=True):
+def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, run=None, print_verbose=False, write_verbose=False, add_run_info=True, output_figs=False, overwrite=False, check_elevation=True, shape='ellips'):
 	"""
 	Method to run entire simulation of flight and write out calculated trajectories and predicted endpoint
 
@@ -99,7 +99,12 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 
 	# get weather files depending on if we want interpolation
 	if time_interpolate:
-		files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour, resolution=resolution, hr_diff=hr_diff)
+
+		add = 0
+		# if np.abs(get_gfs.get_interval(datestr=datestr, utc_hour=utc_hour)[0] - utc_hour) < 3.5: # upload lag
+			# add = 6
+
+		files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour, resolution=resolution, hr_diff=hr_diff+add)
 	else:
 		files = get_gfs.get_closest_gfs_file(datestr=datestr, utc_hour=utc_hour, resolution=resolution, hr_diff=hr_diff)
 
@@ -132,8 +137,8 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	# pyb_io.make_descent_rate_plot(directory=fig_dir, data=trajectories, datestr=datestr, utc_hour=utc_hour, loc0=loc0)
 
 	# determine error
-	err = pyb_io.determine_error(trajectories=trajectories, params=params)
-	print('The error is: ' + str(round(err, 3)) + ' km\n')
+	x_err, y_err = pyb_io.determine_error(trajectories=trajectories, params=params, shape=shape)
+	print('The errors are: ' + str(round(x_err, 3)) + ' and ' + str(round(y_err, 3)) +  ' km\n')
 
 	# highest point in main-run trajectory (bit redundant for descent only)
 	if descent_only:
@@ -144,7 +149,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 
 	# write out file for google-earth
 	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
-	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, shape='ellips', err=err, mean_direction=np.radians(trajectories['mean_direction']))
+	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, shape=shape, x_err=x_err, y_err=y_err, mean_direction=np.radians(trajectories['mean_direction']))
 
 	return trajectories
 
@@ -166,7 +171,7 @@ if __name__ == "__main__":
 	else:
 		run = None
 
-	runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, print_verbose=False, write_verbose=True, run=run, output_figs=False, check_elevation=True)
+	trajectories = runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, print_verbose=False, write_verbose=True, run=run, output_figs=False, check_elevation=True, shape='ellips')
 
 	############################################################################################################
 
