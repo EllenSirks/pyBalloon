@@ -24,7 +24,7 @@ Folders
 ------------
 - pyBalloon: contains the code. 
 - Output: here the output from pyBalloon is saved.
-- Weather_data: contains the GEFS and GFS folders, which contain the ensemble weather forecasts and the weather forecasts models respectively.
+- Weather_data: contains the GFS folder, which contain the weather forecasts models.
 - SRTM_data: contains the elevation data.
 
 Before running the program, please run the script setup.py.
@@ -37,4 +37,4 @@ Weather Data and Elevation Data
 - Data from today to nine days ago is downloaded automatically from: https://ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/
 - Any other 0.5 resolution data can be ordered from: https://www.ncdc.noaa.gov/has/HAS.DsSelect ; select Model & Global Forecast System model (GRIB-2) Grid 4
 - Any other 0.25 degree resolution data can be downloaded from: https://rda.ucar.edu/datasets/ds084.1/#!description ; an account is needed for this website.
-- Elevation data needs to be downloaded from: http://viewfinderpanoramas.org/dem3.html#hgt
+- Elevation data needs to be downloaded from: http://viewfinderpanoramas.org/dem3.html#hgt and http://srtm.csi.cgiar.org/
