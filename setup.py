@@ -13,8 +13,6 @@ if answer == 'y':
 
 	if not os.path.exists(p.path + p.weather_data_folder + p.GFS_folder):
 		os.mkdir(p.path + p.weather_data_folder + p.GFS_folder)
-	if not os.path.exists(p.path + p.weather_data_folder + p.GEFS_folder):	
-		os.mkdir(p.path + p.weather_data_folder + p.GEFS_folder)
 	if not os.path.exists(p.path + p.elevation_data_folder):
 		os.mkdir(p.path + p.elevation_data_folder)
 	if not os.path.exists(p.path + p.output_folder):
