@@ -59,7 +59,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	lat0, lon0, alt0 = loc0
 
 	# general parameters, if balloon/parachute and other parameters are not supplied, they are read from param_file.py
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_sigmas, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	# change altitude if it is underground (not always accurate)
 	if not descent_only:
@@ -99,12 +99,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 
 	# get weather files depending on if we want interpolation
 	if time_interpolate:
-
-		add = 0
-		# if np.abs(get_gfs.get_interval(datestr=datestr, utc_hour=utc_hour)[0] - utc_hour) < 3.5: # upload lag
-			# add = 6
-
-		files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour, resolution=resolution, hr_diff=hr_diff+add)
+		files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour, resolution=resolution, hr_diff=hr_diff)
 	else:
 		files = get_gfs.get_closest_gfs_file(datestr=datestr, utc_hour=utc_hour, resolution=resolution, hr_diff=hr_diff)
 

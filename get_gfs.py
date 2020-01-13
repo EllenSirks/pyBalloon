@@ -1,5 +1,5 @@
 """
-Functions for finding and downloading GFS and GEFS files.
+Functions for finding and downloading GFS files.
 """
 
 from shutil import copyfile
@@ -124,19 +124,15 @@ def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5, hr_
 
 	res = str(int(-4*resolution + 6))
 
-	try:
+	add = 0
+	if np.abs(get_interval(datestr=datestr, utc_hour=utc_hour)[0] - utc_hour) < 3.5: # upload lag
+		add = 6
 
-		left_hr, left_hhh, right_hr, right_hhh, left_datestr, right_datestr = get_interval(datestr=datestr, utc_hour=utc_hour, hr_diff=hr_diff)
-		weather_files = ['gfs_' + res + '_' + left_datestr + '_' + str(left_hr*100).zfill(4) + '_' + str(left_hhh).zfill(3) + '.grb2', \
-		'gfs_' + res + '_' + right_datestr + '_' + str(right_hr*100).zfill(4) + '_' + str(right_hhh).zfill(3) + '.grb2']
-		file = get_gfs_files(weather_files=weather_files)
+	left_hr, left_hhh, right_hr, right_hhh, left_datestr, right_datestr = get_interval(datestr=datestr, utc_hour=utc_hour, hr_diff=hr_diff+add)
+	weather_files = ['gfs_' + res + '_' + left_datestr + '_' + str(left_hr*100).zfill(4) + '_' + str(left_hhh).zfill(3) + '.grb2', \
+	'gfs_' + res + '_' + right_datestr + '_' + str(right_hr*100).zfill(4) + '_' + str(right_hhh).zfill(3) + '.grb2']
 
-	except:
-
-		left_hr, left_hhh, right_hr, right_hhh, left_datestr, right_datestr = get_interval(datestr=datestr, utc_hour=utc_hour, hr_diff=hr_diff+6)
-		weather_files = ['gfs_' + res + '_' + left_datestr + '_' + str(left_hr*100).zfill(4) + '_' + str(left_hhh).zfill(3) + '.grb2', \
-		'gfs_' + res + '_' + right_datestr + '_' + str(right_hr*100).zfill(4) + '_' + str(right_hhh).zfill(3) + '.grb2']
-		file = get_gfs_files(weather_files=weather_files)
+	file = get_gfs_files(weather_files=weather_files)
 
 	return [weather_files[i][:-5] for i in range(len(weather_files))]
 
@@ -249,55 +245,6 @@ def get_gfs_files(weather_files=None):
 				os.remove(out_dir + os.path.basename(filename))
 
 	return [weather_files[0][:-5]]
-
-#################################################################################################################
-
-def get_gefs_files(datestr=None, utc_hour=None):
-	"""
-	Download ensemble weather forecasts for current date and time of trajectory
-
-	Arguments
-	=========
-	datestr : string
-		The current date of the trajectory (yyyymmdd)
-	utc_hour : float
-		Current time of trajectory
-	"""
-
-	out_dir = p.path + p.weather_data_folder + p.GFS_folder
-	now = dt.datetime.now()
-
-	url_base = 'https://www.ftp.ncep.noaa.gov/data/nccf/com/gens/prod/'
-
-	hrs = get_closest_hr(utc_hour=utc_hour)
-	closest_model, hhh3, hhh6 = hrs[0], hrs[1], hrs[2]
- 
-	if datestr in [str(now.year) + str(now.month).zfill(2) + str(now.day - i).zfill(2) for i in range(0, 10)]:
-
-		url = url_base + 'gefs.' + datestr + '/' + str(closest_model).zfill(2)  + '/pgrb2ap5/' 
-		dl_files = ['geavg.t' + str(closest_model).zfill(2) + 'z.pgrb2a.0p50.f' + str(hhh3).zfill(3), 'gespr.t' + str(closest_model).zfill(2) + 'z.pgrb2a.0p50.f' + str(hhh3).zfill(3)]
-		second_files = ['geavg_4_' + datestr + '_' + str(int(closest_model*100)).zfill(4) + '_' + str(hhh3).zfill(3) + '.grb2', 'gespr_4_' + datestr + '_' + str(int(closest_model*100)).zfill(4)\
-		 + '_' + str(hhh3).zfill(3) + '.grb2'] 
-
-		for i in range(len(dl_files)):
-
-			if os.path.isfile(out_dir + second_files[i]) and float(os.stat(out_dir + second_files[i]).st_size) > 40000000.:
-				print(second_files[i] + ' already downloaded!')
-				continue
-
-			download_file(path_file=url + dl_files[i], out_dir=out_dir)
-			copyfile(out_dir + dl_files[i], out_dir + second_files[i])
-			os.remove(out_dir + dl_files[i])
-
-	else:
-
-		second_files = ['gens-a_3_' + datestr + '_' + str(int(closest_model*100)).zfill(4) + '_' + str(hhh6).zfill(3) + '_' + str(i).zfill(2) + '.grb2' for i in range(0, 21)]
-		for file in second_files:
-			if os.path.isfile(out_dir + file) and float(os.stat(out_dir + file).st_size) > 40000000.:
-				print(file + ' already downloaded!')
-			else:
-				print('Cannot download ' + str(file) + ' this way! Go to: https://www.ncdc.noaa.gov/has/HAS.DsSelect')
-				continue
 
 #################################################################################################################
 
