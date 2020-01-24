@@ -26,6 +26,7 @@ grid_interpolate = True
 drift_time = 0. # minutes
 resolution = 0.5 # 0.25 or 0.5
 hr_diff = 0 # hrs, multiples of 6
+check_elevation = True
 
 # balloon parameters
 balloon = {}
