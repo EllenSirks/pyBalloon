@@ -422,11 +422,7 @@ def get_interval(datestr=None, utc_hour=None, hr_diff=0):
 
 if __name__ == '__main__':
 
-	# file = sys.argv[1]
-	# get_gfs_files(weather_files=[file])
-
-	# get_latest_gfs_file(resolution=0.5)
-
-	print(get_interval(datestr='20180519', utc_hour=8.9, hr_diff=12))
+	file = sys.argv[1]
+	get_gfs_files(weather_files=[file])
 
 #################################################################################################################

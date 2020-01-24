@@ -59,7 +59,7 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 		Data of new weather file(s), updated weather file keys, updated index, updated figs, updated used_weather_files and updated time_diffs.
 	"""
 
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 	res = str(int(-4*resolution + 6))
 
 	weather_files = list(data.keys())
@@ -438,7 +438,7 @@ def calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, fracs, pr
 
 #################################################################################################################
 
-def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, output_figs=False, check_elevation=True):
+def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, output_figs=False):
 	"""
 	Calculate the trajectory of the balloon/parachute given a start position & other input parameters
 
@@ -467,7 +467,7 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 	############################################################################################################
 
 	# set general parameters and initial conditions
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 	lat0, lon0, alt0 = loc0
 	lat_rad, lon_rad, all_alts = [np.radians(lat0)], [np.radians(lon0)], [alt0]
 
@@ -740,7 +740,7 @@ def prepare_data(weather_file=None, loc0=None, current_time=None, balloon=None, 
 
 #################################################################################################################
 
-def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, output_figs=False, check_elevation=True):
+def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=None, balloon=None, output_figs=False):
 	"""
 	Run all functions to calculate the trajectory
 	
@@ -768,7 +768,7 @@ def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=
 	time_diffs = {}
 	time_diffs[utc_hour] = [(int(int(weather_file[15:19])/100.) + int(weather_file[20:23])) % 24 - utc_hour for weather_file in weather_files]
 
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	data_array = {}
 	figs1 = []
@@ -781,7 +781,7 @@ def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=
 		del figs_dict
 
 	trajectories, figs2, used_weather_files, time_diffs = calc_movements(data=data_array, used_weather_files=used_weather_files, time_diffs=time_diffs, datestr=datestr, utc_hour=utc_hour, loc0=loc0, \
-		params=params, balloon=balloon, output_figs=output_figs, check_elevation=check_elevation)
+		params=params, balloon=balloon, output_figs=output_figs)
 	
 	for fig_dict in figs2:
 		figs1.append(fig_dict)

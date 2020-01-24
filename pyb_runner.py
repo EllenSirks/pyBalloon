@@ -18,7 +18,7 @@ import param_file as p
 
 #################################################################################################################
 
-def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, run=None, print_verbose=False, write_verbose=False, add_run_info=True, output_figs=False, overwrite=False, check_elevation=True, shape='ellips'):
+def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, run=None, print_verbose=False, write_verbose=False, add_run_info=True, output_figs=False, overwrite=False):
 	"""
 	Method to run entire simulation of flight and write out calculated trajectories and predicted endpoint
 
@@ -59,7 +59,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	lat0, lon0, alt0 = loc0
 
 	# general parameters, if balloon/parachute and other parameters are not supplied, they are read from param_file.py
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	# change altitude if it is underground (not always accurate)
 	if not descent_only:
@@ -105,7 +105,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 
 	# calculate the trajectory of the balloon
 	trajectories, fig_dicts, used_weather_files, time_diffs = pyb_traj.run_traj(weather_files=files, datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, \
-		balloon=balloon, output_figs=output_figs, check_elevation=check_elevation)
+		balloon=balloon, output_figs=output_figs)
 
 	############################################################################################################ <---- create/write output 
 
@@ -129,11 +129,10 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 				fig_dicts[i][key].savefig(fig_dir_checks + datestr + '_' + key + '_check' + str(i+1) + '.png')
 
 	# save descent rate figure
-	# pyb_io.make_descent_rate_plot(directory=fig_dir, data=trajectories, datestr=datestr, utc_hour=utc_hour, loc0=loc0)
+	pyb_io.make_descent_rate_plot(directory=fig_dir, data=trajectories, datestr=datestr, utc_hour=utc_hour, loc0=loc0)
 
 	# determine error
-	x_err, y_err = pyb_io.determine_error(trajectories=trajectories, params=params, shape=shape)
-	print('The errors are: ' + str(round(x_err, 3)) + ' and ' + str(round(y_err, 3)) +  ' km\n')
+	parallel_err, perp_err = pyb_io.determine_error(trajectories=trajectories, params=params)
 
 	# highest point in main-run trajectory (bit redundant for descent only)
 	if descent_only:
@@ -144,7 +143,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 
 	# write out file for google-earth
 	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
-	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, shape=shape, x_err=x_err, y_err=y_err, mean_direction=np.radians(trajectories['mean_direction']))
+	pyb_io.save_kml(kml_fname, trajectories, other_info=other_info, params=params, parallel_err=parallel_err, perp_err=perp_err, mean_direction=np.radians(trajectories['mean_direction']))
 
 	return trajectories
 
@@ -166,7 +165,7 @@ if __name__ == "__main__":
 	else:
 		run = None
 
-	trajectories = runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, print_verbose=False, write_verbose=True, run=run, output_figs=False, check_elevation=True, shape='ellips')
+	trajectories = runner(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, print_verbose=False, write_verbose=True, run=run, output_figs=False)
 
 	############################################################################################################
 
