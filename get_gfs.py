@@ -98,7 +98,7 @@ def get_latest_gfs_file(resolution=0.5):
 
 #################################################################################################################
 
-def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0):
+def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5, hr_diff=0, live=True):
 	"""
 	Find and download weather forecast files to be used for interpolation
 
@@ -125,10 +125,10 @@ def get_interpolation_gfs_files(datestr=None, utc_hour=None, resolution=0.5, hr_
 	res = str(int(-4*resolution + 6))
 
 	add = 0
-	if np.abs(get_interval(datestr=datestr, utc_hour=utc_hour)[0] - utc_hour) < 3.5: # upload lag
+	if live and np.abs(get_interval(datestr=datestr, utc_hour=utc_hour)[0] - utc_hour) < 3.5: # upload lag
 		add = 6
 
-	left_hr, left_hhh, right_hr, right_hhh, left_datestr, right_datestr = get_interval(datestr=datestr, utc_hour=utc_hour, hr_diff=hr_diff+add)
+	left_hr, left_hhh, right_hr, right_hhh, left_datestr, right_datestr = get_interval(datestr=datestr, utc_hour=utc_hour, hr_diff=hr_diff+add, live=live)
 	weather_files = ['gfs_' + res + '_' + left_datestr + '_' + str(left_hr*100).zfill(4) + '_' + str(left_hhh).zfill(3) + '.grb2', \
 	'gfs_' + res + '_' + right_datestr + '_' + str(right_hr*100).zfill(4) + '_' + str(right_hhh).zfill(3) + '.grb2']
 
@@ -362,7 +362,7 @@ def get_closest_hr(datestr=None, utc_hour=None, hr_diff=0):
 
 #################################################################################################################
 
-def get_interval(datestr=None, utc_hour=None, hr_diff=0):
+def get_interval(datestr=None, utc_hour=None, hr_diff=0, live=True):
 	"""
 	Find closest time & date left & right of current time of trajectory
 
@@ -394,27 +394,40 @@ def get_interval(datestr=None, utc_hour=None, hr_diff=0):
 		left_hr, left_hhh, left_hhh6, left_datestr = get_closest_hr(datestr=datestr, utc_hour=left_hour)
 		right_hr, right_hhh, right_hhh6, right_datestr = get_closest_hr(datestr=datestr, utc_hour=right_hour)
 
-		if right_hr == left_hr + 6:
+		# Comment for best possible weather forecasts!
+		if live and right_hr == left_hr + 6:
 			right_hr -= 6
 			right_hhh += 6
 
 		if hr_diff > 0:
 
-			left_hr = left_hr - hr_diff
+			left_hr -= hr_diff
+			right_hr -= hr_diff
 
-			days = 0
+			days1 = 0
 			while left_hr < 0:
 				left_hr += 24
-				days += 1	
+				days1 += 1	
 
-			right_hr = left_hr
+			days2 = 0
+			while right_hr < 0:
+				right_hr += 24
+				days2 += 1	
+
+			if live:
+				right_hr = left_hr
+
 			left_hhh += hr_diff
 			right_hhh += hr_diff
 
 			year, month, day = int(left_datestr[:4]), int(left_datestr[4:6]), int(left_datestr[6:])
-			date = dt.datetime(year, month, day) - dt.timedelta(days=days)
-			left_datestr = str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2)
-			right_datestr = left_datestr
+			date1 = dt.datetime(year, month, day) - dt.timedelta(days=days1)
+
+			year, month, day = int(right_datestr[:4]), int(right_datestr[4:6]), int(right_datestr[6:])
+			date2 = dt.datetime(year, month, day) - dt.timedelta(days=days2)
+
+			left_datestr = str(date1.year) + str(date1.month).zfill(2) + str(date1.day).zfill(2)
+			right_datestr = str(date2.year) + str(date2.month).zfill(2) + str(date2.day).zfill(2)
 
 	return left_hr, left_hhh, right_hr, right_hhh, left_datestr, right_datestr
 
@@ -422,7 +435,8 @@ def get_interval(datestr=None, utc_hour=None, hr_diff=0):
 
 if __name__ == '__main__':
 
-	file = sys.argv[1]
-	get_gfs_files(weather_files=[file])
+	# file = sys.argv[1]
+	# get_gfs_files(weather_files=[file])
+	print(get_interval(datestr='20180406', utc_hour=9.0, hr_diff=0, live=True))
 
 #################################################################################################################

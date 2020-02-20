@@ -426,7 +426,7 @@ def save_kml(fname, data, other_info=None, trajectories=None, params=None, ballo
 		Angle between starting point and landing point
 	"""
 
-	descent_only, next_point, time_interpolate, grid_interpolation, drift_time, resolution, hr_diff, check_elevation, params, balloon = set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = set_params(params=params, balloon=balloon)
 
 	kml_str = '<?xml version="1.0" encoding="UTF-8"?>\n'
 	kml_str += '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">\n'
@@ -596,7 +596,7 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 		Array of driftimes used to created the trajectories
 	"""
 
-	descent_only, next_point, time_interpolate, grid_interpolation, drift_time, resolution, hr_diff, check_elevation, params, balloon = set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = set_params(params=params, balloon=balloon)
 
 	dir_base = p.path + p.output_folder + str(run) + '/'
 
@@ -740,7 +740,7 @@ def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=N
 		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
 	"""
 
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, params, balloon = set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = set_params(params=params, balloon=balloon)
 
 	print('General Parameters')
 	print('----------')
@@ -755,6 +755,7 @@ def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=N
 	if hr_diff is not None:
 		print('difference in hrs for forecasts: ' + str(hr_diff) + ' hours')
 	print('check_elevation: ' + str(check_elevation))
+	print('live: ' + str(live))
 	print('\nBalloon/Parachute Parameters')
 	print('----------')
 	print('altitude step: ' + str(balloon['altitude_step']) + ' m')
@@ -786,7 +787,7 @@ def write_verbose(params_dir=None, params=None, balloon=None):
 		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
 	"""
 
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, params, balloon = set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = set_params(params=params, balloon=balloon)
 
 	f = open(params_dir + 'params.txt', 'w+')
 	f.write('General parameters\n')
@@ -800,6 +801,7 @@ def write_verbose(params_dir=None, params=None, balloon=None):
 	f.write('resolution of forecasts: ' + str(resolution) + ' degrees\n')
 	f.write('difference in hrs for forecasts: ' + str(hr_diff) + ' hours\n')
 	f.write('check_elevation: ' + str(check_elevation) + '\n')
+	f.write('live: ' + str(live) + '\n')
 	f.write('----------------------\n')
 	f.write('\n')
 	f.write('Balloon/Parachute parameters\n')
@@ -842,32 +844,34 @@ def set_params(params=None, balloon=None):
 		resolution = float(p.resolution)
 		hr_diff = int(p.hr_diff)
 		check_elevation = p.check_elevation
+		live = p.live
 
-		params = [descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation]
+		params = [descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, live]
 		
 	else:
 
 		descent_only = bool(params[0])
 		if descent_only:
 			next_point = str(params[1])
-		time_interpolate = bool(params[-6])
-		grid_interpolate = bool(params[-5])
+		time_interpolate = bool(params[-7])
+		grid_interpolate = bool(params[-6])
 
-		if type(params[-4]) != type(np.array([])):
-			drift_time = float(params[-4])
+		if type(params[-5]) != type(np.array([])):
+			drift_time = float(params[-5])
 		else:
-			drift_time = params[-4]
+			drift_time = params[-5]
 
-		resolution = float(params[-3])
+		resolution = float(params[-4])
 
-		if type(params[-2]) != type(np.array([])):
-			hr_diff = int(params[-2])
+		if type(params[-3]) != type(np.array([])):
+			hr_diff = int(params[-3])
 		else:
-			hr_diff = params[-2]
+			hr_diff = params[-3]
 
-		check_elevation = params[-1]
+		check_elevation = params[-2]
+		live = params[-1]
 
-	return descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, params, balloon
+	return descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, live, params, balloon
 
 #################################################################################################################
 
@@ -885,7 +889,7 @@ def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
 	"""
 
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation = params
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, live = params
 
 	if add_run_info:
 
@@ -894,7 +898,7 @@ def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 		if not os.path.isfile(run_info_file):
 
 			f = open(run_info_file, 'w+')
-			labels = 'run descent_only next_point time_interpolate grid_interpolate drift_time resolution hr_diff check_elevation Cd_parachute parachute_area altitude_step'
+			labels = 'run descent_only next_point time_interpolate grid_interpolate drift_time resolution hr_diff check_elevation live Cd_parachute parachute_area altitude_step'
 			labels += ' equip_mass balloon_mass fill_radius radius_empty burst_radius thickness_empty Cd_balloon simple_ascent_rate parachute_change_altitude'
 			f.write(labels)
 
@@ -904,7 +908,7 @@ def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 		f = open(run_info_file, 'a+')
 		if run not in runs:
 			f.write('\n' + str(run) + ' ' + str(descent_only) + ' ' + str(next_point) + ' ' + str(time_interpolate) + ' ' + str(grid_interpolate) + ' ' + str(drift_time) + ' ' + \
-				str(resolution) + ' '  + str(hr_diff) + ' ' + str(check_elevation) + ' ' + str(balloon['Cd_parachute']) + ' ' + str(balloon['parachute_areas'][0]) \
+				str(resolution) + ' '  + str(hr_diff) + ' ' + str(check_elevation) + ' ' + str(live) + ' ' + str(balloon['Cd_parachute']) + ' ' + str(balloon['parachute_areas'][0]) \
 				+ ' ' + str(balloon['altitude_step'])  + ' ' + str(balloon['equip_mass']) + ' ' + str(balloon['balloon_mass']) + ' ' + str(balloon['fill_radius']) \
 				 + ' ' + str(balloon['radius_empty']) + ' ' + str(balloon['burst_radius']) + ' ' + str(balloon['thickness_empty']) + ' ' + str(balloon['Cd_balloon']) \
 				 + ' ' + str(balloon['simple_ascent_rate']) + ' ' + str(balloon['parachute_change_altitude']))
@@ -950,6 +954,8 @@ def search_info(run=None, print_verbose=True):
 			print('drift time: ' + str(data['drift_time'][index]) + ' minutes')
 			print('resolution of forecasts: ' + str(data['resolution'][index]) + ' degrees')
 			print('difference in hrs for forecasts: ' + str(data['hr_diff'][index]) + ' hours')
+			print('check for elevation: ' + str(data['check_elevation'][index]))
+			print('live mode: ' + str(data['live'][index]))
 			print('----------')
 			print('\nBalloon/Parachute Parameters')
 			print('----------')
@@ -1022,7 +1028,14 @@ def determine_error(trajectories=None, params=None):
 		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
 	"""
 
-	sigma_0, h, k, q = 1.333, 3.07e-4, 2.29e-3, 0.983
+	# sigma_0, h, k, q = 1.333, 3.07e-4, 2.29e-3, 0.983
+
+	live = pyb_io.set_params(params=params)[-3]
+
+	if live:
+		sigma_0, h, k, q = 1.769442, 0.000316, 0.003567, 1.142628
+	else:
+		sigma_0, h, k, q = 1.63491, 0.000641, 0.003292, 1.202485
 
 	if params == None:
 		time_interpolate = bool(p.time_interpolate)
@@ -1064,7 +1077,7 @@ def create_trajectory_files(traj_dir=None, kml_dir=None, datestr=None, utc_hour=
 	if params == None:
 		time_interpolate = bool(p.time_interpolate)
 	else:
-		time_interpolate = params[-5]
+		time_interpolate = params[-6]
 
 	traj_file = traj_dir + 'trajectory_' + datestr + '_' + str(utc_hour) + '_' + str(loc0)
 	kml_fname = kml_dir + datestr + '_' + str(utc_hour) + '_' + str(loc0)

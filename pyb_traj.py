@@ -59,7 +59,7 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 		Data of new weather file(s), updated weather file keys, updated index, updated figs, updated used_weather_files and updated time_diffs.
 	"""
 
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 	res = str(int(-4*resolution + 6))
 
 	weather_files = list(data.keys())
@@ -68,13 +68,19 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 	time_keys = [(int(int(file[15:19])/100.) + int(file[20:23])) for file in weather_files]
 	time_hhh = [int(file[20:23]) for file in weather_files]
 
+	# print(keys, time_keys)
+
 	max_datestr, max_time, max_hhhh, max_hhh = keys[-1][6:14], time_keys[-1], keys[-1][15:19], [-1][20:23]
 	max_date = datetime.datetime(int(max_datestr[:4]), int(max_datestr[4:6]), int(max_datestr[6:]))
 	diff_days = (datetime.datetime(int(datestr[:4]), int(datestr[4:6]), int(datestr[6:])) - max_date).days
 
 	############################################################################################################
 
-	if (datestr == max_datestr and current_time > max_time and time_interpolate and hr_diff == 0) or (not time_interpolate and datestr == max_datestr and current_time > max_time and (current_time - max_time) > 1.5) or (current_time > max_time % 24 and time_interpolate and hr_diff > 0):
+	if (datestr == max_datestr and current_time > max_time and time_interpolate and hr_diff == 0) or \
+	(not time_interpolate and datestr == max_datestr and current_time > max_time and (current_time - max_time) > 1.5) or \
+	(current_time > max_time % 24 and time_interpolate and hr_diff > 0):
+
+		# print(current_time, max_time % 24)
 
 		sys.stdout.write('\r')
 		sys.stdout.flush()
@@ -93,7 +99,7 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 
 		else:
 
-			new_weather_files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=current_time, resolution=resolution, hr_diff=hr_diff)	
+			new_weather_files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=current_time, resolution=resolution, hr_diff=hr_diff, live=live)	
 			new_hhhh, new_hhh1 = int(int(new_weather_files[-1][15:19])/100), int(new_weather_files[-1][21:24])
 			new_hhhh0, new_hhh01 = int(int(new_weather_files[0][15:19])/100), int(new_weather_files[0][21:24])
 			time_diffs[current_time] = [(new_hhhh0 + new_hhh01) % 24 - current_time, (new_hhhh + new_hhh1) % 24 - current_time]
@@ -191,7 +197,7 @@ def calc_time_frac(current_time=None, weather_files=None):
 		dt1 = current_time - (earlier_time % 24)
 		dt2 = later_time - current_time		
 
-	dt_total = later_time - earlier_time
+	dt_total = 3.0
 
 	frac1 = 1. - dt1/dt_total
 	frac2 = 1. - dt2/dt_total
@@ -467,7 +473,7 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 	############################################################################################################
 
 	# set general parameters and initial conditions
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 	lat0, lon0, alt0 = loc0
 	lat_rad, lon_rad, all_alts = [np.radians(lat0)], [np.radians(lon0)], [alt0]
 
@@ -480,9 +486,6 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 	
 	keys = list(data.keys())
 	time_key0 = (int(int(keys[0][15:19])/100.) + int(keys[0][20:23]))
-	initial_tfut = (int(int(keys[0][15:19])/100.))
-	if time_interpolate:
-		initial_tfut = utc_hour - initial_tfut
 
 	alts = data[keys[0]]['altitudes'] # alts, lats and lons are the same for all weather files (if we dont give it different areas)
 	data_lats, data_lons  = np.radians(data[keys[0]]['lats']), np.radians(data[keys[0]]['lons'])
@@ -492,8 +495,8 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 	t_props = ['ascent_time_steps', 'descent_time_steps']
 	speed_props = ['ascent_speeds', 'descent_speeds']
 
-	speeds, figs = [], []
-	delta_ts, tfutures, total_time, dists, dists_u, dists_v = [utc_hour - time_key0], [initial_tfut], [0], [0], [0], [0]
+	tfutures, speeds, figs = [], [], []
+	delta_ts, total_time, dists, dists_u, dists_v = [utc_hour - time_key0], [0], [0], [0], [0]
 	stage, index, props_index, i, max_i, timer = 1, 0, 0, 0, 0, 0
 
 	if drift_time == 0:
@@ -613,11 +616,19 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 			sys.stdout.write(str(round(100.*(max_i - i)/max_i, 1)) + r' % done'.ljust(60) + '\r')
 			sys.stdout.flush()
 
-			# if check_elevation and all_alts[-1] < 2000.:
-			# 	if alts[i] <= pyb_aux.get_elevation(lon=np.degrees(lon_rad[-1]), lat=np.degrees(lat_rad[-1])):
-			# 		break
-
 			if i == 0:
+
+				if time_interpolate:
+					(t1, f1), (t2, f2) = calc_time_frac(current_time=current_time, weather_files=keys)
+				else:
+					t1, f1, t2, f2 = keys[index], 1, keys[index], 0
+
+				delta_t = current_time - (int(int(t1[15:19])/100.) + int(t1[20:23])) # difference between forecast and model time
+				tfuture = int(t1[20:23])
+				if time_interpolate:
+					tfuture = f1*int(t1[20:23]) + f2*int(t2[20:23])
+				tfutures.append(tfuture)
+
 				break
 
 			i -= 1
@@ -665,7 +676,9 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 			index = np.where(diff == min(diff))[0][-1]
 
 			lat_rad, lon_rad, all_alts = lat_rad[:index], lon_rad[:index], all_alts[:index], 
-			dists, speeds, total_time, tfutures, loc_diffs = dists[:index+1], speeds[:index+1], total_time[:index+1], tfutures[:index+1], loc_diffs[:index+1]
+			dists, speeds, total_time, loc_diffs = dists[:index+1], speeds[:index+1], total_time[:index+1], loc_diffs[:index+1]
+
+			tfutures = tfutures[:index+1]
 
 			if not time_interpolate:
 				delta_ts = delta_ts[:index+1]
@@ -768,7 +781,7 @@ def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=
 	time_diffs = {}
 	time_diffs[utc_hour] = [(int(int(weather_file[15:19])/100.) + int(weather_file[20:23])) % 24 - utc_hour for weather_file in weather_files]
 
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	data_array = {}
 	figs1 = []
