@@ -9,7 +9,7 @@
 <td valign=bottom>&nbsp;<br>
 <font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>pyb_io</strong></big></big></font></td
 ><td align=right valign=bottom
-><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/ellen/Desktop/SuperBIT_DRS/pyBalloon/pyb_io.py">/home/ellen/Desktop/SuperBIT_DRS/pyBalloon/pyb_io.py</a></font></td></tr></table>
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/ellen/Desktop/SuperBIT/DRS/pyBalloon/pyb_io.py">/home/ellen/Desktop/SuperBIT/DRS/pyBalloon/pyb_io.py</a></font></td></tr></table>
     <p><tt>Input&nbsp;and&nbsp;output&nbsp;functions&nbsp;used&nbsp;by&nbsp;pyBalloon</tt></p>
 <p>
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
@@ -51,7 +51,7 @@ radius&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Radius&nbsp;in&nbsp;km&nbsp;of&nbsp;circle<br>
 color&nbsp;:&nbsp;string<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Color&nbsp;of&nbsp;the&nbsp;circle&nbsp;to&nbsp;be&nbsp;drawn&nbsp;(Hex&nbsp;Color&nbsp;Code)</tt></dd></dl>
- <dl><dt><a name="-create_ellips"><strong>create_ellips</strong></a>(lon<font color="#909090">=None</font>, lat<font color="#909090">=None</font>, x_extent<font color="#909090">=1.858</font>, y_extent<font color="#909090">=1.474</font>, theta<font color="#909090">=0</font>, add<font color="#909090">=0</font>, times<font color="#909090">=1</font>, color<font color="#909090">='BF0000DF'</font>)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;an&nbsp;ellips&nbsp;around&nbsp;the&nbsp;landing&nbsp;point&nbsp;in&nbsp;the&nbsp;kml&nbsp;files.<br>
+ <dl><dt><a name="-create_ellips"><strong>create_ellips</strong></a>(lon<font color="#909090">=None</font>, lat<font color="#909090">=None</font>, parallel_err<font color="#909090">=0</font>, perp_err<font color="#909090">=0</font>, theta<font color="#909090">=0</font>, times<font color="#909090">=1</font>, color<font color="#909090">='BF0000DF'</font>)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;an&nbsp;ellips&nbsp;around&nbsp;the&nbsp;landing&nbsp;point&nbsp;in&nbsp;the&nbsp;kml&nbsp;files.<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
@@ -59,19 +59,17 @@ lon&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Longitude&nbsp;in&nbsp;degrees&nbsp;of&nbsp;centre&nbsp;of&nbsp;ellips&nbsp;(i.e.&nbsp;lon&nbsp;of&nbsp;landing&nbsp;point)<br>
 lat&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Latitude&nbsp;in&nbsp;degrees&nbsp;of&nbsp;centre&nbsp;of&nbsp;ellips&nbsp;(i.e.&nbsp;lat&nbsp;of&nbsp;landing&nbsp;point)<br>
-x_extent&nbsp;:&nbsp;float<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Extent&nbsp;in&nbsp;km&nbsp;in&nbsp;the&nbsp;x&nbsp;(longitude)&nbsp;direction,&nbsp;taken&nbsp;from&nbsp;percentile&nbsp;calculations<br>
-y_extent&nbsp;:&nbsp;float<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Extent&nbsp;in&nbsp;km&nbsp;in&nbsp;the&nbsp;y&nbsp;(latitude)&nbsp;direction,&nbsp;taken&nbsp;from&nbsp;percentile&nbsp;calculations<br>
+parallel_err&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Error&nbsp;in&nbsp;direction&nbsp;of&nbsp;travel<br>
+perp_err&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Error&nbsp;in&nbsp;perpendicular&nbsp;direction&nbsp;to&nbsp;direction&nbsp;of&nbsp;travel<br>
 theta&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Angle&nbsp;in&nbsp;radians&nbsp;indicating&nbsp;the&nbsp;rotation&nbsp;of&nbsp;the&nbsp;ellipse.&nbsp;Calculated&nbsp;from&nbsp;the&nbsp;mean&nbsp;direction&nbsp;of&nbsp;the&nbsp;trajectory<br>
-add&nbsp;:&nbsp;float<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Error&nbsp;from&nbsp;trajectory&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;the&nbsp;contours<br>
 times&nbsp;:&nbsp;int<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Times&nbsp;indicates&nbsp;which&nbsp;sigma&nbsp;limit&nbsp;the&nbsp;contour&nbsp;represents&nbsp;(i.e.&nbsp;1,&nbsp;2,&nbsp;3)<br>
 color&nbsp;:&nbsp;string<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Color&nbsp;of&nbsp;the&nbsp;ellips&nbsp;to&nbsp;be&nbsp;drawn&nbsp;(Hex&nbsp;Color&nbsp;Code)</tt></dd></dl>
- <dl><dt><a name="-create_trajectory_files"><strong>create_trajectory_files</strong></a>(traj_dir<font color="#909090">=None</font>, kml_dir<font color="#909090">=None</font>, datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, trajectories<font color="#909090">=None</font>, params<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;trajectory&nbsp;files&nbsp;and&nbsp;write&nbsp;out&nbsp;the&nbsp;trajectory&nbsp;data&nbsp;to&nbsp;them<br>
+ <dl><dt><a name="-create_trajectory_files"><strong>create_trajectory_files</strong></a>(traj_dir<font color="#909090">=None</font>, kml_dir<font color="#909090">=None</font>, datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, trajectories<font color="#909090">=None</font>, params<font color="#909090">=None</font>, overwrite<font color="#909090">=False</font>)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;trajectory&nbsp;files&nbsp;and&nbsp;write&nbsp;out&nbsp;the&nbsp;trajectory&nbsp;data&nbsp;to&nbsp;them<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
@@ -97,6 +95,8 @@ trajectories&nbsp;:&nbsp;dict<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;trajectory&nbsp;data<br>
 params&nbsp;:&nbsp;list<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.</tt></dd></dl>
+ <dl><dt><a name="-err_parallel"><strong>err_parallel</strong></a>(sigma_0, h, k, hor_dist, tfut)</dt></dl>
+ <dl><dt><a name="-err_perp"><strong>err_perp</strong></a>(sigma_0, h, k, q, hor_dist, tfut)</dt></dl>
  <dl><dt><a name="-geodesic_point_buffer"><strong>geodesic_point_buffer</strong></a>(lat<font color="#909090">=None</font>, lon<font color="#909090">=None</font>, radius<font color="#909090">=5</font>)</dt><dd><tt>Method&nbsp;to&nbsp;find&nbsp;all&nbsp;latslons&nbsp;to&nbsp;create&nbsp;a&nbsp;circle&nbsp;of&nbsp;a&nbsp;given&nbsp;radius&nbsp;(km)&nbsp;around&nbsp;a&nbsp;lat/lon&nbsp;point<br>
 &nbsp;<br>
 lon&nbsp;:&nbsp;float<br>
@@ -105,7 +105,7 @@ lat&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Latitude&nbsp;in&nbsp;degrees&nbsp;of&nbsp;centre&nbsp;of&nbsp;circle&nbsp;(i.e.&nbsp;lat&nbsp;of&nbsp;landing&nbsp;point)<br>
 radius&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Radius&nbsp;in&nbsp;km&nbsp;of&nbsp;circle</tt></dd></dl>
- <dl><dt><a name="-get_ellips_coords"><strong>get_ellips_coords</strong></a>(lat<font color="#909090">=None</font>, lon<font color="#909090">=None</font>, x_extent<font color="#909090">=1.87</font>, y_extent<font color="#909090">=1.47</font>, theta<font color="#909090">=0</font>)</dt><dd><tt>#Method&nbsp;to&nbsp;find&nbsp;all&nbsp;lats/lons&nbsp;to&nbsp;create&nbsp;a&nbsp;ellips&nbsp;of&nbsp;a&nbsp;given&nbsp;minor/major&nbsp;axis&nbsp;(km)&nbsp;around&nbsp;a&nbsp;lat/lon&nbsp;point<br>
+ <dl><dt><a name="-get_ellips_coords"><strong>get_ellips_coords</strong></a>(lat<font color="#909090">=None</font>, lon<font color="#909090">=None</font>, x_extent<font color="#909090">=0</font>, y_extent<font color="#909090">=0</font>, theta<font color="#909090">=0</font>)</dt><dd><tt>#Method&nbsp;to&nbsp;find&nbsp;all&nbsp;lats/lons&nbsp;to&nbsp;create&nbsp;a&nbsp;ellips&nbsp;of&nbsp;a&nbsp;given&nbsp;minor/major&nbsp;axis&nbsp;(km)&nbsp;around&nbsp;a&nbsp;lat/lon&nbsp;point<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
@@ -133,7 +133,7 @@ utc_hour&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Time&nbsp;of&nbsp;initial&nbsp;point<br>
 loc0&nbsp;:&nbsp;floats&nbsp;in&nbsp;tuple<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point</tt></dd></dl>
- <dl><dt><a name="-make_ellipse"><strong>make_ellipse</strong></a>(theta_num<font color="#909090">=100</font>, phi<font color="#909090">=0</font>, x_cent<font color="#909090">=0</font>, y_cent<font color="#909090">=0</font>, semimaj<font color="#909090">=1.9</font>, semimin<font color="#909090">=1.4</font>)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;an&nbsp;ellips&nbsp;and&nbsp;get&nbsp;x/y&nbsp;coordinates&nbsp;given&nbsp;ellips&nbsp;parameters<br>
+ <dl><dt><a name="-make_ellipse"><strong>make_ellipse</strong></a>(theta_num<font color="#909090">=100</font>, phi<font color="#909090">=0</font>, x_cent<font color="#909090">=0</font>, y_cent<font color="#909090">=0</font>, semimaj<font color="#909090">=0</font>, semimin<font color="#909090">=0</font>)</dt><dd><tt>Method&nbsp;to&nbsp;create&nbsp;an&nbsp;ellips&nbsp;and&nbsp;get&nbsp;x/y&nbsp;coordinates&nbsp;given&nbsp;ellips&nbsp;parameters<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
@@ -215,7 +215,7 @@ alt0&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial&nbsp;temperature.<br>
 descent_only&nbsp;:&nbsp;bool<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Option&nbsp;to&nbsp;start&nbsp;the&nbsp;trajectory&nbsp;at&nbsp;its&nbsp;highest&nbsp;point.&nbsp;If&nbsp;True,&nbsp;the&nbsp;trajectory&nbsp;only&nbsp;has&nbsp;a&nbsp;descent&nbsp;phase</tt></dd></dl>
- <dl><dt><a name="-save_kml"><strong>save_kml</strong></a>(fname, data, other_info<font color="#909090">=None</font>, params<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, shape<font color="#909090">='circle'</font>, radius<font color="#909090">=5</font>, mean_direction<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;save&nbsp;given&nbsp;trajectory&nbsp;as&nbsp;KML&nbsp;file<br>
+ <dl><dt><a name="-save_kml"><strong>save_kml</strong></a>(fname, data, other_info<font color="#909090">=None</font>, trajectories<font color="#909090">=None</font>, params<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, parallel_err<font color="#909090">=None</font>, perp_err<font color="#909090">=None</font>, mean_direction<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;save&nbsp;given&nbsp;trajectory&nbsp;as&nbsp;KML&nbsp;file<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
@@ -229,12 +229,8 @@ params&nbsp;:&nbsp;list<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
 balloon&nbsp;:&nbsp;dict<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.<br>
-shape&nbsp;:&nbsp;string<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Indicates&nbsp;the&nbsp;shape&nbsp;of&nbsp;the&nbsp;sigma&nbsp;contours&nbsp;drawn&nbsp;around&nbsp;the&nbsp;predicted&nbsp;landing&nbsp;point<br>
-radius&nbsp;:&nbsp;float<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Radius&nbsp;of&nbsp;circle,&nbsp;if&nbsp;circle&nbsp;is&nbsp;chosen&nbsp;contour&nbsp;shape<br>
 mean_direction&nbsp;:&nbsp;float<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Angle&nbsp;between&nbsp;starting&nbsp;point&nbsp;and&nbsp;landing&nbsp;point.&nbsp;Used&nbsp;to&nbsp;orientate&nbsp;ellips&nbsp;if&nbsp;ellips&nbsp;is&nbsp;the&nbsp;chosen&nbsp;contour&nbsp;shape</tt></dd></dl>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Angle&nbsp;between&nbsp;starting&nbsp;point&nbsp;and&nbsp;landing&nbsp;point</tt></dd></dl>
  <dl><dt><a name="-save_used_weather_files"><strong>save_used_weather_files</strong></a>(save_dir<font color="#909090">=None</font>, used_weather_files<font color="#909090">=None</font>, trajectories<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;write&nbsp;out&nbsp;the&nbsp;weather&nbsp;files&nbsp;used&nbsp;for&nbsp;a&nbsp;run<br>
 &nbsp;<br>
 Arguments<br>

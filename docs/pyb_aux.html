@@ -9,7 +9,7 @@
 <td valign=bottom>&nbsp;<br>
 <font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>pyb_aux</strong></big></big></font></td
 ><td align=right valign=bottom
-><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/ellen/Desktop/SuperBIT_DRS/pyBalloon/pyb_aux.py">/home/ellen/Desktop/SuperBIT_DRS/pyBalloon/pyb_aux.py</a></font></td></tr></table>
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/ellen/Desktop/SuperBIT/DRS/pyBalloon/pyb_aux.py">/home/ellen/Desktop/SuperBIT/DRS/pyBalloon/pyb_aux.py</a></font></td></tr></table>
     <p><tt>Auxiliary&nbsp;functions&nbsp;used&nbsp;in&nbsp;pyBalloon</tt></p>
 <p>
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
@@ -19,15 +19,16 @@
     
 <tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
 <td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="astropy.io.ascii.html">astropy.io.ascii</a><br>
+<a href="osgeo.gdal.html">osgeo.gdal</a><br>
 <a href="get_gfs.html">get_gfs</a><br>
-<a href="scipy.interpolate.html">scipy.interpolate</a><br>
-</td><td width="25%" valign=top><a href="math.html">math</a><br>
+</td><td width="25%" valign=top><a href="scipy.interpolate.html">scipy.interpolate</a><br>
+<a href="math.html">math</a><br>
 <a href="numpy.html">numpy</a><br>
-<a href="os.html">os</a><br>
-</td><td width="25%" valign=top><a href="param_file.html">param_file</a><br>
+</td><td width="25%" valign=top><a href="os.html">os</a><br>
+<a href="param_file.html">param_file</a><br>
 <a href="matplotlib.pyplot.html">matplotlib.pyplot</a><br>
-<a href="pyb_io.html">pyb_io</a><br>
-</td><td width="25%" valign=top><a href="sys.html">sys</a><br>
+</td><td width="25%" valign=top><a href="pyb_io.html">pyb_io</a><br>
+<a href="sys.html">sys</a><br>
 <a href="time.html">time</a><br>
 </td></tr></table></td></tr></table><p>
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
@@ -210,16 +211,7 @@ resolution&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Resolution&nbsp;of&nbsp;weather&nbsp;forecast&nbsp;models&nbsp;(GFS)&nbsp;used<br>
 Return<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Four&nbsp;tuples&nbsp;containing&nbsp;the&nbsp;x&nbsp;and&nbsp;y&nbsp;coordinates&nbsp;and&nbsp;values&nbsp;of&nbsp;the&nbsp;points&nbsp;to&nbsp;be&nbsp;used&nbsp;for&nbsp;bilinear&nbsp;interpolation</tt></dd></dl>
- <dl><dt><a name="-get_elevation"><strong>get_elevation</strong></a>(lon, lat)</dt><dd><tt>Calculate&nbsp;elevation&nbsp;at&nbsp;given&nbsp;longitude&nbsp;and&nbsp;latitude&nbsp;using&nbsp;data&nbsp;from:&nbsp;<a href="http://viewfinderpanoramas.org/">http://viewfinderpanoramas.org/</a><br>
-&nbsp;<br>
-Arguments<br>
-=========<br>
-lon&nbsp;:&nbsp;float<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Longitude&nbsp;of&nbsp;location<br>
-lat&nbsp;:&nbsp;float<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Latitude&nbsp;of&nbsp;location&nbsp;&nbsp;&nbsp;&nbsp;<br>
-Return:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Elevation&nbsp;at&nbsp;provided&nbsp;longitude&nbsp;and&nbsp;latitude</tt></dd></dl>
+ <dl><dt><a name="-get_elevation"><strong>get_elevation</strong></a>(lon, lat)</dt><dd><tt>#&nbsp;find&nbsp;the&nbsp;elevation&nbsp;at&nbsp;the&nbsp;location&nbsp;(the&nbsp;loc&nbsp;closest&nbsp;in&nbsp;the&nbsp;grid)</tt></dd></dl>
  <dl><dt><a name="-get_endpoint"><strong>get_endpoint</strong></a>(data<font color="#909090">=None</font>, run<font color="#909090">=None</font>, filename<font color="#909090">=None</font>, params<font color="#909090">=None</font>)</dt><dd><tt>Calculate&nbsp;more&nbsp;accurate&nbsp;endpoint&nbsp;using&nbsp;data&nbsp;from:&nbsp;<a href="http://viewfinderpanoramas.org/">http://viewfinderpanoramas.org/</a><br>
 PyBalloon&nbsp;does&nbsp;not&nbsp;know&nbsp;the&nbsp;elevation&nbsp;of&nbsp;given&nbsp;locations,&nbsp;so&nbsp;trajectories&nbsp;can&nbsp;continue&nbsp;underground&nbsp;untill&nbsp;i&nbsp;=&nbsp;0&nbsp;(see&nbsp;pyb_traj)<br>
 &nbsp;<br>
