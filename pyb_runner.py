@@ -59,7 +59,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	lat0, lon0, alt0 = loc0
 
 	# general parameters, if balloon/parachute and other parameters are not supplied, they are read from param_file.py
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	# change altitude if it is underground (not always accurate)
 	if not descent_only:
@@ -98,10 +98,7 @@ def runner(datestr=None, utc_hour=None, loc0=None, balloon=None, params=None, ru
 	############################################################################################################ <---- calculation trajectories
 
 	# get weather files depending on if we want interpolation
-	if time_interpolate:
-		files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour, resolution=resolution, hr_diff=hr_diff, live=live)
-	else:
-		files = get_gfs.get_closest_gfs_file(datestr=datestr, utc_hour=utc_hour, resolution=resolution, hr_diff=hr_diff)
+	files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour, resolution=resolution, hr_diff=hr_diff, live=live)
 
 	# calculate the trajectory of the balloon
 	trajectories, fig_dicts, used_weather_files, time_diffs = pyb_traj.run_traj(weather_files=files, datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, \

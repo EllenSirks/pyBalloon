@@ -59,7 +59,7 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 		Data of new weather file(s), updated weather file keys, updated index, updated figs, updated used_weather_files and updated time_diffs.
 	"""
 
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 	res = str(int(-4*resolution + 6))
 
 	weather_files = list(data.keys())
@@ -68,19 +68,13 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 	time_keys = [(int(int(file[15:19])/100.) + int(file[20:23])) for file in weather_files]
 	time_hhh = [int(file[20:23]) for file in weather_files]
 
-	# print(keys, time_keys)
-
 	max_datestr, max_time, max_hhhh, max_hhh = keys[-1][6:14], time_keys[-1], keys[-1][15:19], [-1][20:23]
 	max_date = datetime.datetime(int(max_datestr[:4]), int(max_datestr[4:6]), int(max_datestr[6:]))
 	diff_days = (datetime.datetime(int(datestr[:4]), int(datestr[4:6]), int(datestr[6:])) - max_date).days
 
 	############################################################################################################
 
-	if (datestr == max_datestr and current_time > max_time and time_interpolate and hr_diff == 0) or \
-	(not time_interpolate and datestr == max_datestr and current_time > max_time and (current_time - max_time) > 1.5) or \
-	(current_time > max_time % 24 and time_interpolate and hr_diff > 0):
-
-		# print(current_time, max_time % 24)
+	if (datestr == max_datestr and current_time > max_time and hr_diff == 0) or (current_time > max_time % 24 and hr_diff > 0):
 
 		sys.stdout.write('\r')
 		sys.stdout.flush()
@@ -88,24 +82,13 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 		sys.stdout.flush()
 		time.sleep(0.2)
 
-		if not time_interpolate:
+		new_weather_files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=current_time, resolution=resolution, hr_diff=hr_diff, live=live)	
+		new_hhhh, new_hhh1 = int(int(new_weather_files[-1][15:19])/100), int(new_weather_files[-1][21:24])
+		new_hhhh0, new_hhh01 = int(int(new_weather_files[0][15:19])/100), int(new_weather_files[0][21:24])
+		time_diffs[current_time] = [(new_hhhh0 + new_hhh01) % 24 - current_time, (new_hhhh + new_hhh1) % 24 - current_time]
 
-			hrs = get_gfs.get_closest_hr(datestr=datestr, utc_hour=current_time, hr_diff=hr_diff)
-			new_hhhh, new_hhh1, new_hhh2, datestr = hrs[0], hrs[1], hrs[2], hrs[3]
-			new_weather_file = 'gfs_' + res + '_' + datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh1).zfill(3) + '.grb2'
-			new_weather_files = get_gfs.get_gfs_files(weather_files=[new_weather_file])
-			loc = (np.degrees(lat_rad[-1]), np.degrees(lon_rad[-1]), all_alts[-1])
-			time_diffs[current_time] = [(new_hhhh + new_hhh1) % 24 - current_time]
-
-		else:
-
-			new_weather_files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=current_time, resolution=resolution, hr_diff=hr_diff, live=live)	
-			new_hhhh, new_hhh1 = int(int(new_weather_files[-1][15:19])/100), int(new_weather_files[-1][21:24])
-			new_hhhh0, new_hhh01 = int(int(new_weather_files[0][15:19])/100), int(new_weather_files[0][21:24])
-			time_diffs[current_time] = [(new_hhhh0 + new_hhh01) % 24 - current_time, (new_hhhh + new_hhh1) % 24 - current_time]
-
-			if new_weather_files[-2] not in list(data.keys()):
-				data[new_weather_files[-2]], figs_dict = prepare_data(weather_file=new_weather_files[-2], loc0=loc0, current_time=current_time, balloon=balloon, descent_only=descent_only, output_figs=output_figs)
+		if new_weather_files[-2] not in list(data.keys()):
+			data[new_weather_files[-2]], figs_dict = prepare_data(weather_file=new_weather_files[-2], loc0=loc0, current_time=current_time, balloon=balloon, descent_only=descent_only, output_figs=output_figs)
 
 		data[new_weather_files[-1]], figs_dict = prepare_data(weather_file=new_weather_files[-1], loc0=loc0, current_time=current_time, balloon=balloon, descent_only=descent_only, output_figs=output_figs)
 
@@ -119,44 +102,6 @@ def update_files(figs=None, used_weather_files=None, data=None, lat_rad=None, lo
 
 	weather_files = list(data.keys())
 	weather_files.sort()
-
-	# update from e.g. 0600_006 to 1200_000
-	if not time_interpolate:
-		if len(total_time) != 1:
-			prev_time = (utc_hour + np.cumsum(np.array(total_time)[:-1])[-1]/3600) % 24
-		else:
-			prev_time = utc_hour
-
-		if prev_time > current_time:
-			year, month, day = int(datestr[:4]), int(datestr[4:6]), int(datestr[6:])
-			date = datetime.datetime(year, month, day) - datetime.timedelta(days=1)
-			prev_datestr = str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2)
-		else:
-			prev_datestr = datestr
-
-		old_hhhh, old_hhh1, old_hhh2, old_datestr = get_gfs.get_closest_hr(datestr=prev_datestr, utc_hour=prev_time, hr_diff=hr_diff)
-		new_hhhh, new_hhh1, new_hhh2, new_datestr = get_gfs.get_closest_hr(datestr=datestr, utc_hour=current_time, hr_diff=hr_diff)
-
-		if ((old_hhhh, old_hhh1, old_hhh2, old_datestr) != (new_hhhh, new_hhh1, new_hhh2, new_datestr)) and \
-		weather_files[-1] != 'gfs_' + res + '_' + new_datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh1).zfill(3):
-
-			sys.stdout.write('\r')
-			sys.stdout.flush()
-			sys.stdout.write('Updating current weather file...'.ljust(60) + '\r')
-			sys.stdout.flush()
-			time.sleep(0.2)
-
-			new_weather_file_name = 'gfs_' + res + '_' + datestr + '_' + str(new_hhhh*100).zfill(4) + '_' + str(new_hhh1).zfill(3) + '.grb2'
-			new_weather_file = get_gfs.get_gfs_files(weather_files=[new_weather_file_name])[0]
-
-			data[new_weather_file_name], figs_dict = prepare_data(weather_file=new_weather_file, loc0=loc0, current_time=current_time, balloon=balloon, descent_only=descent_only, output_figs=output_figs)
-
-			figs.append(figs_dict)
-			used_weather_files[current_time] = new_weather_file
-			keys = list(data.keys())
-			keys.sort()
-			time_diffs[current_time] = [(new_hhhh + new_hhh1) % 24 - current_time]
-			index = np.where(np.array(keys) == new_weather_file_name)[0][0]
 
 	keys.sort()
 
@@ -398,14 +343,12 @@ def calc_displacements(data=None, balloon=None, step=None, descent_only=False):
 
 #################################################################################################################
 
-def calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, fracs, prop, resolution):
+def calc_variable(grid_i, i, lon_rad, lat_rad, data, fracs, prop, resolution):
 	"""
 	Calculate the value of a variable at a given grid location/altitude
 
 	Arguments
 	=========
-	grid_interpolate : bool
-		If True, variables are interpolated between grid points
 	grid_i : int
 		index of list representing current lon/lat
 	i : int
@@ -430,15 +373,11 @@ def calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, fracs, pr
 	keys = list(data.keys())
 	data_lats, data_lons = np.radians(data[keys[0]]['lats']), np.radians(data[keys[0]]['lons'])
 
-	if grid_interpolate:
+	x1, y1, x2, y2, low_left, up_left, low_right, up_right = pyb_aux.find_bilinear_points(grid_i, i, lon_rad[-1], lat_rad[-1], data_lons, data_lats, resolution)
+	coords, inds = [x1, y1, x2, y2], [low_left, up_left, low_right, up_right]
 
-		x1, y1, x2, y2, low_left, up_left, low_right, up_right = pyb_aux.find_bilinear_points(grid_i, i, lon_rad[-1], lat_rad[-1], data_lons, data_lats, resolution)
-		coords, inds = [x1, y1, x2, y2], [low_left, up_left, low_right, up_right]
-
-		var = f1*pyb_aux.bilinear_interpolation(i=i, lon_rad=lon_rad[-1], lat_rad=lat_rad[-1], prop=data[t1][prop], coords=coords, inds=inds)
-		var += f2*pyb_aux.bilinear_interpolation(i=i, lon_rad=lon_rad[-1], lat_rad=lat_rad[-1], prop=data[t2][prop], coords=coords, inds=inds)
-	else:
-		var = f1*data[t1][prop][grid_i, i] + f2*data[t2][prop][grid_i, i]
+	var = f1*pyb_aux.bilinear_interpolation(i=i, lon_rad=lon_rad[-1], lat_rad=lat_rad[-1], prop=data[t1][prop], coords=coords, inds=inds)
+	var += f2*pyb_aux.bilinear_interpolation(i=i, lon_rad=lon_rad[-1], lat_rad=lat_rad[-1], prop=data[t2][prop], coords=coords, inds=inds)
 
 	return var
 
@@ -473,7 +412,7 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 	############################################################################################################
 
 	# set general parameters and initial conditions
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 	lat0, lon0, alt0 = loc0
 	lat_rad, lon_rad, all_alts = [np.radians(lat0)], [np.radians(lon0)], [alt0]
 
@@ -496,7 +435,7 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 	speed_props = ['ascent_speeds', 'descent_speeds']
 
 	tfutures, speeds, figs = [], [], []
-	delta_ts, total_time, dists, dists_u, dists_v = [utc_hour - time_key0], [0], [0], [0], [0]
+	total_time, dists, dists_u, dists_v = [0], [0], [0], [0]
 	stage, index, props_index, i, max_i, timer = 1, 0, 0, 0, 0, 0
 
 	if drift_time == 0:
@@ -537,15 +476,10 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 		if not (stage == 1 and descent_only):
 
 			# determine fractions for the interpolation between forecasts
-			if time_interpolate:
-				(t1, f1), (t2, f2) = calc_time_frac(current_time=current_time, weather_files=keys)
-			else:
-				t1, f1, t2, f2 = keys[index], 1, keys[index], 0
+			(t1, f1), (t2, f2) = calc_time_frac(current_time=current_time, weather_files=keys)
 
 			delta_t = current_time - (int(int(t1[15:19])/100.) + int(t1[20:23])) # difference between forecast and model time
-			tfuture = int(t1[20:23])
-			if time_interpolate:
-				tfuture = f1*int(t1[20:23]) + f2*int(t2[20:23])
+			tfuture = f1*int(t1[20:23]) + f2*int(t2[20:23])
 
 			# Find the closest grid point
 			diff = np.sqrt((data_lats - lat_rad[-1])**2 + (data_lons - lon_rad[-1])**2)
@@ -553,13 +487,13 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 			grid_i = grid_i[0]
 			min_diff = diff[grid_i]
 
-			dx = calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), x_prop, resolution)
-			dy = calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), y_prop, resolution)
+			dx = calc_variable(grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), x_prop, resolution)
+			dy = calc_variable(grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), y_prop, resolution)
 
 			if stage != 2:
 
-				dt = calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), t_props[props_index], resolution)
-				speed = calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), speed_props[props_index], resolution)
+				dt = calc_variable(grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), t_props[props_index], resolution)
+				speed = calc_variable(grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), speed_props[props_index], resolution)
 
 			else:
 
@@ -618,15 +552,10 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 
 			if i == 0:
 
-				if time_interpolate:
-					(t1, f1), (t2, f2) = calc_time_frac(current_time=current_time, weather_files=keys)
-				else:
-					t1, f1, t2, f2 = keys[index], 1, keys[index], 0
+				(t1, f1), (t2, f2) = calc_time_frac(current_time=current_time, weather_files=keys)
 
 				delta_t = current_time - (int(int(t1[15:19])/100.) + int(t1[20:23])) # difference between forecast and model time
-				tfuture = int(t1[20:23])
-				if time_interpolate:
-					tfuture = f1*int(t1[20:23]) + f2*int(t2[20:23])
+				tfuture = f1*int(t1[20:23]) + f2*int(t2[20:23])
 				tfutures.append(tfuture)
 
 				break
@@ -652,13 +581,9 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 			total_time.append(dt)
 			all_alts.append(alt)
 			tfutures.append(tfuture)
-
-			if not time_interpolate:
-				delta_ts.append(delta_t)
-
 			loc_diffs.append(min_diff)
 
-	speeds.append(calc_variable(grid_interpolate, grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), speed_props[props_index], resolution))
+	speeds.append(calc_variable(grid_i, i, lon_rad, lat_rad, data, (t1, f1, t2, f2), speed_props[props_index], resolution))
 
 	# get more accurate end-point based on elevation data
 	if check_elevation:
@@ -680,9 +605,6 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 
 			tfutures = tfutures[:index+1]
 
-			if not time_interpolate:
-				delta_ts = delta_ts[:index+1]
-
 			lat_rad.append(np.radians(new_end_point[0]))
 			lon_rad.append(np.radians(new_end_point[1]))
 			all_alts.append(new_alt)
@@ -703,9 +625,6 @@ def calc_movements(data=None, used_weather_files=None, time_diffs=None, datestr=
 	output['tfutures'] = np.array(tfutures)
 	output['loc_diffs'] = np.array(loc_diffs)
 	output['mean_direction'] = pyb_aux.calc_mean_travel_direction(lon0=lon0, lat0=lat0, end_lon=float(output['lons'][-1]), end_lat=float(output['lats'][-1]))
-
-	if not time_interpolate:
-		output['delta_ts'] = np.array(delta_ts)
 
 	# print out relevant quantities
 	sys.stdout.write('\r')
@@ -781,7 +700,7 @@ def run_traj(weather_files=None, datestr=None, utc_hour=None, loc0=None, params=
 	time_diffs = {}
 	time_diffs[utc_hour] = [(int(int(weather_file[15:19])/100.) + int(weather_file[20:23])) % 24 - utc_hour for weather_file in weather_files]
 
-	descent_only, next_point, time_interpolate, grid_interpolate, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+	descent_only, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
 
 	data_array = {}
 	figs1 = []

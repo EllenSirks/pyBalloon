@@ -594,18 +594,10 @@ def get_endpoint(data=None, run=None, filename=None, params=None):
 
 	if params == None:
 		descent_only = p.descent_only
-		if descent_only:
-			next_point = p.next_point
-		time_interpolate = p.time_interpolate
 		drift_time = p.drift_time
-
 	else:
-
 		descent_only = bool(params[0])
-		if descent_only:
-			next_point = str(params[1])
-		time_interpolate = bool(params[-6])
-		drift_time = float(params[-4])
+		drift_time = float(params[1])
 
 	if data == None and run != None:
 

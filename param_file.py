@@ -20,9 +20,6 @@ usb_device_name = 'Device Name'
 
 # general parameters
 descent_only = True
-next_point = '1' # 0 if not descent_only
-time_interpolate = True
-grid_interpolate = True
 drift_time = 0. # minutes
 resolution = 0.5 # 0.25 or 0.5
 hr_diff = 0 # hrs, multiples of 6
