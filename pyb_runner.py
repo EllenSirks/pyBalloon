@@ -99,7 +99,7 @@ def runner(ini_conditions=None, balloon=None, params=None, run=None, overwrite=F
 
 def basic_runner(ini_conditions=None, balloon=None, params=None, run=None, overwrite=False):
 	"""
-	Method to run entire simulation of flight and write out calculated trajectories and predicted endpoint
+	Basic method to run entire simulation of flight and write out calculated trajectories
 
 	Arguments
 	=========
