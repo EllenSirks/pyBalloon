@@ -197,7 +197,6 @@ def get_gfs_files(weather_files=None):
 
 	out_dir = p.path + p.weather_data_folder + p.GFS_folder
 	usb_path = p.usb_path
-
 	device_connected = check_connection_device(p.usb_device_name)
 
 	now = dt.datetime.utcnow()
@@ -227,22 +226,22 @@ def get_gfs_files(weather_files=None):
 		second_file = 'gfs_' + res2 + '_' + datestr + '_' + hhhh + '_' + hhh + '.grb2'
 
 		if os.path.isfile(out_dir + second_file) or (device_connected and os.path.isfile(usb_path + second_file)):
-			# copyfile(usb_path + second_file, out_dir + second_file)
 			continue
 		else:
-			download_file(path_file=filename, out_dir=out_dir)
 
 			diff_name = os.path.basename(filename) != second_file
 
 			if device_connected:
-				copyfile(out_dir + os.path.basename(filename), usb_path + second_file)
+				download_file(path_file=filename, out_dir=usb_path)
+				copyfile(usb_path + os.path.basename(filename), usb_path + second_file)
 				if diff_name:
-					copyfile(out_dir + os.path.basename(filename), usb_path + second_file)
+					copyfile(usb_path + os.path.basename(filename), usb_path + second_file)
 					os.remove(usb_path + os.path.basename(filename))
-
-			if diff_name:
-				copyfile(out_dir + os.path.basename(filename), out_dir + second_file)
-				os.remove(out_dir + os.path.basename(filename))
+			else:
+				download_file(path_file=filename, out_dir=out_dir)
+				if diff_name:
+					copyfile(out_dir + os.path.basename(filename), out_dir + second_file)
+					os.remove(out_dir + os.path.basename(filename))
 
 	return [weather_files[0][:-5]]
 
@@ -273,7 +272,6 @@ def download_file(path_file=None, out_dir=None):
 
 	if req.ok is not True:
 		print('Cannot download ' + str(file) + ' this way! Check spelling or go to: https://www.ncdc.noaa.gov/has/HAS.DsSelect')
-		# sys.exit()
 
 	filesize = int(req.headers['Content-length'])
 	with open(out_dir + file, 'wb') as outfile:
@@ -392,6 +390,13 @@ def get_interval(datestr=None, utc_hour=None, hr_diff=0, live=True):
 				break
 
 		left_hr, left_hhh, left_hhh6, left_datestr = get_closest_hr(datestr=datestr, utc_hour=left_hour)
+
+		if utc_hour >= 21. and utc_hour < 24 and not live:
+			year, month, day = int(datestr[:4]), int(datestr[4:6]), int(datestr[6:])
+			date = dt.datetime(year, month, day) + dt.timedelta(days=1)
+			datestr = str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2)
+			right_hour = 0
+
 		right_hr, right_hhh, right_hhh6, right_datestr = get_closest_hr(datestr=datestr, utc_hour=right_hour)
 
 		# Comment for best possible weather forecasts!
@@ -435,8 +440,7 @@ def get_interval(datestr=None, utc_hour=None, hr_diff=0, live=True):
 
 if __name__ == '__main__':
 
-	# file = sys.argv[1]
-	# get_gfs_files(weather_files=[file])
-	print(get_interval(datestr='20180406', utc_hour=9.0, hr_diff=0, live=True))
+	file = sys.argv[1]
+	get_gfs_files(weather_files=[file])
 
 #################################################################################################################

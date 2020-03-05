@@ -86,7 +86,7 @@ def air_density(data):
 
 #################################################################################################################
 
-def data_interpolation(data, alt0, step, descent_only=False, output_figs=False):
+def data_interpolation(data, alt0, step, descent_only=False):
 	"""
 	Interpolate (and extrapolate in the low end, if mode='spline' is used) vertical data from alt0 to maximum level present in the data.
 
@@ -155,33 +155,7 @@ def data_interpolation(data, alt0, step, descent_only=False, output_figs=False):
 
 			new_data[key] = np.array(arr)
 
-	figs = {}
-
-	if output_figs:
-
-		ind1 = np.where(altitudes[:, 0] == alt0)[0][0]
-		ind2 = len(new_data['altitudes'])-1
-
-		for key in data.keys():
-			if key not in checks:
-
-				fig = plt.figure()
-
-				plt.axvline(alt0, linewidth=1, linestyle='--', label='Initial alt.')
-				plt.plot(altitudes[:, 0], data[key][:, 0], 'ro--', label='Before interp.', markersize=3.5)
-				plt.plot(altitudes[:, 0][ind1], data[key][:, 0][ind1], 'go', markersize=5, label='Inserted at alt. 0')
-				plt.plot(new_data['altitudes'][:ind2+1], new_data[key][0][:ind2+1], 'bo', markersize=0.5, label='After interp.')
-				plt.ylabel(key.capitalize().replace('_', ' '), fontsize=15)
-				plt.xlabel('Altitude [m]', fontsize=15)
-				plt.legend(loc='best')
-				plt.grid(True)
-				plt.tight_layout()
-
-				figs[key] = fig
-
-				plt.close()
-
-	return new_data, figs
+	return new_data
 
 #################################################################################################################
 
@@ -709,7 +683,7 @@ def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only
 			data['altitudes'] = data2['altitudes']
 			data['pressures'] = data1['pressures']
 
-			data = data_interpolation(data=data, alt0=alt0, step=100, descent_only=descent_only, output_figs=False)[0]
+			data = data_interpolation(data=data, alt0=alt0, step=100, descent_only=descent_only)
 
 			return data
 
@@ -765,7 +739,7 @@ def calc_gefs_errs(weather_file=None, current_time=None, loc0=None, descent_only
 			data['altitudes'] = np.array(altitudes)
 			data['pressures'] = pressures
 
-			data = data_interpolation(data=data, alt0=alt0, step=100, descent_only=descent_only, output_figs=False)[0]
+			data = data_interpolation(data=data, alt0=alt0, step=100, descent_only=descent_only)
 
 			return data
 

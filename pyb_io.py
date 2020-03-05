@@ -7,6 +7,7 @@ from shapely.ops import transform
 from functools import partial
 from scipy import interpolate
 from astropy.io import ascii
+import datetime as dt
 import pygrib as pg
 import numpy as np
 import sys, os
@@ -24,7 +25,6 @@ import pyb_traj
 
 import param_file as p
 
-#################################################################################################################
 #################################################################################################################
 
 def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
@@ -406,7 +406,7 @@ def read_gefs_file(fname=None, area=None, alt0=0, descent_only=False):
 #################################################################################################################
 #################################################################################################################
 
-def save_kml(fname, data, other_info=None, trajectories=None, params=None, balloon=None, parallel_err=None, perp_err=None, mean_direction=None):
+def save_kml(kml_dir, data, ini_conditions=None, descent_only=True, errs=None, overwrite=False):
 	"""
 	Method to save given trajectory as KML file
 
@@ -426,7 +426,26 @@ def save_kml(fname, data, other_info=None, trajectories=None, params=None, ballo
 		Angle between starting point and landing point
 	"""
 
-	descent_only, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = set_params(params=params, balloon=balloon)
+	datestr, utc_hour, loc0 = ini_conditions
+
+	fname = kml_dir + datestr + '_' + str(utc_hour) + '_' + str(loc0)
+	no = len([filename for filename in os.listdir(kml_dir) if os.path.basename(fname) in filename])
+	if overwrite:
+		no = 0
+
+	if no != 0:
+		fname += '_' + str(no + 1) + '.kml'
+	fname += '.kml'
+
+	if descent_only:
+		idx, = np.where(data['alts'] == np.max(data['alts']))
+	else:
+		idx, = np.where(data['alts'] == data['alts'][0])
+	latx, lonx, altx, timex = data['lats'][idx][0], data['lons'][idx][0], data['alts'][idx][0], data['times'][idx][0]
+
+	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
+
+	#####################################################################
 
 	kml_str = '<?xml version="1.0" encoding="UTF-8"?>\n'
 	kml_str += '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">\n'
@@ -498,22 +517,23 @@ def save_kml(fname, data, other_info=None, trajectories=None, params=None, ballo
 	num += 1
 
 	# Add "other_info" places
-	if other_info is not None:
-		for dat in other_info:
-			kml_str += '<Placemark>\n'
-			kml_str += '<name>initial condition</name>\n' ## change this
-			kml_str += '<description>initial condition</description>\n'
-			kml_str += '<Point>\n'
-			kml_str += '<altitudeMode>absolute</altitudeMode>\n'
-			kml_str += '<coordinates>%f,%f,%f</coordinates>\n' % \
+	for dat in other_info:
+		kml_str += '<Placemark>\n'
+		kml_str += '<name>initial condition</name>\n' ## change this
+		kml_str += '<description>initial condition</description>\n'
+		kml_str += '<Point>\n'
+		kml_str += '<altitudeMode>absolute</altitudeMode>\n'
+		kml_str += '<coordinates>%f,%f,%f</coordinates>\n' % \
 				(dat[1], dat[0], dat[2])
-			kml_str += '</Point>\n'
-			kml_str += '</Placemark>\n'
+		kml_str += '</Point>\n'
+		kml_str += '</Placemark>\n'
 
 	end_lat, end_lon, end_alt = data['lats'][-1], data['lons'][-1], data['alts'][-1]
+	mean_direction = np.radians(data['mean_direction'])
 
-	if parallel_err == None or perp_err == None:
-		parallel_err, perp_err = pyb_io.determine_error(trajectories=trajectories, params=params)
+	if errs is None:
+		errs = determine_error(data=data)
+	parallel_err, perp_err = errs
 
 	kml_str_add1 = create_ellips(lon=end_lon, lat=end_lat, parallel_err=parallel_err, perp_err=perp_err, times=1, theta=mean_direction, color='BF0000DF') # 68th percentile
 	kml_str_add2 = create_ellips(lon=end_lon, lat=end_lat, parallel_err=parallel_err, perp_err=perp_err, times=2, theta=mean_direction, color='BF0000DF') # 95th percentile
@@ -531,6 +551,8 @@ def save_kml(fname, data, other_info=None, trajectories=None, params=None, ballo
 	fid.close()
 
 	del kml_str, fid
+
+	return fname
 
 #################################################################################################################
 
@@ -720,6 +742,35 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 	fid.close()
 
 #################################################################################################################
+
+def get_and_make_paths(run=None):
+	"""
+	Method to create the directories needed to store the trajectory data and possibly figures
+
+	Arguments
+	=========
+	run : str
+		String indicating which run folder the results are to be stored in
+	"""
+
+	now = dt.datetime.now()
+	if run == None:
+		now_str = str(now.year) + str(now.month).zfill(2) + str(now.day).zfill(2)
+		files = [filename for filename in os.listdir(p.path + p.output_folder) if now_str in filename]
+		run = now_str + '_' + str(len(files))
+
+	base_dir = p.path + p.output_folder + run + '/'
+	kml_dir = base_dir + p.kml_folder
+	traj_dir = base_dir + p.traj_folder
+	if not os.path.exists(kml_dir):
+		os.makedirs(kml_dir)
+	if not os.path.exists(traj_dir):
+		os.makedirs(traj_dir)
+
+	fig_dir = base_dir + p.fig_folder + 'DescentRates/'
+
+	return base_dir, kml_dir, traj_dir, fig_dir
+
 #################################################################################################################
 
 def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=None):
@@ -857,14 +908,14 @@ def set_params(params=None, balloon=None):
 
 #################################################################################################################
 
-def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
+def write_run_info(run=None, params=None, balloon=None):
 	"""
 	Method to write the parameters being used to the runs_info.txt file which contains the info for all runs run
 
 	Arguments
 	=========	
-	params_dir : string
-		Directory in which to save the params.txt file
+	run : string
+		String indicating which run folder the results are to be stored in
 	params : list
 		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
 	balloon : dict
@@ -873,31 +924,29 @@ def write_run_info(add_run_info=True, run=None, params=None, balloon=None):
 
 	descent_only, drift_time, resolution, hr_diff, check_elevation, live = params
 
-	if add_run_info:
+	run_info_file = p.path + p.output_folder + 'runs_info.txt'
 
-		run_info_file = p.path + p.output_folder + 'runs_info.txt'
+	if not os.path.isfile(run_info_file):
 
-		if not os.path.isfile(run_info_file):
+		f = open(run_info_file, 'w+')
+		labels = 'run descent_only drift_time resolution hr_diff check_elevation live Cd_parachute parachute_area altitude_step'
+		labels += ' equip_mass balloon_mass fill_radius radius_empty burst_radius thickness_empty Cd_balloon simple_ascent_rate parachute_change_altitude'
+		f.write(labels)
 
-			f = open(run_info_file, 'w+')
-			labels = 'run descent_only drift_time resolution hr_diff check_elevation live Cd_parachute parachute_area altitude_step'
-			labels += ' equip_mass balloon_mass fill_radius radius_empty burst_radius thickness_empty Cd_balloon simple_ascent_rate parachute_change_altitude'
-			f.write(labels)
+	lines = [line.rstrip('\n').split(' ') for line in open(run_info_file)]
+	runs = [lines[i][0] for i in range(len(lines)) if i != 0]
 
-		lines = [line.rstrip('\n').split(' ') for line in open(run_info_file)]
-		runs = [lines[i][0] for i in range(len(lines)) if i != 0]
-
-		f = open(run_info_file, 'a+')
-		if run not in runs:
-			f.write('\n' + str(run) + ' ' + str(descent_only) + ' ' + str(drift_time) + ' ' + str(resolution) + ' '  + str(hr_diff) + ' ' + str(check_elevation) + ' ' + str(live)\
-			 + ' ' + str(balloon['Cd_parachute']) + ' ' + str(balloon['parachute_areas'][0]) + ' ' + str(balloon['altitude_step'])  + ' ' + str(balloon['equip_mass']) + ' ' +\
-			  str(balloon['balloon_mass']) + ' ' + str(balloon['fill_radius']) + ' ' + str(balloon['radius_empty']) + ' ' + str(balloon['burst_radius']) + ' ' + str(balloon['thickness_empty'])\
-			   + ' ' + str(balloon['Cd_balloon']) + ' ' + str(balloon['simple_ascent_rate']) + ' ' + str(balloon['parachute_change_altitude']))
-		f.close()
+	f = open(run_info_file, 'a+')
+	if run not in runs:
+		f.write('\n' + str(run) + ' ' + str(descent_only) + ' ' + str(drift_time) + ' ' + str(resolution) + ' '  + str(hr_diff) + ' ' + str(check_elevation) + ' ' + str(live)\
+		 + ' ' + str(balloon['Cd_parachute']) + ' ' + str(balloon['parachute_areas'][0]) + ' ' + str(balloon['altitude_step'])  + ' ' + str(balloon['equip_mass']) + ' ' +\
+		  str(balloon['balloon_mass']) + ' ' + str(balloon['fill_radius']) + ' ' + str(balloon['radius_empty']) + ' ' + str(balloon['burst_radius']) + ' ' + str(balloon['thickness_empty'])\
+		   + ' ' + str(balloon['Cd_balloon']) + ' ' + str(balloon['simple_ascent_rate']) + ' ' + str(balloon['parachute_change_altitude']))
+	f.close()
 
 #################################################################################################################
 
-def search_info(run=None, print_verbose=True):
+def search_info(run=None):
 	"""
 	Method to find the info for a run in the runs_info.txt file
 
@@ -923,24 +972,22 @@ def search_info(run=None, print_verbose=True):
 
 		index = int(index)
 
-		if print_verbose:
-
-			print('\nGeneral Parameters')
-			print('----------')
-			print('descent_only: ' + str(data['descent_only'][index]))
-			print('drift time: ' + str(data['drift_time'][index]) + ' minutes')
-			print('resolution of forecasts: ' + str(data['resolution'][index]) + ' degrees')
-			print('difference in hrs for forecasts: ' + str(data['hr_diff'][index]) + ' hours')
-			print('check for elevation: ' + str(data['check_elevation'][index]))
-			print('live mode: ' + str(data['live'][index]))
-			print('----------')
-			print('\nBalloon/Parachute Parameters')
-			print('----------')
-			print('altitude step: ' + str(data['altitude_step'][index]) + ' m')
-			print('equipment mass: ' + str(data['equip_mass'][index]) + ' kg')
-			print('parachute Cd: ' + str(data['Cd_parachute'][index]))
-			print('parachute area: ' + str(data['parachute_area'][index]) + ' m^2')
-			print('----------\n')
+		print('\nGeneral Parameters')
+		print('----------')
+		print('descent_only: ' + str(data['descent_only'][index]))
+		print('drift time: ' + str(data['drift_time'][index]) + ' minutes')
+		print('resolution of forecasts: ' + str(data['resolution'][index]) + ' degrees')
+		print('difference in hrs for forecasts: ' + str(data['hr_diff'][index]) + ' hours')
+		print('check for elevation: ' + str(data['check_elevation'][index]))
+		print('live mode: ' + str(data['live'][index]))
+		print('----------')
+		print('\nBalloon/Parachute Parameters')
+		print('----------')
+		print('altitude step: ' + str(data['altitude_step'][index]) + ' m')
+		print('equipment mass: ' + str(data['equip_mass'][index]) + ' kg')
+		print('parachute Cd: ' + str(data['Cd_parachute'][index]))
+		print('parachute area: ' + str(data['parachute_area'][index]) + ' m^2')
+		print('----------\n')
 
 		return index
 
@@ -993,29 +1040,20 @@ def err_perp(sigma_0, h, k, q, hor_dist, tfut):
 
 #################################################################################################################
 
-def determine_error(trajectories=None, params=None):
+def determine_error(data=None):
 	"""
 	Method to determine the error in the trajectory from the difference in location, time to forecast and how far into the future the forecast looks
 
 	Arguments
 	=========
-	trajectories : dict
+	data : dict
 		Dictionary containing trajectory data
-	params : list
-		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
 	"""
 
-	# sigma_0, h, k, q = 1.333, 3.07e-4, 2.29e-3, 0.983
+	sigma_0, h, k, q = 1.769442, 0.000316, 0.003567, 1.142628
 
-	live = pyb_io.set_params(params=params)[-3]
-
-	if live:
-		sigma_0, h, k, q = 1.769442, 0.000316, 0.003567, 1.142628
-	else:
-		sigma_0, h, k, q = 1.63491, 0.000641, 0.003292, 1.202485
-
-	tfut = np.mean(trajectories['tfutures'])
-	hor_dist = np.sum(np.array(trajectories['dists']))
+	tfut = np.mean(data['tfutures'])
+	hor_dist = np.sum(np.array(data['dists']))
 	parallel_err, perp_err = err_parallel(sigma_0, h, k, hor_dist, tfut), err_perp(sigma_0, h, k, q, hor_dist, tfut)
 
 	print('The errors are: ' + str(round(parallel_err, 3)) + ' and ' + str(round(perp_err, 3)) +  ' km\n')
@@ -1024,7 +1062,7 @@ def determine_error(trajectories=None, params=None):
 
 #################################################################################################################
 
-def create_trajectory_files(traj_dir=None, kml_dir=None, datestr=None, utc_hour=None, loc0=None, trajectories=None, params=None, overwrite=False):
+def create_trajectory_files(traj_dir=None, data=None, ini_conditions=None, overwrite=False):
 	"""
 	Method to create trajectory files and write out the trajectory data to them
 
@@ -1032,65 +1070,48 @@ def create_trajectory_files(traj_dir=None, kml_dir=None, datestr=None, utc_hour=
 	=========
 	traj_dir : string
 		Directory where the trajectory files will be saved
-	kml_dir : string 
-		Directory where the kml files will be saved
-	datestr : string
-		Date of initial point
-	utc_hour : float
-		Initial time of trajectory
-	loc0 : floats in tuple
-		(latitude in degrees, longitude in degrees, altitude in km) of initial point
-	trajectories : dict
+	data : dict
 		Dictionary containing trajectory data
-	params : list
-		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+	ini_conditions : tuple of strings
+		(Date of initial point, Initial time of trajectory, (latitude in degrees, longitude in degrees, altitude in km) of initial point
+	overwrite : bool
+		If True, any files already in the folder (with the same ini_conditions) are overwritten
 	"""
 
-	traj_file = traj_dir + 'trajectory_' + datestr + '_' + str(utc_hour) + '_' + str(loc0)
-	kml_fname = kml_dir + datestr + '_' + str(utc_hour) + '_' + str(loc0)
+	datestr, utc_hour, loc0 = ini_conditions
 
-	# determine number of files already in folder (with the same starting params)
+	traj_file = traj_dir + datestr + '_' + str(utc_hour) + '_' + str(loc0)
+	no = len([filename for filename in os.listdir(traj_dir) if os.path.basename(traj_file) in filename])
 	if overwrite:
 		no = 0
-	else:
-		no = len([filename for filename in os.listdir(traj_dir) if os.path.basename(traj_file) in filename])
 
-	if no == 0:
-		traj_file += '.dat'
-		kml_fname += '.kml'
-	else:
-		traj_file += '_' + str(no + 1) + '.dat'
-		kml_fname += '_' + str(no + 1) + '.kml'
+	if no != 0:
+		traj_file += '_' + str(no + 1)
+	traj_file += '.dat'
 
 	# write out trajectory file
-	out_list = [trajectories['lats'], trajectories['lons'], trajectories['alts'], trajectories['dists'], trajectories['times'], trajectories['tfutures'], trajectories['loc_diffs'], trajectories['speeds']]
-	names = ['lats', 'lons', 'alts', 'dists', 'times', 'tfutures', 'loc_diffs', 'speeds']
+	out_list = [data['lats'], data['lons'], data['alts'], data['dists'], data['times'], data['tfutures'], data['speeds']]
+	names = ['lats', 'lons', 'alts', 'dists', 'times', 'tfutures', 'speeds']
 
-	ascii.write(out_list, traj_file, names=names, overwrite=True)
+	ascii.write(out_list, traj_file, names=names, overwrite=overwrite)
 
-	return kml_fname	
+	return traj_file
 
 #################################################################################################################
 
-def make_descent_rate_plot(directory=None, data=None, datestr=None, utc_hour=None, loc0=None):
+def make_descent_rate_plot(fig_dir=None, data=None, ini_conditions=None):
 	"""
 	Method to create plots showing the descent rates of the trajectory
 
 	Arguments
 	=========
-	directory : string
+	fig_dir : string
 		Directory where the figures will be saved
 	data : dict
 		Dictionary containing the trajectory data
-	datestr : string
-		Date of initial point
-	utc_hour : float
-		Time of initial point
-	loc0 : floats in tuple
-		(latitude in degrees, longitude in degrees, altitude in km) of initial point		
+	ini_conditions : tuple of strings
+		(Date of initial point, Initial time of trajectory, (latitude in degrees, longitude in degrees, altitude in km) of initial point	
 	"""
-
-	fig_dir = directory + 'DescentRates/'
 
 	if not os.path.exists(fig_dir):
 		os.makedirs(fig_dir)
@@ -1098,6 +1119,11 @@ def make_descent_rate_plot(directory=None, data=None, datestr=None, utc_hour=Non
 	alts = np.array(data['alts'])
 	times = np.array(data['times'])
 	descent_speeds = np.array(data['speeds'])
+
+	datestr, utc_hour, loc0 = ini_conditions
+	lat0, lon0, alt0 = loc0
+
+	##################################################
 
 	fig = plt.figure()
 
@@ -1125,7 +1151,6 @@ def make_descent_rate_plot(directory=None, data=None, datestr=None, utc_hour=Non
 
 	plt.close()
 
-#################################################################################################################
 #################################################################################################################
 
 def geodesic_point_buffer(lat=None, lon=None, radius=5):
@@ -1294,10 +1319,3 @@ def create_ellips(lon=None, lat=None, parallel_err=0, perp_err=0, theta=0, times
 	return kml_str
 
 #################################################################################################################
-
-if __name__ == '__main__':
-
-	# read_gfs_file('/media/ellen/Data/SuperBIT_DRS/Weather_data/GFS/gfs_4_20180405_1800_012.grb2', alt0=26091, descent_only=True)
-	# read_gfs_file('/home/ellen/Desktop/SuperBIT_DRS/Weather_data/GFS/gespr.t06z.pgrb2a.0p50.f000', alt0=26091, descent_only=True)
-	read_gfs_file('/home/ellen/Desktop/SuperBIT_DRS/Weather_data/GFS/geavg.t06z.pgrb2a.0p50.f000', alt0=26091, descent_only=True)
-
