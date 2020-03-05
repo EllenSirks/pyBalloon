@@ -549,7 +549,7 @@ def get_elevation(lon, lat):
 
 def get_endpoint(data=None, run=None, filename=None, params=None):
 	""" 
-	Calculate more accurate endpoint using data from: http://viewfinderpanoramas.org/
+	Calculate more accurate endpoint using data from: http://viewfinderpanoramas.org/ and http://srtm.csi.cgiar.org/
 	PyBalloon does not know the elevation of given locations, so trajectories can continue underground untill i = 0 (see pyb_traj)
 
 	Arguments
