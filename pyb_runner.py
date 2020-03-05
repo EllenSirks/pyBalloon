@@ -97,6 +97,50 @@ def runner(ini_conditions=None, balloon=None, params=None, run=None, overwrite=F
 
 #################################################################################################################
 
+def basic_runner(ini_conditions=None, balloon=None, params=None, run=None, overwrite=False):
+	"""
+	Method to run entire simulation of flight and write out calculated trajectories and predicted endpoint
+
+	Arguments
+	=========
+	ini_conditions : tuple of strings
+		(Date of initial point, Initial time of trajectory, (latitude in degrees, longitude in degrees, altitude in km) of initial point
+	balloon : dict
+		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
+	params : list
+		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
+	run : string
+		String indicating which run folder the results are to be stored in
+	overwrite : bool
+		If True, overwrite trajectory file with same ini_conditions in folder
+	"""
+
+	############################################################################################################ <---- set trajectory parameters
+
+	datestr, utc_hour, loc0 = ini_conditions
+	lat0, lon0, alt0 = loc0
+
+	descent_only, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
+
+	if not descent_only:
+		elevation = pyb_aux.get_elevation(lon=lon0, lat=lat0)
+		if elevation > alt0:
+			alt0 = elevation
+			loc0 = lat0, lon0, alt0
+
+	base_dir, kml_dir, traj_dir, fig_dir = pyb_io.get_and_make_paths(run=run)
+
+	files = get_gfs.get_interpolation_gfs_files(datestr=datestr, utc_hour=utc_hour, resolution=resolution, hr_diff=hr_diff, live=live)
+	trajectories, used_weather_files = pyb_traj.run_traj(weather_files=files, ini_conditions=ini_conditions, params=params, balloon=balloon)
+
+	pyb_io.create_trajectory_files(traj_dir=traj_dir, data=trajectories, ini_conditions=ini_conditions, overwrite=overwrite)
+	pyb_io.save_kml(kml_dir=kml_dir, data=trajectories, ini_conditions=ini_conditions, overwrite=overwrite)
+	pyb_io.save_used_weather_files(utc_hour=utc_hour, save_dir=base_dir, used_weather_files=used_weather_files, trajectories=trajectories)
+
+	return trajectories
+
+#################################################################################################################
+
 if __name__ == "__main__":
 
 	time0 = time.time()
@@ -118,6 +162,7 @@ if __name__ == "__main__":
 		run = None
 
 	trajectories = runner(ini_conditions=ini_conditions, params=params, run=run)
+	# trajectories = basic_runner(ini_conditions=ini_conditions, params=params, run=run)
 
 	############################################################################################################
 
