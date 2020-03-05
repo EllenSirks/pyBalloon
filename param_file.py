@@ -1,8 +1,9 @@
 """File with relevant running parameters"""
 
-# paths & folders
+# paths
 path = '/path/to/pyBalloon/folder/'
 
+# folders
 weather_data_folder = 'Weather_data/'
 GFS_folder =  'GFS/'
 elevation_data_folder = 'SRTM_data/'
@@ -10,9 +11,9 @@ elevation_data_folder = 'SRTM_data/'
 output_folder = 'Output/'
 kml_folder = 'Kml_files/'
 traj_folder = 'Trajectories/'
+
 fig_folder = 'Figs/'
 
-# usb pth/name if weather data etc is not stored on computer
 usb_path = '/path/to/GFS/folder/on/usb/Device/'
 usb_device_name = 'Device Name'
 
