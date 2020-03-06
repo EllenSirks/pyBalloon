@@ -688,31 +688,67 @@ def run_traj(weather_files=None, ini_conditions=None, params=None, balloon=None)
 
 #################################################################################################################
 
-def err_parallel(sigma_0, h, k, hor_dist, tfut):
+def err_parallel(fit_params, hor_dist, tfut):
+	"""
+	Method to calculate error in direction of travel
+
+	Arguments
+	=========
+	fit_params : tuple of floats
+		Tuple of the parameters used to calculate the error
+	hor_dist : float
+		Total predicted horizontal distance travelled
+	tfut : float
+		Average t_future for the weather models used at each altitude step
+	Return:
+		Predicted error in direction of travel
+	"""
+
+	sigma_0, h, k, q = fit_params
+
 	return np.sqrt(sigma_0**2 + h*hor_dist**2 + k*tfut**2)
 
 #################################################################################################################
 
-def err_perp(sigma_0, h, k, q, hor_dist, tfut):
+def err_perp(fit_params, hor_dist, tfut):
+	"""
+	Method to calculate error in direction perpendicular to direction of travel
+
+	Arguments
+	=========
+	fit_params : tuple of floats
+		Tuple of the parameters used to calculate the error
+	hor_dist : float
+		Total predicted horizontal distance travelled
+	tfut : float
+		Average t_future for the weather models used at each altitude step
+	Return:
+		Predicted error in direction perpendicular to direction of travel
+	"""
+
+	sigma_0, h, k, q = fit_params
+
 	return np.sqrt(sigma_0**2 + h*hor_dist**2 + k*tfut**2)/q
 
 #################################################################################################################
 
 def determine_error(data=None):
 	"""
-	Method to determine the error in the trajectory from the difference in location, time to forecast and how far into the future the forecast looks
+	Method to predict the error on the end_point
 
 	Arguments
 	=========
 	data : dict
 		Dictionary containing trajectory data
+	Return:
+		Predicted errors in parallel and perpendicular direction wrt the direction of travel
 	"""
 
-	sigma_0, h, k, q = 1.769442, 0.000316, 0.003567, 1.142628 # parameters determined from test flights
+	fit_params = (1.769442, 0.000316, 0.003567, 1.142628) # sigma_0, h, k, q: parameters determined from test flights
 
 	tfut = np.mean(data['tfutures'])
 	hor_dist = np.sum(np.array(data['dists']))
-	parallel_err, perp_err = err_parallel(sigma_0, h, k, hor_dist, tfut), err_perp(sigma_0, h, k, q, hor_dist, tfut)
+	parallel_err, perp_err = err_parallel(fit_params, hor_dist, tfut), err_perp(fit_params, hor_dist, tfut)
 
 	print('The errors are: ' + str(round(parallel_err, 3)) + ' and ' + str(round(perp_err, 3)) +  ' km\n')
 

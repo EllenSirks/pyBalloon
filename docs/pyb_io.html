@@ -82,14 +82,6 @@ ini_conditions&nbsp;:&nbsp;tuple&nbsp;of&nbsp;strings<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Date&nbsp;of&nbsp;initial&nbsp;point,&nbsp;Initial&nbsp;time&nbsp;of&nbsp;trajectory,&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point<br>
 overwrite&nbsp;:&nbsp;bool<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;any&nbsp;files&nbsp;already&nbsp;in&nbsp;the&nbsp;folder&nbsp;(with&nbsp;the&nbsp;same&nbsp;ini_conditions)&nbsp;are&nbsp;overwritten</tt></dd></dl>
- <dl><dt><a name="-determine_error"><strong>determine_error</strong></a>(data<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;determine&nbsp;the&nbsp;error&nbsp;in&nbsp;the&nbsp;trajectory&nbsp;from&nbsp;the&nbsp;difference&nbsp;in&nbsp;location,&nbsp;time&nbsp;to&nbsp;forecast&nbsp;and&nbsp;how&nbsp;far&nbsp;into&nbsp;the&nbsp;future&nbsp;the&nbsp;forecast&nbsp;looks<br>
-&nbsp;<br>
-Arguments<br>
-=========<br>
-data&nbsp;:&nbsp;dict<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;trajectory&nbsp;data</tt></dd></dl>
- <dl><dt><a name="-err_parallel"><strong>err_parallel</strong></a>(sigma_0, h, k, hor_dist, tfut)</dt></dl>
- <dl><dt><a name="-err_perp"><strong>err_perp</strong></a>(sigma_0, h, k, q, hor_dist, tfut)</dt></dl>
  <dl><dt><a name="-geodesic_point_buffer"><strong>geodesic_point_buffer</strong></a>(lat<font color="#909090">=None</font>, lon<font color="#909090">=None</font>, radius<font color="#909090">=5</font>)</dt><dd><tt>Method&nbsp;to&nbsp;find&nbsp;all&nbsp;latslons&nbsp;to&nbsp;create&nbsp;a&nbsp;circle&nbsp;of&nbsp;a&nbsp;given&nbsp;radius&nbsp;(km)&nbsp;around&nbsp;a&nbsp;lat/lon&nbsp;point<br>
 &nbsp;<br>
 lon&nbsp;:&nbsp;float<br>
@@ -104,7 +96,7 @@ Arguments<br>
 =========<br>
 run&nbsp;:&nbsp;str<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String&nbsp;indicating&nbsp;which&nbsp;run&nbsp;folder&nbsp;the&nbsp;results&nbsp;are&nbsp;to&nbsp;be&nbsp;stored&nbsp;in</tt></dd></dl>
- <dl><dt><a name="-get_ellips_coords"><strong>get_ellips_coords</strong></a>(lat<font color="#909090">=None</font>, lon<font color="#909090">=None</font>, x_extent<font color="#909090">=0</font>, y_extent<font color="#909090">=0</font>, theta<font color="#909090">=0</font>)</dt><dd><tt>#Method&nbsp;to&nbsp;find&nbsp;all&nbsp;lats/lons&nbsp;to&nbsp;create&nbsp;a&nbsp;ellips&nbsp;of&nbsp;a&nbsp;given&nbsp;minor/major&nbsp;axis&nbsp;(km)&nbsp;around&nbsp;a&nbsp;lat/lon&nbsp;point<br>
+ <dl><dt><a name="-get_ellips_coords"><strong>get_ellips_coords</strong></a>(lat<font color="#909090">=None</font>, lon<font color="#909090">=None</font>, x_extent<font color="#909090">=0</font>, y_extent<font color="#909090">=0</font>, theta<font color="#909090">=0</font>)</dt><dd><tt>Method&nbsp;to&nbsp;find&nbsp;all&nbsp;lats/lons&nbsp;to&nbsp;create&nbsp;a&nbsp;ellips&nbsp;of&nbsp;a&nbsp;given&nbsp;minor/major&nbsp;axis&nbsp;(km)&nbsp;around&nbsp;a&nbsp;lat/lon&nbsp;point<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
@@ -144,7 +136,7 @@ semimaj&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Semimajor-axis&nbsp;of&nbsp;ellips<br>
 semimin&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Semiminor-axis&nbsp;of&nbsp;ellips</tt></dd></dl>
- <dl><dt><a name="-merge_kml"><strong>merge_kml</strong></a>(datestr<font color="#909090">=None</font>, run<font color="#909090">=None</font>, params<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, drift_times<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;merge&nbsp;the&nbsp;kml&nbsp;files&nbsp;output&nbsp;by&nbsp;the&nbsp;pyb_drifter&nbsp;script<br>
+ <dl><dt><a name="-merge_kml"><strong>merge_kml</strong></a>(datestr<font color="#909090">=None</font>, run<font color="#909090">=None</font>, drift_times<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;merge&nbsp;the&nbsp;kml&nbsp;files&nbsp;output&nbsp;by&nbsp;the&nbsp;pyb_drifter&nbsp;script<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
@@ -152,38 +144,18 @@ datestr&nbsp;:&nbsp;string<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Date&nbsp;of&nbsp;initial&nbsp;point<br>
 run&nbsp;:&nbsp;string<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String&nbsp;indicating&nbsp;the&nbsp;folder&nbsp;in&nbsp;which&nbsp;the&nbsp;drifted&nbsp;trajectories&nbsp;are&nbsp;stored<br>
-params&nbsp;:&nbsp;list<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
-balloon&nbsp;:&nbsp;dict<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.<br>
 drift_times&nbsp;:&nbsp;array<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Array&nbsp;of&nbsp;driftimes&nbsp;used&nbsp;to&nbsp;created&nbsp;the&nbsp;trajectories</tt></dd></dl>
- <dl><dt><a name="-print_verbose"><strong>print_verbose</strong></a>(datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, params<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;print&nbsp;out&nbsp;the&nbsp;parameters&nbsp;being&nbsp;used&nbsp;to&nbsp;the&nbsp;terminal<br>
+ <dl><dt><a name="-print_verbose"><strong>print_verbose</strong></a>(ini_conditions<font color="#909090">=None</font>, params<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;print&nbsp;out&nbsp;the&nbsp;parameters&nbsp;being&nbsp;used&nbsp;to&nbsp;the&nbsp;terminal<br>
 &nbsp;<br>
 Arguments<br>
 =========&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
-datestr&nbsp;:&nbsp;string<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Date&nbsp;of&nbsp;initial&nbsp;point<br>
-utc_hour&nbsp;:&nbsp;float<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Time&nbsp;of&nbsp;initial&nbsp;point<br>
-loc0&nbsp;:&nbsp;floats&nbsp;in&nbsp;tuple<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point<br>
+ini_conditions&nbsp;:&nbsp;tuple&nbsp;of&nbsp;strings<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Date&nbsp;of&nbsp;initial&nbsp;point,&nbsp;Initial&nbsp;time&nbsp;of&nbsp;trajectory,&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point<br>
 params&nbsp;:&nbsp;list<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
 balloon&nbsp;:&nbsp;dict<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.</tt></dd></dl>
- <dl><dt><a name="-read_gefs_file"><strong>read_gefs_file</strong></a>(fname<font color="#909090">=None</font>, area<font color="#909090">=None</font>, alt0<font color="#909090">=0</font>, descent_only<font color="#909090">=False</font>)</dt><dd><tt>Method&nbsp;to&nbsp;read&nbsp;am&nbsp;ensemble&nbsp;GFS&nbsp;file&nbsp;(GEFS)<br>
-&nbsp;<br>
-Arguments<br>
-=========<br>
-fname&nbsp;:&nbsp;string<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;name&nbsp;of&nbsp;the&nbsp;grib&nbsp;file&nbsp;to&nbsp;be&nbsp;read<br>
-area&nbsp;:&nbsp;(float,&nbsp;float,&nbsp;float,&nbsp;float)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;(most&nbsp;northern&nbsp;latitude,&nbsp;most&nbsp;western&nbsp;longitude,&nbsp;most&nbsp;southern&nbsp;latitude,&nbsp;most&nbsp;eastern&nbsp;longitude)&nbsp;in&nbsp;degrees,&nbsp;indicating&nbsp;the&nbsp;area&nbsp;on&nbsp;the&nbsp;globe&nbsp;from&nbsp;which&nbsp;the&nbsp;data&nbsp;should&nbsp;be&nbsp;collected<br>
-alt0&nbsp;:&nbsp;float<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial&nbsp;temperature.<br>
-descent_only&nbsp;:&nbsp;bool<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Option&nbsp;to&nbsp;start&nbsp;the&nbsp;trajectory&nbsp;at&nbsp;its&nbsp;highest&nbsp;point.&nbsp;If&nbsp;True,&nbsp;the&nbsp;trajectory&nbsp;only&nbsp;has&nbsp;a&nbsp;descent&nbsp;phase</tt></dd></dl>
  <dl><dt><a name="-read_gfs_file"><strong>read_gfs_file</strong></a>(fname, area<font color="#909090">=None</font>, alt0<font color="#909090">=0</font>, t_0<font color="#909090">=None</font>, descent_only<font color="#909090">=False</font>)</dt><dd><tt>Method&nbsp;to&nbsp;read&nbsp;GFS&nbsp;file&nbsp;and&nbsp;collect&nbsp;relevant&nbsp;data&nbsp;(winds,&nbsp;temperatures,&nbsp;altitudes)<br>
 &nbsp;<br>
 Arguments<br>
@@ -214,18 +186,16 @@ descent_only&nbsp;:&nbsp;bool<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
-fname&nbsp;:&nbsp;string<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;file&nbsp;containing&nbsp;the&nbsp;trajectory<br>
+kml_dir&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Directory&nbsp;in&nbsp;which&nbsp;to&nbsp;store&nbsp;the&nbsp;kml&nbsp;file<br>
 data&nbsp;:&nbsp;dict<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;the&nbsp;trajectory&nbsp;data<br>
-other_info&nbsp;:&nbsp;list<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;containing&nbsp;the&nbsp;highest&nbsp;point&nbsp;in&nbsp;the&nbsp;trajectory,&nbsp;i.e.&nbsp;either&nbsp;the&nbsp;starting&nbsp;location&nbsp;if&nbsp;descent_only&nbsp;or&nbsp;the&nbsp;burst&nbsp;location&nbsp;of&nbsp;the&nbsp;balloon&nbsp;if&nbsp;not&nbsp;descent_only<br>
-params&nbsp;:&nbsp;list<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
-balloon&nbsp;:&nbsp;dict<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;of&nbsp;balloon&nbsp;parameters,&nbsp;e.g.&nbsp;burtsradius,&nbsp;mass&nbsp;etc.<br>
-mean_direction&nbsp;:&nbsp;float<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Angle&nbsp;between&nbsp;starting&nbsp;point&nbsp;and&nbsp;landing&nbsp;point</tt></dd></dl>
+descent_only&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Option&nbsp;to&nbsp;start&nbsp;the&nbsp;trajectory&nbsp;at&nbsp;its&nbsp;highest&nbsp;point.&nbsp;If&nbsp;True,&nbsp;the&nbsp;trajectory&nbsp;only&nbsp;has&nbsp;a&nbsp;descent&nbsp;phase<br>
+errs&nbsp;:&nbsp;tuple&nbsp;of&nbsp;floats<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;predicted&nbsp;errors&nbsp;in&nbsp;the&nbsp;direction&nbsp;of&nbsp;travel&nbsp;and&nbsp;perpendicular&nbsp;direction<br>
+overwrite&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;True,&nbsp;overwrite&nbsp;trajectory&nbsp;file&nbsp;with&nbsp;same&nbsp;ini_conditions&nbsp;in&nbsp;folder</tt></dd></dl>
  <dl><dt><a name="-save_used_weather_files"><strong>save_used_weather_files</strong></a>(save_dir<font color="#909090">=None</font>, used_weather_files<font color="#909090">=None</font>, trajectories<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;write&nbsp;out&nbsp;the&nbsp;weather&nbsp;files&nbsp;used&nbsp;for&nbsp;a&nbsp;run<br>
 &nbsp;<br>
 Arguments<br>

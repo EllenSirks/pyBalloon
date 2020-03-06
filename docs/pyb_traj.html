@@ -116,6 +116,38 @@ resolution&nbsp;:&nbsp;float<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Resolution&nbsp;of&nbsp;the&nbsp;weather&nbsp;forecasts<br>
 Return:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Value&nbsp;of&nbsp;given&nbsp;variable</tt></dd></dl>
+ <dl><dt><a name="-determine_error"><strong>determine_error</strong></a>(data<font color="#909090">=None</font>)</dt><dd><tt>Method&nbsp;to&nbsp;predict&nbsp;the&nbsp;error&nbsp;on&nbsp;the&nbsp;end_point<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;trajectory&nbsp;data<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Predicted&nbsp;errors&nbsp;in&nbsp;parallel&nbsp;and&nbsp;perpendicular&nbsp;direction&nbsp;wrt&nbsp;the&nbsp;direction&nbsp;of&nbsp;travel</tt></dd></dl>
+ <dl><dt><a name="-err_parallel"><strong>err_parallel</strong></a>(fit_params, hor_dist, tfut)</dt><dd><tt>Method&nbsp;to&nbsp;calculate&nbsp;error&nbsp;in&nbsp;direction&nbsp;of&nbsp;travel<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+fit_params&nbsp;:&nbsp;tuple&nbsp;of&nbsp;floats<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tuple&nbsp;of&nbsp;the&nbsp;parameters&nbsp;used&nbsp;to&nbsp;calculate&nbsp;the&nbsp;error<br>
+hor_dist&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Total&nbsp;predicted&nbsp;horizontal&nbsp;distance&nbsp;travelled<br>
+tfut&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Average&nbsp;t_future&nbsp;for&nbsp;the&nbsp;weather&nbsp;models&nbsp;used&nbsp;at&nbsp;each&nbsp;altitude&nbsp;step<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Predicted&nbsp;error&nbsp;in&nbsp;direction&nbsp;of&nbsp;travel</tt></dd></dl>
+ <dl><dt><a name="-err_perp"><strong>err_perp</strong></a>(fit_params, hor_dist, tfut)</dt><dd><tt>Method&nbsp;to&nbsp;calculate&nbsp;error&nbsp;in&nbsp;direction&nbsp;perpendicular&nbsp;to&nbsp;direction&nbsp;of&nbsp;travel<br>
+&nbsp;<br>
+Arguments<br>
+=========<br>
+fit_params&nbsp;:&nbsp;tuple&nbsp;of&nbsp;floats<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tuple&nbsp;of&nbsp;the&nbsp;parameters&nbsp;used&nbsp;to&nbsp;calculate&nbsp;the&nbsp;error<br>
+hor_dist&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Total&nbsp;predicted&nbsp;horizontal&nbsp;distance&nbsp;travelled<br>
+tfut&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Average&nbsp;t_future&nbsp;for&nbsp;the&nbsp;weather&nbsp;models&nbsp;used&nbsp;at&nbsp;each&nbsp;altitude&nbsp;step<br>
+Return:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Predicted&nbsp;error&nbsp;in&nbsp;direction&nbsp;perpendicular&nbsp;to&nbsp;direction&nbsp;of&nbsp;travel</tt></dd></dl>
  <dl><dt><a name="-movement2ll"><strong>movement2ll</strong></a>(lat_rad<font color="#909090">=None</font>, lon_rad<font color="#909090">=None</font>, alt<font color="#909090">=None</font>, dx<font color="#909090">=None</font>, dy<font color="#909090">=None</font>)</dt><dd><tt>Calculate&nbsp;new&nbsp;lat/lon&nbsp;coordinates&nbsp;given&nbsp;original&nbsp;location&nbsp;and&nbsp;Cartesian&nbsp;displacements.<br>
 &nbsp;<br>
 Arguments<br>
