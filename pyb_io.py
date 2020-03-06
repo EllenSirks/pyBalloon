@@ -133,10 +133,7 @@ def read_gfs_file(fname, area=None, alt0=0, t_0=None, descent_only=False):
 
 	else:
 
-		u_winds = []
-		v_winds = []
-		temperatures = []
-		altitudes = []
+		u_winds, v_winds, temperatures, altitudes = [], [], [], []
 
 		alts_min = np.array([np.min(alt) for alt in altitude.values()])
 
@@ -272,177 +269,42 @@ def read_gfs_single(directory=None, area=None, alt0=None, descent_only=False):
 
 #################################################################################################################
 
-def read_gefs_file(fname=None, area=None, alt0=0, descent_only=False):
-	"""
-	Method to read am ensemble GFS file (GEFS)
-
-	Arguments
-	=========
-	fname : string
-		The name of the grib file to be read
-	area : (float, float, float, float)
-		The (most northern latitude, most western longitude, most southern latitude, most eastern longitude) in degrees, indicating the area on the globe from which the data should be collected
-	alt0 : float
-		Initial temperature.
-	descent_only : bool
-		Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
-	"""
-
-	import param_file as p
-
-	indir = p.path + p.weather_data_folder + p.GEFS_folder
-
-	if area is not None:
-		tlat, llon, blat, rlon = area
-	else:
-		print('Do you really wish to search the entire planet?')
-		tlat, llon, blat, rlon = (90.0, 0.0, -90.0, 360.0)
-
-	############################################################################################################
-
-	grib = pg.open(indir + fname)
-	grib.seek(0)
-	u_msgs = grib.select(name='U component of wind')
-	v_msgs = grib.select(name='V component of wind')
-	g_msgs = grib.select(name='Geopotential Height')
-
-	lats, lons = u_msgs[0].latlons()
-	lats2, lons2 = u_msgs[0].latlons()
-
-	for i in range(len(lons2)):
-		for j in range(len(lons2[i])):
-			if lons2[i][j] > 180:
-				lons2[i][j] -= 360
-
-	locs = pyb_aux.all_and([lats <= tlat, lats >= blat, lons2 <= rlon, lons2 >= llon])
-	row_idx, col_idx = np.where(locs)
-	lats = lats[(row_idx, col_idx)]
-	lons = lons[(row_idx, col_idx)]
-
-	if len(lats) == 0:
-		print('Warning! lats is empty!')
-	if len(lons) == 0:
-		print('Warning! lons is empty!')
-
-	############################################################################################################
-
-	u_wind, v_wind, altitude = {}, {}, {}
-	for msg in u_msgs:
-		if msg.typeOfLevel == 'isobaricInhPa':
-			u_wind[msg.level] = msg.values[(row_idx, col_idx)]
-
-	for msg in v_msgs:
-		if msg.typeOfLevel == 'isobaricInhPa':
-			v_wind[msg.level] = msg.values[(row_idx, col_idx)]
-
-	for msg in g_msgs:
-		if msg.typeOfLevel == 'isobaricInhPa':
-			altitude[msg.level] = msg.values[(row_idx, col_idx)]
-
-	############################################################################################################
-
-	pressures = list(u_wind.keys())
-	pressures.sort()
-	pressures.reverse()
-
-	alt_keys, u_winds, v_winds, altitudes, alt_interp = ([], [], [], [], [])
-
-	for key in pressures:
-
-		uwnd, vwnd, alt = [], [], []
-
-		uwnd.append(u_wind[key])
-		vwnd.append(v_wind[key])
-		u_winds.append(np.hstack(uwnd))
-		v_winds.append(np.hstack(vwnd))
-
-		if key in altitude.keys():
-
-			alt_keys.append(key)
-			alt.append(altitude[key])
-			altitudes.append(np.hstack(alt))
-
-	############################################################################################################
-
-	p_interp_vals = list(set(pressures).symmetric_difference(set(alt_keys)))
-
-	alt_interps = []
-
-	for p in p_interp_vals:
-
-		alt_interps.append([float(interpolate.interp1d(alt_keys, np.array(altitudes)[:, i])(p)) for i in range(len(lats))])
-
-	for i in range(len(alt_interps)):
-
-		interp_mean = np.mean(alt_interps)
-		means = [np.mean(altitudes[k]) for k in range(len(altitudes))]
-
-		index = 0
-		for j in range(len(means)):
-			index = j
-			if interp_mean < means[j]:
-				break
-				
-		altitudes.insert(index , np.array(alt_interps[i]))
-
-	############################################################################################################
-
-	data = {}
-	data['lats'] = np.array(lats)
-	data['lons'] = np.array(lons)
-	data['u_winds'] = np.array(u_winds)
-	data['v_winds'] = np.array(v_winds)
-	data['altitudes'] = np.array(altitudes)
-
-	all_pressures = []
-
-	for dat in data['lats']:
-		all_pressures.append(100 * np.array(pressures))
-
-	data['pressures'] = np.array(all_pressures).transpose()
-
-	return data
-
-#################################################################################################################
-#################################################################################################################
-
 def save_kml(kml_dir, data, ini_conditions=None, descent_only=True, errs=None, overwrite=False):
 	"""
 	Method to save given trajectory as KML file
 
 	Arguments
 	=========
-	fname : string
-		Name of file containing the trajectory
+	kml_dir : string
+		Directory in which to store the kml file
 	data : dict
 		Dictionary containing the trajectory data
-	other_info : list
-		List containing the highest point in the trajectory, i.e. either the starting location if descent_only or the burst location of the balloon if not descent_only
-	params : list
-		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
-	balloon : dict
-		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
-	mean_direction : float
-		Angle between starting point and landing point
+	descent_only : bool
+		Option to start the trajectory at its highest point. If True, the trajectory only has a descent phase
+	errs : tuple of floats
+		The predicted errors in the direction of travel and perpendicular direction
+	overwrite : bool
+		If True, overwrite trajectory file with same ini_conditions in folder
 	"""
 
 	datestr, utc_hour, loc0 = ini_conditions
 
 	fname = kml_dir + datestr + '_' + str(utc_hour) + '_' + str(loc0)
-	no = len([filename for filename in os.listdir(kml_dir) if os.path.basename(fname) in filename])
 	if overwrite:
 		no = 0
+	else:
+		no = len([filename for filename in os.listdir(kml_dir) if os.path.basename(fname) in filename])
 
 	if no != 0:
-		fname += '_' + str(no + 1) + '.kml'
+		fname += '_' + str(no + 1)
 	fname += '.kml'
 
 	if descent_only:
 		idx, = np.where(data['alts'] == np.max(data['alts']))
 	else:
 		idx, = np.where(data['alts'] == data['alts'][0])
-	latx, lonx, altx, timex = data['lats'][idx][0], data['lons'][idx][0], data['alts'][idx][0], data['times'][idx][0]
 
+	latx, lonx, altx, timex = data['lats'][idx][0], data['lons'][idx][0], data['alts'][idx][0], data['times'][idx][0]
 	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
 
 	#####################################################################
@@ -480,41 +342,29 @@ def save_kml(kml_dir, data, ini_conditions=None, descent_only=True, errs=None, o
 	kml_str += '<LineString id="geom_86">\n'
 
 	num = 0
+	kml_str += '<coordinates>\n'
 
-	if num == 0:
+	t_prev = -2.0
+	for i in range(0, len(data['lats'])):
+		kml_str += '%f,%f,%f\n' % (data['lons'][i], data['lats'][i], data['alts'][i])
 
-		kml_str += '<coordinates>\n'
-
-		t_prev = -2.0
-		for i in range(0, len(data['lats'])):
-			kml_str += '%f,%f,%f\n' % (data['lons'][i], data['lats'][i], data['alts'][i])
-
-		kml_str += '</coordinates>\n'
-		kml_str += '<extrude>1</extrude>\n'
-		kml_str += '<tessellate>1</tessellate>\n'
-		kml_str += '<altitudeMode>absolute</altitudeMode>\n' # sea level
-		kml_str += '</LineString>\n'
-		kml_str += '</Placemark>\n'
+	kml_str += '</coordinates>\n'
+	kml_str += '<extrude>1</extrude>\n'
+	kml_str += '<tessellate>1</tessellate>\n'
+	kml_str += '<altitudeMode>absolute</altitudeMode>\n' # sea level
+	kml_str += '</LineString>\n'
+	kml_str += '</Placemark>\n'
 		
-	num += 1
-
 	# Add placemarks for the trajectory end-points
-	num = 0
 	kml_str += '<Placemark>\n'
-	if num == 0:
-		kml_str += '<name>Landing point</name>\n'
-		kml_str += '<description>End-point based on GFS main run</description>\n'
-	else:
-		kml_str += '<name># %d</name>\n' % (num-1)
-		kml_str += '<description>End-point based on GFS ensemble member %d</description>\n' % (num-1)
+	kml_str += '<name>Landing point</name>\n'
+	kml_str += '<description>End-point based on GFS main run</description>\n'
 
 	kml_str += '<Point>\n'
 	kml_str += '<altitudeMode>absolute</altitudeMode>\n'
 	kml_str += '<coordinates>%f,%f,%f</coordinates>\n' % (data['lons'][-1], data['lats'][-1], data['alts'][-1])
 	kml_str += '</Point>\n'
 	kml_str += '</Placemark>\n'
-
-	num += 1
 
 	# Add "other_info" places
 	for dat in other_info:
@@ -532,7 +382,7 @@ def save_kml(kml_dir, data, ini_conditions=None, descent_only=True, errs=None, o
 	mean_direction = np.radians(data['mean_direction'])
 
 	if errs is None:
-		errs = determine_error(data=data)
+		errs = pyb_traj.determine_error(data=data)
 	parallel_err, perp_err = errs
 
 	kml_str_add1 = create_ellips(lon=end_lon, lat=end_lat, parallel_err=parallel_err, perp_err=perp_err, times=1, theta=mean_direction, color='BF0000DF') # 68th percentile
@@ -600,7 +450,7 @@ def write_out_polygon(coords=None, color='BF0000DF'):
 
 #################################################################################################################
 
-def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=None):
+def merge_kml(datestr=None, run=None, drift_times=None):
 	"""
 	Method to merge the kml files output by the pyb_drifter script
 
@@ -610,15 +460,9 @@ def merge_kml(datestr=None, run=None, params=None, balloon=None, drift_times=Non
 		Date of initial point
 	run : string
 		String indicating the folder in which the drifted trajectories are stored
-	params : list
-		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
-	balloon : dict
-		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
 	drift_times : array
 		Array of driftimes used to created the trajectories
 	"""
-
-	descent_only, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = set_params(params=params, balloon=balloon)
 
 	dir_base = p.path + p.output_folder + str(run) + '/'
 
@@ -773,24 +617,21 @@ def get_and_make_paths(run=None):
 
 #################################################################################################################
 
-def print_verbose(datestr=None, utc_hour=None, loc0=None, params=None, balloon=None):
+def print_verbose(ini_conditions=None, params=None, balloon=None):
 	"""
 	Method to print out the parameters being used to the terminal
 
 	Arguments
 	=========	
-	datestr : string
-		Date of initial point
-	utc_hour : float
-		Time of initial point
-	loc0 : floats in tuple
-	  	(latitude in degrees, longitude in degrees, altitude in km) of initial point
+	ini_conditions : tuple of strings
+		(Date of initial point, Initial time of trajectory, (latitude in degrees, longitude in degrees, altitude in km) of initial point
 	params : list
 		List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
 	balloon : dict
 		Dictionary of balloon parameters, e.g. burtsradius, mass etc.
 	"""
 
+	datestr, utc_hour, loc0 = ini_conditions
 	descent_only, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = set_params(params=params, balloon=balloon)
 
 	print('General Parameters')
@@ -1030,38 +871,6 @@ def save_used_weather_files(save_dir=None, used_weather_files=None, trajectories
 
 #################################################################################################################
 
-def err_parallel(sigma_0, h, k, hor_dist, tfut):
-	return np.sqrt(sigma_0**2 + h*hor_dist**2 + k*tfut**2)
-
-#################################################################################################################
-
-def err_perp(sigma_0, h, k, q, hor_dist, tfut):
-	return np.sqrt(sigma_0**2 + h*hor_dist**2 + k*tfut**2)/q
-
-#################################################################################################################
-
-def determine_error(data=None):
-	"""
-	Method to determine the error in the trajectory from the difference in location, time to forecast and how far into the future the forecast looks
-
-	Arguments
-	=========
-	data : dict
-		Dictionary containing trajectory data
-	"""
-
-	sigma_0, h, k, q = 1.769442, 0.000316, 0.003567, 1.142628
-
-	tfut = np.mean(data['tfutures'])
-	hor_dist = np.sum(np.array(data['dists']))
-	parallel_err, perp_err = err_parallel(sigma_0, h, k, hor_dist, tfut), err_perp(sigma_0, h, k, q, hor_dist, tfut)
-
-	print('The errors are: ' + str(round(parallel_err, 3)) + ' and ' + str(round(perp_err, 3)) +  ' km\n')
-
-	return parallel_err, perp_err
-
-#################################################################################################################
-
 def create_trajectory_files(traj_dir=None, data=None, ini_conditions=None, overwrite=False):
 	"""
 	Method to create trajectory files and write out the trajectory data to them
@@ -1081,9 +890,10 @@ def create_trajectory_files(traj_dir=None, data=None, ini_conditions=None, overw
 	datestr, utc_hour, loc0 = ini_conditions
 
 	traj_file = traj_dir + datestr + '_' + str(utc_hour) + '_' + str(loc0)
-	no = len([filename for filename in os.listdir(traj_dir) if os.path.basename(traj_file) in filename])
 	if overwrite:
 		no = 0
+	else:
+		no = len([filename for filename in os.listdir(traj_dir) if os.path.basename(traj_file) in filename])
 
 	if no != 0:
 		traj_file += '_' + str(no + 1)
@@ -1174,6 +984,7 @@ def geodesic_point_buffer(lat=None, lon=None, radius=5):
 		pyproj.Proj(aeqd_proj.format(lat=lat, lon=lon)),
 		proj_wgs84)
 	buf = Point(0, 0).buffer(radius * 1000)  # distance in metres
+
 	return transform(project, buf).exterior.coords[:]
 
 #################################################################################################################
@@ -1220,7 +1031,7 @@ def make_ellipse(theta_num=100, phi=0, x_cent=0, y_cent=0, semimaj=0, semimin=0)
 
 def get_ellips_coords(lat=None, lon=None, x_extent=0, y_extent=0, theta=0):
 	"""
-	#Method to find all lats/lons to create a ellips of a given minor/major axis (km) around a lat/lon point
+	Method to find all lats/lons to create a ellips of a given minor/major axis (km) around a lat/lon point
 
 	Arguments
 	=========
@@ -1287,6 +1098,7 @@ def create_circle(lon=None, lat=None, radius=5, color='BF0000DF'):
 
 	coords = np.array(geodesic_point_buffer(lat, lon, radius))
 	kml_str = write_out_polygon(coords=coords, color=color)
+
 	return kml_str
 
 #################################################################################################################

@@ -687,3 +687,35 @@ def run_traj(weather_files=None, ini_conditions=None, params=None, balloon=None)
 	return trajectories, used_weather_files
 
 #################################################################################################################
+
+def err_parallel(sigma_0, h, k, hor_dist, tfut):
+	return np.sqrt(sigma_0**2 + h*hor_dist**2 + k*tfut**2)
+
+#################################################################################################################
+
+def err_perp(sigma_0, h, k, q, hor_dist, tfut):
+	return np.sqrt(sigma_0**2 + h*hor_dist**2 + k*tfut**2)/q
+
+#################################################################################################################
+
+def determine_error(data=None):
+	"""
+	Method to determine the error in the trajectory from the difference in location, time to forecast and how far into the future the forecast looks
+
+	Arguments
+	=========
+	data : dict
+		Dictionary containing trajectory data
+	"""
+
+	sigma_0, h, k, q = 1.769442, 0.000316, 0.003567, 1.142628 # parameters determined from test flights
+
+	tfut = np.mean(data['tfutures'])
+	hor_dist = np.sum(np.array(data['dists']))
+	parallel_err, perp_err = err_parallel(sigma_0, h, k, hor_dist, tfut), err_perp(sigma_0, h, k, q, hor_dist, tfut)
+
+	print('The errors are: ' + str(round(parallel_err, 3)) + ' and ' + str(round(perp_err, 3)) +  ' km\n')
+
+	return parallel_err, perp_err
+
+#################################################################################################################	

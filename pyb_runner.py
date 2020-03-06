@@ -53,7 +53,7 @@ def runner(ini_conditions=None, balloon=None, params=None, run=None, overwrite=F
 			loc0 = lat0, lon0, alt0
 
 	# print out parameters to terminal
-	pyb_io.print_verbose(datestr=datestr, utc_hour=utc_hour, loc0=loc0, params=params, balloon=balloon)
+	pyb_io.print_verbose(ini_conditions=ini_conditions, params=params, balloon=balloon)
 
 	############################################################################################################ <---- set/create paths
 
@@ -74,7 +74,7 @@ def runner(ini_conditions=None, balloon=None, params=None, run=None, overwrite=F
 	pyb_io.create_trajectory_files(traj_dir=traj_dir, data=trajectories, ini_conditions=ini_conditions, overwrite=overwrite)
 
 	# determine error
-	errs = pyb_io.determine_error(data=trajectories)
+	errs = pyb_traj.determine_error(data=trajectories)
 
 	# write out kml file for google earth
 	pyb_io.save_kml(kml_dir=kml_dir, data=trajectories, ini_conditions=ini_conditions, errs=errs, overwrite=overwrite)
