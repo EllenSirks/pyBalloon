@@ -77,7 +77,7 @@ def runner(ini_conditions=None, balloon=None, params=None, run=None, overwrite=F
 	errs = pyb_traj.determine_error(data=trajectories)
 
 	# write out kml file for google earth
-	pyb_io.save_kml(kml_dir=kml_dir, data=trajectories, ini_conditions=ini_conditions, errs=errs, overwrite=overwrite)
+	pyb_io.save_kml(kml_dir=kml_dir, data=trajectories, ini_conditions=ini_conditions, descent_only=descent_only, errs=errs, overwrite=overwrite)
 
 	# save descent rate figure
 	pyb_io.make_descent_rate_plot(fig_dir=fig_dir, data=trajectories, ini_conditions=ini_conditions)
@@ -134,7 +134,7 @@ def basic_runner(ini_conditions=None, balloon=None, params=None, run=None, overw
 	trajectories, used_weather_files = pyb_traj.run_traj(weather_files=files, ini_conditions=ini_conditions, params=params, balloon=balloon)
 
 	pyb_io.create_trajectory_files(traj_dir=traj_dir, data=trajectories, ini_conditions=ini_conditions, overwrite=overwrite)
-	pyb_io.save_kml(kml_dir=kml_dir, data=trajectories, ini_conditions=ini_conditions, overwrite=overwrite)
+	pyb_io.save_kml(kml_dir=kml_dir, data=trajectories, ini_conditions=ini_conditions, descent_only=descent_only, overwrite=overwrite)
 	pyb_io.save_used_weather_files(utc_hour=utc_hour, save_dir=base_dir, used_weather_files=used_weather_files, trajectories=trajectories)
 
 	return trajectories

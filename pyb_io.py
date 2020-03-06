@@ -300,12 +300,15 @@ def save_kml(kml_dir, data, ini_conditions=None, descent_only=True, errs=None, o
 	fname += '.kml'
 
 	if descent_only:
-		idx, = np.where(data['alts'] == np.max(data['alts']))
+		idx = np.where(data['alts'] == np.max(data['alts']))[0]
+		lonx, latx, altx, timex = data['lons'][idx][0], data['lats'][idx][0], data['alts'][idx][0], data['times'][idx][0]
+		other_info = [lonx, latx, altx, 'Initial condition', '%.0f minutes, %.0f meters' % (timex, altx)]
 	else:
-		idx, = np.where(data['alts'] == data['alts'][0])
-
-	latx, lonx, altx, timex = data['lats'][idx][0], data['lons'][idx][0], data['alts'][idx][0], data['times'][idx][0]
-	other_info = [(latx, lonx, altx, 'Burst point', '%.0f minutes, %.0f meters' % (timex, altx))]
+		idx1 = np.where(data['alts'] == data['alts'][0])[0]
+		idx2 = np.where(data['alts'] == np.max(data['alts']))[0]
+		lonx1, latx1, altx1, timex1 = data['lons'][idx1][0], data['lats'][idx1][0], data['alts'][idx1][0], data['times'][idx1][0]
+		lonx2, latx2, altx2, timex2 = data['lons'][idx2][0], data['lats'][idx2][0], data['alts'][idx2][0], data['times'][idx2][0]
+		other_info = [lonx1, latx1, altx1, 'Initial condition', '%.0f minutes, %.0f meters' % (timex1, altx1), lonx2, latx2, altx2, 'Burst point', '%.0f minutes, %.0f meters' % (timex2, altx2)]
 
 	#####################################################################
 
@@ -341,10 +344,8 @@ def save_kml(kml_dir, data, ini_conditions=None, descent_only=True, errs=None, o
 	kml_str += '<styleUrl>#stylesel_362</styleUrl>\n'
 	kml_str += '<LineString id="geom_86">\n'
 
-	num = 0
 	kml_str += '<coordinates>\n'
 
-	t_prev = -2.0
 	for i in range(0, len(data['lats'])):
 		kml_str += '%f,%f,%f\n' % (data['lons'][i], data['lats'][i], data['alts'][i])
 
@@ -359,7 +360,6 @@ def save_kml(kml_dir, data, ini_conditions=None, descent_only=True, errs=None, o
 	kml_str += '<Placemark>\n'
 	kml_str += '<name>Landing point</name>\n'
 	kml_str += '<description>End-point based on GFS main run</description>\n'
-
 	kml_str += '<Point>\n'
 	kml_str += '<altitudeMode>absolute</altitudeMode>\n'
 	kml_str += '<coordinates>%f,%f,%f</coordinates>\n' % (data['lons'][-1], data['lats'][-1], data['alts'][-1])
@@ -367,16 +367,26 @@ def save_kml(kml_dir, data, ini_conditions=None, descent_only=True, errs=None, o
 	kml_str += '</Placemark>\n'
 
 	# Add "other_info" places
-	for dat in other_info:
+	kml_str += '<Placemark>\n'
+	kml_str += '<name>' + other_info[3] + '</name>\n' 
+	kml_str += '<description>' + other_info[3] + '</description>\n'	
+	kml_str += '<Point>\n'
+	kml_str += '<altitudeMode>absolute</altitudeMode>\n'
+	kml_str += '<coordinates>%f,%f,%f</coordinates>\n' % \
+			(other_info[0], other_info[1], other_info[2])
+	kml_str += '</Point>\n'
+	kml_str += '</Placemark>\n'
+
+	if not descent_only:
 		kml_str += '<Placemark>\n'
-		kml_str += '<name>initial condition</name>\n' ## change this
-		kml_str += '<description>initial condition</description>\n'
+		kml_str += '<name>' + other_info[8] + '</name>\n' 
+		kml_str += '<description>' + other_info[8] + '</description>\n'	
 		kml_str += '<Point>\n'
 		kml_str += '<altitudeMode>absolute</altitudeMode>\n'
 		kml_str += '<coordinates>%f,%f,%f</coordinates>\n' % \
-				(dat[1], dat[0], dat[2])
+				(other_info[5], other_info[6], other_info[7])
 		kml_str += '</Point>\n'
-		kml_str += '</Placemark>\n'
+		kml_str += '</Placemark>\n'	
 
 	end_lat, end_lon, end_alt = data['lats'][-1], data['lons'][-1], data['alts'][-1]
 	mean_direction = np.radians(data['mean_direction'])
