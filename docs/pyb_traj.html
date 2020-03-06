@@ -206,7 +206,7 @@ params&nbsp;:&nbsp;list<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
 Return:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;calculated&nbsp;trajectories,&nbsp;list&nbsp;of&nbsp;fig&nbsp;dicionaries&nbsp;for&nbsp;each&nbsp;weather&nbsp;file,&nbsp;dictionary&nbsp;of&nbsp;used_weather_files,&nbsp;and&nbsp;list&nbsp;of&nbsp;time&nbsp;differences&nbsp;between&nbsp;trajectiry&nbsp;times&nbsp;and&nbsp;weather&nbsp;forecast&nbsp;files</tt></dd></dl>
- <dl><dt><a name="-update_files"><strong>update_files</strong></a>(used_weather_files<font color="#909090">=None</font>, data<font color="#909090">=None</font>, lat_rad<font color="#909090">=None</font>, lon_rad<font color="#909090">=None</font>, all_alts<font color="#909090">=None</font>, current_time<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, total_time<font color="#909090">=[0]</font>, index<font color="#909090">=0</font>, params<font color="#909090">=None</font>)</dt><dd><tt>Update&nbsp;weather&nbsp;files&nbsp;to&nbsp;newest&nbsp;and&nbsp;best&nbsp;available&nbsp;(closest&nbsp;in&nbsp;time&nbsp;to&nbsp;current&nbsp;time)<br>
+ <dl><dt><a name="-update_files"><strong>update_files</strong></a>(used_weather_files<font color="#909090">=None</font>, data<font color="#909090">=None</font>, lat_rad<font color="#909090">=None</font>, lon_rad<font color="#909090">=None</font>, all_alts<font color="#909090">=None</font>, current_time<font color="#909090">=None</font>, balloon<font color="#909090">=None</font>, datestr<font color="#909090">=None</font>, utc_hour<font color="#909090">=None</font>, loc0<font color="#909090">=None</font>, total_time<font color="#909090">=[0]</font>, params<font color="#909090">=None</font>)</dt><dd><tt>Update&nbsp;weather&nbsp;files&nbsp;to&nbsp;newest&nbsp;and&nbsp;best&nbsp;available&nbsp;(closest&nbsp;in&nbsp;time&nbsp;to&nbsp;current&nbsp;time)<br>
 &nbsp;<br>
 Arguments<br>
 =========<br>
@@ -232,11 +232,9 @@ loc0&nbsp;:&nbsp;floats&nbsp;in&nbsp;tuple<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(latitude&nbsp;in&nbsp;degrees,&nbsp;longitude&nbsp;in&nbsp;degrees,&nbsp;altitude&nbsp;in&nbsp;km)&nbsp;of&nbsp;initial&nbsp;point<br>
 total_time&nbsp;:&nbsp;list<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;increments&nbsp;in&nbsp;time&nbsp;for&nbsp;steps&nbsp;in&nbsp;trajectory&nbsp;so&nbsp;far<br>
-index&nbsp;:&nbsp;int<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Index&nbsp;corresponding&nbsp;to&nbsp;current&nbsp;weather&nbsp;file&nbsp;being&nbsp;used&nbsp;(only&nbsp;when&nbsp;not&nbsp;interpolating)<br>
 params&nbsp;:&nbsp;list<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;parameters&nbsp;determining&nbsp;how&nbsp;the&nbsp;trajectory&nbsp;is&nbsp;calculated,&nbsp;e.g.&nbsp;with&nbsp;interpolation,&nbsp;descent_only&nbsp;etc.<br>
 Return:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Data&nbsp;of&nbsp;new&nbsp;weather&nbsp;file(s),&nbsp;updated&nbsp;weather&nbsp;file&nbsp;keys,&nbsp;updated&nbsp;index,&nbsp;and&nbsp;updated&nbsp;used_weather_files.</tt></dd></dl>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Data&nbsp;of&nbsp;new&nbsp;weather&nbsp;file(s),&nbsp;updated&nbsp;weather&nbsp;file&nbsp;keys,&nbsp;and&nbsp;updated&nbsp;used_weather_files.</tt></dd></dl>
 </td></tr></table>
 </body></html>

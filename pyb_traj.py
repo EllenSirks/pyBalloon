@@ -17,7 +17,7 @@ import param_file as p
 #################################################################################################################
 
 def update_files(used_weather_files=None, data=None, lat_rad=None, lon_rad=None, all_alts=None, current_time=None, balloon=None, datestr=None, utc_hour=None, loc0=None, \
-	total_time=[0], index=0, params=None):
+	total_time=[0], params=None):
 	"""
 	Update weather files to newest and best available (closest in time to current time)
 
@@ -45,12 +45,10 @@ def update_files(used_weather_files=None, data=None, lat_rad=None, lon_rad=None,
 		(latitude in degrees, longitude in degrees, altitude in km) of initial point
 	total_time : list
 		List of increments in time for steps in trajectory so far
-	index : int
-		Index corresponding to current weather file being used (only when not interpolating)
 	params : list
 	   	List of parameters determining how the trajectory is calculated, e.g. with interpolation, descent_only etc.
 	Return:
-		Data of new weather file(s), updated weather file keys, updated index, and updated used_weather_files.
+		Data of new weather file(s), updated weather file keys, and updated used_weather_files.
 	"""
 
 	descent_only, drift_time, resolution, hr_diff, check_elevation, live, params, balloon = pyb_io.set_params(params=params, balloon=balloon)
@@ -89,8 +87,6 @@ def update_files(used_weather_files=None, data=None, lat_rad=None, lon_rad=None,
 		keys = list(data.keys())
 		keys.sort()
 		
-		index = np.where(np.array(keys) == new_weather_files[-1])[0][0]
-
 	############################################################################################################
 
 	weather_files = list(data.keys())
@@ -98,7 +94,7 @@ def update_files(used_weather_files=None, data=None, lat_rad=None, lon_rad=None,
 
 	keys.sort()
 
-	return data, keys, index, used_weather_files
+	return data, keys, used_weather_files
 
 ###############################################################################################################
 
@@ -425,7 +421,7 @@ def calc_movements(data=None, used_weather_files=None, ini_conditions=None, para
 
 	tfutures, speeds = [], []
 	total_time, dists, dists_u, dists_v = [0], [0], [0], [0]
-	stage, index, props_index, i, max_i, timer = 1, 0, 0, 0, 0, 0
+	stage, props_index, i, max_i, timer = 1, 0, 0, 0, 0
 
 	if drift_time == 0:
 		stage_update = 2
@@ -454,8 +450,8 @@ def calc_movements(data=None, used_weather_files=None, ini_conditions=None, para
 		current_time = (float(utc_hour) + np.cumsum(np.array(total_time))[-1]/3600) % 24
 
 		# update weather files
-		data, keys, index, used_weather_files = update_files(used_weather_files=used_weather_files, data=data, lat_rad=lat_rad, lon_rad=lon_rad, all_alts=all_alts, \
-				balloon=balloon, datestr=datestr, utc_hour=utc_hour, loc0=loc0, total_time=total_time, current_time=current_time, index=index, params=params)
+		data, keys, used_weather_files = update_files(used_weather_files=used_weather_files, data=data, lat_rad=lat_rad, lon_rad=lon_rad, all_alts=all_alts, \
+				balloon=balloon, datestr=datestr, utc_hour=utc_hour, loc0=loc0, total_time=total_time, current_time=current_time, params=params)
 
 		if not (stage == 1 and descent_only):
 
@@ -491,12 +487,9 @@ def calc_movements(data=None, used_weather_files=None, ini_conditions=None, para
 
 			if not descent_only:
 
-				sys.stdout.write('\r')
-				sys.stdout.flush()
-				sys.stdout.write(str(round(100.*(max_i - i)/max_i, 1)) + r' % done'.ljust(60) + '\r')
-				sys.stdout.flush()
+				max_alt = f1*data[t1]['max_altitudes'][grid_i]+f2*data[t2]['max_altitudes'][grid_i]
 
-				if all_alts[-1] >= data[keys[index]]['max_altitudes'][grid_i]:
+				if all_alts[-1] >= max_alt:
 
 					sys.stdout.write('\r')
 					sys.stdout.flush()
@@ -523,7 +516,7 @@ def calc_movements(data=None, used_weather_files=None, ini_conditions=None, para
 		elif stage == 2:
 
 			timer += dt
-			if timer == drift_time*60:
+			if timer == drift_time*60: # to seconds
 				stage += 1
 				continue
 
